@@ -1,0 +1,372 @@
+# CROKODIAL CRM CODEBASE AUDIT
+Date: April 28, 2025
+
+## ARCHITECTURE MAP
+
+### Backend Stack
+- **Server Framework**: Node.js + Express (TypeScript)
+- **Database**: MongoDB with Mongoose
+- **Key Files**:
+  - Entry Point: `dialer-app/server/src/index.ts`
+  - Server Config: `dialer-app/server/src/server.ts`
+  - Routes:
+    - `dialer-app/server/src/routes/leads.routes.ts`
+    - `dialer-app/server/src/routes/auth.routes.ts`
+    - `dialer-app/server/src/routes/calls.routes.ts`
+    - `dialer-app/server/src/routes/dispositions.routes.ts`
+    - `dialer-app/server/src/routes/integration.routes.ts`
+  - Controllers:
+    - `dialer-app/server/src/controllers/leads.controller.ts`
+  - Models:
+    - `dialer-app/server/src/models/Lead.ts`
+    - `dialer-app/server/src/models/User.ts`
+    - `dialer-app/server/src/models/Call.ts`
+  - Middleware:
+    - `dialer-app/server/src/middleware/auth.ts`
+    - `dialer-app/server/src/middleware/errorHandler.ts`
+  - Services:
+    - `dialer-app/server/src/services/ushaService.ts`
+    - `dialer-app/server/src/services/nextgenService.ts`
+    - `dialer-app/server/src/services/ringyService.ts`
+
+### Frontend Stack
+- **Framework**: React (18.x) + TypeScript
+- **Build Tool**: Vite
+- **State Management**: React Query + Context API
+- **UI Libraries**: Chakra UI, Styled Components, TailwindCSS
+- **Key Files**:
+  - Entry Point: `dialer-app/client/src/main.tsx`
+  - App Container: `dialer-app/client/src/App.tsx`
+  - Pages:
+    - `dialer-app/client/src/pages/Leads.tsx` (6879 lines)
+    - `dialer-app/client/src/pages/Login.tsx`
+    - `dialer-app/client/src/pages/Settings.tsx`
+    - `dialer-app/client/src/pages/MassText.tsx`
+    - `dialer-app/client/src/pages/Spreadsheet.tsx`
+    - `dialer-app/client/src/pages/CsvUpload.tsx`
+  - Components:
+    - `dialer-app/client/src/components/Dialer.tsx` (3506 lines)
+    - `dialer-app/client/src/components/Layout.tsx`
+    - `dialer-app/client/src/components/StateIcon.tsx`
+    - `dialer-app/client/src/components/DispositionFilter.tsx`
+    - `dialer-app/client/src/components/CalendlyEventSelector.tsx`
+  - Context:
+    - `dialer-app/client/src/context/AuthContext.tsx` (551 lines)
+    - `dialer-app/client/src/context/LeadContext.tsx` (158 lines)
+    - `dialer-app/client/src/context/ToastContext.tsx`
+    - `dialer-app/client/src/context/NotificationContext.tsx`
+  - API:
+    - `dialer-app/client/src/api/axiosInstance.ts` (133 lines)
+
+### Build & Deploy Pipeline
+- **Scripts**:
+  - Client Build: `dialer-app/client/package.json` - `npm run build` using Vite
+  - Server Build: `dialer-app/server/package.json` - TypeScript compilation (`tsc`)
+  - `start-dialer.sh` - App startup script
+  - `start-crokodial.command` - Likely macOS launcher
+  - `start-dev.sh` - Development environment launcher
+- **Environment Variables**: `.env` in project root
+- **Process Management**: Suspected PM2 (based on script references)
+
+## THIRD-PARTY INTEGRATIONS
+
+- **Twilio**: Phone/SMS integration via `dialer-app/server/src/models/Call.ts`
+- **Calendly**: Appointment scheduling via `dialer-app/client/src/components/CalendlyEventSelector.tsx`
+- **NextGen**: Lead import via `dialer-app/server/src/services/nextgenService.ts`
+- **USHA**: Lead integration via `dialer-app/server/src/services/ushaService.ts`
+- **Ringy**: Lead import via `dialer-app/server/src/services/ringyService.ts`
+
+## CODE CONVENTIONS & PATTERNS
+
+- **Async Pattern**: Promises with async/await throughout
+- **Error Handling**: Try/catch blocks with detailed logging
+- **State Management**: 
+  - Context API for global state (Auth, Leads)
+  - React Query for API data
+  - Local component state for UI
+- **Styling Approach**: 
+  - Styled Components for dynamic styling
+  - Chakra UI for base components
+  - TailwindCSS for utility classes
+- **Component Structure**: Large monolithic components (e.g., Leads.tsx at 6879 lines)
+- **Authentication**: JWT tokens stored in localStorage
+- **API Communication**: Axios with custom instance and interceptors
+
+## KNOWLEDGE GAPS
+
+1. **Testing Framework**
+   - Question 1: Is there a testing strategy or framework in place? I couldn't locate test files.
+   - Question 2: Are there integration tests for critical paths like authentication and lead management?
+
+2. **Deployment Details**
+   - Question 3: What is the production deployment environment (AWS, Heroku, dedicated server)?
+   - Question 4: How are environment variables managed across environments?
+
+3. **Data Backup Strategy**
+   - Question 5: Is there an automated backup system for the MongoDB database?
+   - Question 6: What is the disaster recovery plan?
+
+4. **User Permissions System**
+   - Question 7: Beyond the basic 'admin' and 'user' roles, are there more granular permissions?
+   - Question 8: How are role-based access controls implemented on the frontend?
+
+5. **Performance Monitoring**
+   - Question 9: Is there any APM tool integration (New Relic, Datadog, etc.)?
+   - Question 10: How is frontend performance monitored?
+
+## RISK & TECH-DEBT SNAPSHOT
+
+1. **Code Organization**
+   - Extremely large component files (Leads.tsx at 6879 lines, Dialer.tsx at 3506 lines)
+   - Poor separation of concerns in monolithic components
+   - No modularization of complex features
+
+2. **Performance Concerns**
+   - Client-side filtering and sorting of large datasets
+   - Heavy use of localStorage for state persistence without size limits
+   - No evidence of pagination implementation for large lists
+   - Large bundles due to mixed UI libraries
+   - Potential memory leaks from uncleared timeouts/intervals
+
+3. **Security Concerns**
+   - JWT stored in localStorage (vulnerable to XSS)
+   - Excessive logging of sensitive data
+   - API keys exposed in server code (e.g., Twilio credentials)
+   - Limited input validation on API endpoints
+   - No rate limiting observed in API routes
+
+4. **Maintainability Issues**
+   - Limited comments and documentation
+   - Duplicate styling code across components
+   - Inconsistent error handling patterns
+   - No clear component API documentation
+   - Complex state management spread across components and context
+
+5. **Dependency Concerns**
+   - Mixed usage of UI libraries (Chakra UI + styled-components + TailwindCSS)
+   - Dependency version inconsistencies
+   - No apparent dependency audit process
+   - Multiple state management approaches within same app
+
+## LEADS PAGE ANALYSIS
+
+The Leads page (`dialer-app/client/src/pages/Leads.tsx`) is an extremely large file (6879 lines) that contains:
+
+- **State Management**: Multiple useState hooks for various aspects (leads, filters, pagination, etc)
+- **API Integration**: React Query hooks for data fetching
+- **UI Components**: LeadCard, filtering controls, pagination, bulk edit controls
+- **Event Handlers**: Over 40 different handlers for various interactions
+- **Styling**: Mix of styled-components and inline styles
+- **Context Usage**: LeadContext and AuthContext for shared state
+
+Key functionality includes:
+- Lead list rendering with virtual scrolling
+- Drag-and-drop for reordering leads
+- Disposition management with color coding
+- Bulk edit operations (delete, update disposition)
+- Call tracking integration
+- Notes management
+- Filtering by state, disposition, and search terms
+- Detachable lead windows
+
+Major concerns:
+- Component is too large for maintainability
+- Many responsibilities in a single file
+- Potential performance issues with large datasets
+- Complex state interactions difficult to debug
+- No clear separation between UI and business logic
+- Lack of modularization makes testing difficult
+
+## DIALER COMPONENT ANALYSIS
+
+The Dialer component (`dialer-app/client/src/components/Dialer.tsx`, 3506 lines) manages:
+
+- Phone dialing functionality
+- Detachable window behavior
+- Resizable and draggable UI
+- Call tracking and history
+- Integration with phone systems
+
+It has complex window management code for the detachable dialer with extensive use of direct DOM manipulation, which is brittle and prone to issues across different browsers.
+
+## LEAD DEVELOPER RECOMMENDATIONS
+
+### Prioritized Improvement Roadmap
+
+1. **Immediate Concerns (1-2 Weeks)**
+   - Address security vulnerabilities:
+     - Move JWT tokens from localStorage to httpOnly cookies
+     - Remove API keys from code and use environment variables
+     - Add rate limiting to API endpoints
+   - Fix memory leaks by auditing all useEffect cleanup functions
+   - Add input validation to all API endpoints
+   - Create basic documentation for setting up dev environment
+
+2. **Short-Term Improvements (1-2 Months)**
+   - Begin modularization of Leads.tsx:
+     - Extract LeadCard to separate component file
+     - Move filtering logic to custom hooks
+     - Create separate components for each major UI section
+   - Implement server-side pagination for lead lists
+   - Standardize on a single UI component library (recommend Chakra UI)
+   - Add basic Jest tests for critical paths
+
+3. **Mid-Term Goals (3-6 Months)**
+   - Refactor state management:
+     - Use React Query more consistently for server state
+     - Consolidate context usage
+     - Create custom hooks for complex state logic
+   - Implement proper feature-based directory structure
+   - Add comprehensive test coverage
+   - Set up CI/CD pipeline
+   - Documentation improvements
+
+4. **Long-Term Vision (6-12 Months)**
+   - Full UI/UX refresh with consistent design system
+   - Implement proper design patterns for all components
+   - Performance optimization across the application
+   - Move to a more secure authentication system
+   - Modernize deployment infrastructure
+
+### Code Organization Strategy
+
+Proposed directory structure:
+
+```
+src/
+  features/            # Feature-based organization
+    auth/              # Authentication feature
+      components/      # Auth-specific components
+      hooks/           # Auth-related hooks
+      services/        # Auth API services
+      types/           # Auth-related types
+      utils/           # Auth-specific utilities
+    leads/             # Leads management feature
+      components/      # Lead-specific components
+        LeadCard/      # Complex components get their own directories
+          index.tsx
+          styles.ts
+          types.ts
+          hooks.ts
+      hooks/           # Lead-related hooks
+      services/        # Lead API services
+      types/           # Lead-related types
+      utils/           # Lead-specific utilities
+    dialer/            # Dialer feature
+      components/
+      hooks/
+      services/
+      types/
+      utils/
+  shared/              # Shared resources
+    components/        # Reusable components
+    hooks/             # Generic hooks
+    services/          # Base API services
+    types/             # Common types
+    utils/             # Utility functions
+  store/               # Global state management
+  App.tsx
+  main.tsx
+```
+
+### Refactoring Strategies
+
+1. **Leads.tsx Modularization**:
+   - Identify functional areas (filtering, list rendering, etc.)
+   - Extract pure UI components first
+   - Create custom hooks for complex logic (useDragDrop, useLeadFiltering)
+   - Move context interactions to custom hooks
+   - Implement proper prop typing and interfaces
+
+2. **Dialer.tsx Modularization**:
+   - Extract window management logic to custom hooks
+   - Create smaller, focused components
+   - Remove direct DOM manipulation in favor of React refs
+   - Implement proper state management for detached window
+
+3. **Performance Improvements**:
+   - Implement React.memo for expensive renders
+   - Use virtualization for long lists (react-window)
+   - Optimize API calls with better caching strategies
+   - Implement proper data pagination
+
+### Testing Implementation Plan
+
+1. **Testing Framework Setup**:
+   - Jest + React Testing Library for component tests
+   - Cypress for E2E tests
+   - Mock Service Worker for API mocking
+
+2. **Test Coverage Priorities**:
+   - Authentication flows
+   - Lead CRUD operations
+   - Filtering and sorting logic
+   - Dialer functionality
+
+3. **CI Integration**:
+   - Run tests on PRs
+   - Enforce coverage minimums
+   - Add linting and type checking
+
+### Security Enhancements
+
+1. **Authentication**:
+   - Move from localStorage to httpOnly cookies
+   - Implement proper CSRF protection
+   - Add token refresh mechanism
+
+2. **API Security**:
+   - Implement rate limiting
+   - Add request validation middleware
+   - Move sensitive data to environment variables
+   - Implement proper error handling to prevent data leakage
+
+3. **Frontend Security**:
+   - Add Content Security Policy
+   - Implement proper input sanitization
+   - Remove sensitive data logging
+
+### Development Best Practices
+
+1. **Code Reviews**:
+   - Mandatory for all PRs
+   - Focused on security, performance, and maintainability
+   - Use PR templates
+
+2. **Documentation**:
+   - Add JSDoc comments to all functions/components
+   - Create README.md with setup instructions
+   - Document API endpoints with Swagger/OpenAPI
+
+3. **Development Workflow**:
+   - Implement Conventional Commits
+   - Use feature branches
+   - Implement semantic versioning
+
+### Technical Decision Records
+
+Going forward, we should document all major technical decisions using ADRs (Architecture Decision Records) to maintain a history of why particular approaches were chosen. This will help onboard new developers and provide context for future refactoring work.
+
+## TOOLING RECOMMENDATIONS
+
+1. **Linting & Formatting**:
+   - ESLint with TypeScript rules
+   - Prettier for consistent formatting
+   - Husky for pre-commit hooks
+
+2. **Performance Monitoring**:
+   - Add Lighthouse CI
+   - Implement performance budgets
+   - Set up bundle size analysis
+
+3. **Development Experience**:
+   - Storybook for component development
+   - Better TypeScript configuration
+   - VSCode workspace settings
+
+4. **Deployment**:
+   - Move to containerized deployment
+   - Implement blue/green deployments
+   - Set up proper environment management
+
+This roadmap and these recommendations are intended to guide gradual, incremental improvements to the codebase while maintaining functionality throughout the process. Each step should be carefully planned and executed to avoid disrupting the existing user experience. 

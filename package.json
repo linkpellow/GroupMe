@@ -1,0 +1,20 @@
+{
+  "name": "groupme-webhook",
+  "version": "1.0.0",
+  "description": "GroupMe webhook server for Crokodial",
+  "main": "groupme-webhook.js",
+  "scripts": {
+    "start": "node groupme-webhook.js",
+    "dev": "nodemon groupme-webhook.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

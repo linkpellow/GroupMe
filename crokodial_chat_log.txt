@@ -1,0 +1,2 @@
+Crokodial CRM Development Log - Sat Mar 29 23:46:27 EDT 2025
+==================== CHAT LOG STARTED ==================== User: okay run the servers and let's begin. i want you to log our entire chat in a .txt file inside the directory in case we lose our progress again. got it? Claude: I'll run the servers and create a chat log file.

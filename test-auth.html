@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h2>Login</h2>
+    <button onclick="login()">Login</button>
+    <hr>
+    <h2>Test Database</h2>
+    <button onclick="testDb()">Test DB</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function login() {
+            try {
+                const response = await fetch('https://crokodial-2a1145cec713.herokuapp.com/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@crokodial.com',
+                        password: 'admin123'
+                    })
+                });
+                const data = await response.json();
+                localStorage.setItem('token', data.token);
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testDb() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('https://crokodial-2a1145cec713.herokuapp.com/api/leads/test-db', {
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+                const data = await response.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html> 

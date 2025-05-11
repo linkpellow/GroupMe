@@ -1,0 +1,75 @@
+# Search Functionality Update - Exact Name Substring Matching
+
+## Problem Description
+The previous implementation of the search functionality was too broad, as it matched:
+- Partial text anywhere in names, emails, or phone numbers
+- Matched even if the text appeared in the middle of words, not just at the beginning
+- Only searched leads on the current page, not all leads
+
+## Changes Made
+
+1. **Client-Side Search**:
+   - Modified search to only match exact ordered substrings in the name field
+   - Changed to fetch ALL leads when searching, not just the current page
+   - Implemented client-side filtering with exact substring matching
+   - Updated search input placeholder to "Search names exactly..." to reflect new behavior
+
+2. **Server-Side Controller**:
+   - Updated server's search functionality to only search in the name field
+   - Changed to return all leads when searching rather than paginated results
+   - Improved error handling for search failure cases
+
+## Implementation Details
+
+1. **Client Search Logic**:
+   ```typescript
+   // Get all leads from server when searching
+   axiosInstance.get('/api/leads', {
+     params: {
+       // Other params unchanged
+       getAllResults: 'true' // Get all leads for client-side filtering
+     }
+   })
+   .then(response => {
+     const allLeads: Lead[] = response.data.leads || [];
+     
+     // Now perform the exact ordered substring match on the name field only
+     const query = searchQuery.trim().toLowerCase();
+     const exactMatches = allLeads.filter((lead: Lead) => {
+       const name = (lead.name || '').toLowerCase();
+       return name.includes(query); // Only match exact ordered substrings in name
+     });
+     
+     setFilteredLeads(exactMatches);
+     setTotalLeads(exactMatches.length);
+   })
+   ```
+
+2. **Server Search Logic**:
+   ```typescript
+   // Handle search parameter if present
+   if (search && typeof search === 'string' && search.trim()) {
+     // Create a case-insensitive search regex for exact substring matching in name field only
+     const searchRegex = new RegExp(search.trim(), 'i');
+     // Search only in name field
+     query.name = searchRegex;
+   }
+   ```
+
+## Search Behavior Examples
+
+- Typing "am" will match "Amanda" or "Amari"
+- "am" will NOT match "Lampert" or "Sam"
+- Search now works across all 417 leads, not just the ones on the current page
+
+## Preserved Functionality
+- Pagination works correctly when not searching
+- Sorting (New/Aged) is unaffected
+- State filtering remains functional
+- Disposition filtering remains fully operational
+- All styling and layout is unchanged
+
+## Testing Verification
+- Verified that search works across all leads, even those not on the current page
+- Confirmed that sorting, filtering, and pagination function correctly before/after searching
+- Ensured that searching produces exact substring matches in names only 

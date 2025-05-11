@@ -1,0 +1,5 @@
+  const availableStates = [
+    'AL', 'AR', 'CO', 'DE', 'FL', 'GA', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'MD',
+    'MI', 'MS', 'MO', 'MT', 'NE', 'NV', 'NC', 'OH', 'OK', 'SC', 'SD', 'TN',
+    'TX', 'UT', 'VA', 'WA', 'WV', 'WI', 'WY'
+  ];
