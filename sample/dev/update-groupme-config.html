@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update GroupMe Configuration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .instructions {
+            background-color: #f0f8ff;
+            padding: 15px;
+            border-left: 5px solid #0078d7;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Update GroupMe Configuration</h1>
+    
+    <div class="instructions">
+        <h2>Instructions</h2>
+        <ol>
+            <li>Make sure you're logged into the Crokodial application</li>
+            <li>Click the "Update GroupMe Config" button below</li>
+            <li>Refresh the Crokodial application page</li>
+            <li>Go to GroupMe settings in the app to verify the configuration</li>
+        </ol>
+    </div>
+
+    <button id="updateBtn" style="padding: 10px 20px; font-size: 16px; background-color: #0078d7; color: white; border: none; border-radius: 5px; cursor: pointer;">Update GroupMe Config</button>
+    
+    <div id="result" style="margin-top: 20px;"></div>
+    
+    <h2>Configuration Details</h2>
+    <pre id="configDetails">
+Access Token: YTN1QCUQYWkIgMdQ9DO2eVZFSq3NtDo1tib1NKbI
+
+Groups:
+- https://groupme.com/join_group/54099588/VDirXvX9
+- https://groupme.com/join_group/13840065/SAAASXfE
+- https://groupme.com/join_group/35765159/Upnew0uU
+- https://groupme.com/join_group/84195970/BnTOjCZ1
+- https://groupme.com/join_group/65281843/l3EENCn9
+- https://groupme.com/join_group/105011074/CNtBmHbK
+    </pre>
+
+    <script>
+        document.getElementById('updateBtn').addEventListener('click', function() {
+            // Access token provided by the user
+            const ACCESS_TOKEN = 'YTN1QCUQYWkIgMdQ9DO2eVZFSq3NtDo1tib1NKbI';
+
+            // Group links provided by the user
+            const GROUP_LINKS = [
+                'https://groupme.com/join_group/54099588/VDirXvX9',
+                'https://groupme.com/join_group/13840065/SAAASXfE',
+                'https://groupme.com/join_group/35765159/Upnew0uU',
+                'https://groupme.com/join_group/84195970/BnTOjCZ1',
+                'https://groupme.com/join_group/65281843/l3EENCn9',
+                'https://groupme.com/join_group/105011074/CNtBmHbK'
+            ];
+
+            // Extract group IDs from the links
+            const groups = {};
+            GROUP_LINKS.forEach((link, index) => {
+                const matches = link.match(/\/join_group\/(\d+)\//);
+                if (matches && matches[1]) {
+                    const groupId = matches[1];
+                    groups[groupId] = `Group ${index + 1}`;
+                }
+            });
+
+            // Create the config object
+            const groupMeConfig = {
+                accessToken: ACCESS_TOKEN,
+                groups
+            };
+
+            // Save to localStorage
+            localStorage.setItem('groupme_config', JSON.stringify(groupMeConfig));
+            
+            // Show success message
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <p class="success">✅ GroupMe configuration updated successfully!</p>
+                <p>Configuration saved with:</p>
+                <ul>
+                    <li>Access Token: ${ACCESS_TOKEN.substring(0, 5)}...</li>
+                    <li>${Object.keys(groups).length} groups configured</li>
+                </ul>
+                <p><strong>Important:</strong> Refresh the Crokodial application page to apply these changes.</p>
+            `;
+        });
+    </script>
+</body>
+</html> 

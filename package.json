@@ -1,20 +1,31 @@
 {
-  "name": "groupme-webhook",
+  "name": "server",
   "version": "1.0.0",
-  "description": "GroupMe webhook server for Crokodial",
-  "main": "groupme-webhook.js",
+  "description": "",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "start": "node groupme-webhook.js",
-    "dev": "nodemon groupme-webhook.js"
+    "dev": "./start.sh",
+    "start": "node dist/index.js",
+    "prod": "./start-servers.sh --prod",
+    "dev:client": "./start-servers.sh --dev --mode=client",
+    "dev:server": "./start-servers.sh --dev --mode=server",
+    "dev:log": "node scripts/runWithLiveLog.js",
+    "rotate-logs": "./scripts/rotate-logs.sh",
+    "rebuild-all": "cd dialer-app/server && npm run rebuild && cd ../../dialer-app/client && npm run rebuild"
   },
-  "engines": {
-    "node": ">=14.0.0"
-  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "body-parser": "^1.20.2"
+    "@vitejs/plugin-react": "^4.2.1",
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mongodb": "^6.15.0",
+    "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
+    "@types/ws": "^8.18.1"
   }
 }

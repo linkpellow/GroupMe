@@ -1,57 +1,73 @@
 #!/bin/bash
 
-# Simple script to create a desktop shortcut for Crokodial using AppleScript
-# This will auto-detect where the servers should run from
+# Create a Crokodial desktop shortcut for macOS
 
-# Get the script directory
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Get absolute paths
+CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+START_SCRIPT="${CURRENT_DIR}/start-servers.sh"
+ICON_PATH="${CURRENT_DIR}/dialer-app/client/public/assets/icon.png"
+DESKTOP_PATH="${HOME}/Desktop"
 APP_NAME="Crokodial"
-DESKTOP_DIR="$HOME/Desktop"
-APP_PATH="$DESKTOP_DIR/$APP_NAME.app"
-LAUNCHER_SCRIPT="$SCRIPT_DIR/start-crokodial.sh"
 
-# Check if the launcher script exists
-if [ ! -f "$LAUNCHER_SCRIPT" ]; then
-  echo "❌ Error: Launcher script not found at $LAUNCHER_SCRIPT"
-  exit 1
-fi
+# Make sure the start script is executable
+chmod +x "${START_SCRIPT}"
+
+# Create the AppleScript content
+APPLESCRIPT="""
+tell application \"Terminal\"
+    activate
+    do script \"cd ${CURRENT_DIR} && ./start-servers.sh --dev\"
+    set miniaturized of window 1 to true
+end tell
+"""
+
+# Create a temporary AppleScript file
+TEMP_SCRIPT="/tmp/crokodial_script.scpt"
+echo "${APPLESCRIPT}" > "${TEMP_SCRIPT}"
+
+# Create the application bundle directory structure
+APP_DIR="${DESKTOP_PATH}/${APP_NAME}.app"
+mkdir -p "${APP_DIR}/Contents/MacOS"
+mkdir -p "${APP_DIR}/Contents/Resources"
+
+# Create the Info.plist file
+cat > "${APP_DIR}/Contents/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>crokodial-launcher</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.crokodial.app</string>
+    <key>CFBundleName</key>
+    <string>Crokodial</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+</dict>
+</plist>
+EOF
+
+# Create the launcher script
+cat > "${APP_DIR}/Contents/MacOS/crokodial-launcher" << EOF
+#!/bin/bash
+osascript "${TEMP_SCRIPT}"
+EOF
 
 # Make the launcher script executable
-chmod +x "$LAUNCHER_SCRIPT"
+chmod +x "${APP_DIR}/Contents/MacOS/crokodial-launcher"
 
-# Create the AppleScript file
-APPLESCRIPT_FILE="$SCRIPT_DIR/create_crokodial_app.scpt"
-
-cat > "$APPLESCRIPT_FILE" << EOL
-tell application "Finder"
-  set desktopPath to path to desktop folder as string
-  set appPath to desktopPath & "$APP_NAME.app"
-end tell
-
-tell application "Script Editor"
-  set newScript to "tell application \"Terminal\"
-  do script \"$LAUNCHER_SCRIPT\"
-  activate
-end tell"
-  
-  set theScript to make new document with properties {text:newScript}
-  save theScript in file appPath as "application"
-  close theScript
-end tell
-EOL
-
-# Run the AppleScript
-echo "🔧 Creating the Crokodial desktop shortcut..."
-osascript "$APPLESCRIPT_FILE"
-
-# Clean up the AppleScript file
-rm "$APPLESCRIPT_FILE"
-
-# Check if the app was created successfully
-if [ -d "$APP_PATH" ]; then
-  echo "✅ Successfully created $APP_NAME app on your Desktop!"
-  echo "🚀 Double-click to launch Crokodial servers"
+# Copy the icon if it exists, otherwise use a generic one
+if [ -f "${ICON_PATH}" ]; then
+    cp "${ICON_PATH}" "${APP_DIR}/Contents/Resources/AppIcon.icns"
 else
-  echo "❌ Failed to create the app. Please try running the script manually:"
-  echo "   $LAUNCHER_SCRIPT"
-fi 
+    # Use a generic icon (temporarily use script file)
+    touch "${APP_DIR}/Contents/Resources/AppIcon.icns"
+fi
+
+echo "Created Crokodial desktop shortcut at: ${APP_DIR}"
+echo "Double-click to start the application" 

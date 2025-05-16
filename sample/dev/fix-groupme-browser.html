@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix GroupMe Configuration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fix GroupMe Configuration</h1>
+    
+    <p>This tool will fix your GroupMe configuration by saving it directly to your browser's localStorage.</p>
+    
+    <button class="button" id="fixButton">Fix GroupMe Configuration</button>
+    
+    <div id="status" style="margin-top: 20px;"></div>
+    
+    <h2>Configuration Details</h2>
+    <pre>
+Access Token: YTN1QCUQYWkIgMdQ9DO2eVZFSq3NtDo1tib1NKbI
+
+Groups:
+- Group 1: 54099588 (https://groupme.com/join_group/54099588/VDirXvX9)
+- Group 2: 13840065 (https://groupme.com/join_group/13840065/SAAASXfE)
+- Group 3: 35765159 (https://groupme.com/join_group/35765159/Upnew0uU)
+- Group 4: 84195970 (https://groupme.com/join_group/84195970/BnTOjCZ1)
+- Group 5: 65281843 (https://groupme.com/join_group/65281843/l3EENCn9)
+- Group 6: 105011074 (https://groupme.com/join_group/105011074/CNtBmHbK)
+    </pre>
+    
+    <h2>Instructions</h2>
+    <ol>
+        <li>Click the "Fix GroupMe Configuration" button above</li>
+        <li>Open your browser's developer console (F12 or right-click > Inspect > Console)</li>
+        <li>Paste the following code into the console and press Enter:</li>
+    </ol>
+    
+    <pre>
+// Log the current GroupMe configuration
+const config = JSON.parse(localStorage.getItem('groupme_config'));
+console.log('Current GroupMe configuration:', config);
+    </pre>
+    
+    <h2>Manual Console Fix</h2>
+    <p>If the button doesn't work, copy and paste this code directly into your browser console:</p>
+    
+    <pre>
+// GroupMe configuration data
+const config = {
+  accessToken: 'YTN1QCUQYWkIgMdQ9DO2eVZFSq3NtDo1tib1NKbI',
+  groups: {
+    "54099588": "Group 1",
+    "13840065": "Group 2",
+    "35765159": "Group 3",
+    "84195970": "Group 4",
+    "65281843": "Group 5",
+    "105011074": "Group 6"
+  }
+};
+
+// Save to localStorage
+localStorage.setItem('groupme_config', JSON.stringify(config));
+console.log('GroupMe configuration saved to localStorage!');
+console.log('Configuration:', config);
+    </pre>
+    
+    <script>
+        document.getElementById('fixButton').addEventListener('click', function() {
+            try {
+                // GroupMe configuration data
+                const config = {
+                  accessToken: 'YTN1QCUQYWkIgMdQ9DO2eVZFSq3NtDo1tib1NKbI',
+                  groups: {
+                    "54099588": "Group 1",
+                    "13840065": "Group 2",
+                    "35765159": "Group 3",
+                    "84195970": "Group 4",
+                    "65281843": "Group 5",
+                    "105011074": "Group 6"
+                  }
+                };
+                
+                // Save to localStorage
+                localStorage.setItem('groupme_config', JSON.stringify(config));
+                
+                // Show success message
+                document.getElementById('status').innerHTML = '<p class="success">✅ Configuration saved successfully!</p>' + 
+                    '<p>GroupMe configuration has been saved to your browser\'s localStorage.</p>' +
+                    '<p>Open your browser console (F12) and type <code>localStorage.getItem("groupme_config")</code> to verify.</p>';
+                
+                console.log('GroupMe configuration saved:', config);
+            } catch (error) {
+                document.getElementById('status').innerHTML = '<p style="color: red;">❌ Error saving configuration: ' + error.message + '</p>';
+                console.error('Error saving configuration:', error);
+            }
+        });
+    </script>
+</body>
+</html> 
