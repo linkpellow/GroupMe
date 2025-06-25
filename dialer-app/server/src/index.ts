@@ -340,15 +340,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-const clientDistPath = path.join(__dirname, '..', '..', '..', '..', 'client', 'dist');
-if (fs.existsSync(clientDistPath)) {
+// Determine client dist directory dynamically to work in dev, build, and Heroku slug paths
+const candidateClientDistPaths = [
+  path.join(__dirname, '..', '..', 'client', 'dist'), // ../../client/dist  (dist/src -> dialer-app/server)
+  path.join(__dirname, '..', '..', '..', 'client', 'dist'), // ../../../client/dist (dist/server/src -> dialer-app)
+  path.join(__dirname, '..', '..', '..', '..', 'client', 'dist'), // ../../../../client/dist  (dist/server/src -> project root)
+];
+
+const clientDistPath = candidateClientDistPaths.find((p) => fs.existsSync(p));
+
+if (clientDistPath) {
   app.use(express.static(clientDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.resolve(clientDistPath, 'index.html'));
+    res.sendFile(path.resolve(clientDistPath as string, 'index.html'));
   });
 } else {
-  console.warn('Client dist path not found:', clientDistPath);
+  console.warn('Client dist path not found. Checked:', candidateClientDistPaths);
 }
 app.use(errorHandler);
 
