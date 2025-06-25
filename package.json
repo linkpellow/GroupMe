@@ -58,9 +58,6 @@
     "start-server-and-test": "^2.0.3",
     "wait-on": "^7.0.1"
   },
-  "optionalDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.44.0"
-  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix",
