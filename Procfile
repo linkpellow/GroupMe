@@ -1,1 +1,1 @@
-web: node dialer-app/server/dist/server/src/index.js 
+web: npm run start:server 
