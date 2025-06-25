@@ -1,2 +1,2 @@
 web: npm run start:server
-release: npm run migrate --workspace=dialer-app/server && npm run create:indexes --workspace=dialer-app/server 
+release: node dialer-app/server/dist/scripts/migrate.js && node dialer-app/server/dist/scripts/createIndexes.js 
