@@ -340,7 +340,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-const clientDistPath = path.join(__dirname, '..', '..', '..', 'client', 'dist');
+const clientDistPath = path.join(__dirname, '..', '..', '..', '..', 'client', 'dist');
 if (fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
   app.get('*', (req, res, next) => {
