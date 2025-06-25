@@ -32,7 +32,7 @@
     "type-check:client": "cd dialer-app/client && tsc --noEmit",
     "type-check:server": "cd dialer-app/server && tsc --noEmit",
     "prepare": "husky install",
-    "postinstall": "node scripts/fixNativeBinaries.mjs",
+    "postinstall": "node scripts/fixNativeBinaries.mjs || echo 'skip native fix'",
     "pre-commit": "lint-staged",
     "install:all": "npm install && cd dialer-app/client && npm install && cd ../server && npm install",
     "clean": "rm -rf node_modules dialer-app/client/node_modules dialer-app/server/node_modules",
