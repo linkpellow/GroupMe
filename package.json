@@ -46,7 +46,6 @@
     "ci:e2e": "start-server-and-test ci:servers http://localhost:5173 test:e2e"
   },
   "devDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.44.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "concurrently": "^8.2.2",
@@ -61,6 +60,9 @@
     "prettier": "^3.2.4",
     "start-server-and-test": "^2.0.3",
     "wait-on": "^7.0.1"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-darwin-arm64": "^4.44.0"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
