@@ -14,7 +14,7 @@
     "dev:client": "npm --workspace dialer-app/client run dev",
     "build": "npm run build:server && npm run build:client",
     "build:server": "npm --prefix dialer-app/server run build",
-    "build:client": "npm --prefix dialer-app/client run build",
+    "build:client": "cross-env ROLLUP_NO_NATIVE=true npm --prefix dialer-app/client run build",
     "build:all": "npm run build:server && npm run build:client",
     "start": "cd dialer-app/server && npm start",
     "test": "npm run test:client && npm run test:server",
@@ -56,7 +56,8 @@
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
     "start-server-and-test": "^2.0.3",
-    "wait-on": "^7.0.1"
+    "wait-on": "^7.0.1",
+    "cross-env": "^7.0.3"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
