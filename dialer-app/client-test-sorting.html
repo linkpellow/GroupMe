@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leads Sorting & Filtering Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .control-group {
+            display: inline-block;
+            margin-right: 20px;
+            margin-bottom: 10px;
+        }
+        select, button {
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .lead-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .lead-item:last-child {
+            border-bottom: none;
+        }
+        .lead-name {
+            font-weight: bold;
+            color: #333;
+        }
+        .lead-meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .stats {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Leads Sorting & Filtering Test</h1>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="sortDirection">Sort Order:</label>
+            <select id="sortDirection">
+                <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="pipelineSource">Pipeline Source:</label>
+            <select id="pipelineSource">
+                <option value="all">All</option>
+                <option value="nextgen">NextGen</option>
+                <option value="marketplace">Marketplace</option>
+                <option value="selfgen">Self Generated</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="pageSize">Page Size:</label>
+            <select id="pageSize">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <button onclick="fetchLeads()">Fetch Leads</button>
+            <button onclick="login()" style="background: #2196F3;">Login First</button>
+        </div>
+    </div>
+    
+    <div id="status" class="status" style="display:none;"></div>
+    <div id="stats" class="stats" style="display:none;"></div>
+    <div id="results" class="results">
+        <p>Click "Login First" to authenticate, then "Fetch Leads" to test the API.</p>
+    </div>
+    
+    <script>
+        let authToken = localStorage.getItem('testAuthToken');
+        
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        async function login() {
+            try {
+                showStatus('Logging in...', 'info');
+                
+                const response = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@crokodial.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('testAuthToken', authToken);
+                    showStatus('Login successful!', 'success');
+                } else {
+                    throw new Error('No token received');
+                }
+            } catch (error) {
+                showStatus(`Login failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function fetchLeads() {
+            if (!authToken) {
+                showStatus('Please login first!', 'error');
+                return;
+            }
+            
+            const sortDirection = document.getElementById('sortDirection').value;
+            const pipelineSource = document.getElementById('pipelineSource').value;
+            const pageSize = document.getElementById('pageSize').value;
+            
+            let url = `http://localhost:3001/api/leads?page=1&limit=${pageSize}&sortBy=createdAt&sortDirection=${sortDirection}`;
+            
+            if (pipelineSource !== 'all') {
+                url += `&pipelineSource=${pipelineSource}`;
+            }
+            
+            try {
+                showStatus('Fetching leads...', 'info');
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+                showStatus('Leads fetched successfully!', 'success');
+                
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error('Fetch error:', error);
+            }
+        }
+        
+        function displayResults(data) {
+            const resultsEl = document.getElementById('results');
+            const statsEl = document.getElementById('stats');
+            
+            // Show stats
+            const sourceCounts = {};
+            data.leads.forEach(lead => {
+                const source = lead.source || 'Unknown';
+                sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+            });
+            
+            statsEl.innerHTML = `
+                <strong>Total Leads:</strong> ${data.total || data.leads.length} | 
+                <strong>Page:</strong> ${data.page || 1} | 
+                <strong>Sources:</strong> ${Object.entries(sourceCounts).map(([k,v]) => `${k}: ${v}`).join(', ')}
+            `;
+            statsEl.style.display = 'block';
+            
+            // Show leads
+            if (data.leads && data.leads.length > 0) {
+                resultsEl.innerHTML = data.leads.map(lead => `
+                    <div class="lead-item">
+                        <div class="lead-name">${lead.name || 'Unnamed Lead'}</div>
+                        <div class="lead-meta">
+                            <strong>Source:</strong> ${lead.source || 'Unknown'} | 
+                            <strong>State:</strong> ${lead.state || 'N/A'} | 
+                            <strong>Created:</strong> ${new Date(lead.createdAt).toLocaleString()} |
+                            <strong>Email:</strong> ${lead.email || 'N/A'} |
+                            <strong>Phone:</strong> ${lead.phone || 'N/A'}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                resultsEl.innerHTML = '<p>No leads found with the selected filters.</p>';
+            }
+        }
+        
+        // Auto-login if we have a token
+        if (authToken) {
+            showStatus('Using saved authentication', 'success');
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,68 @@
+/* Calendly Gilroy Fonts */
+@font-face {
+  font-family: "Gilroy";
+  src: url("https://assets.calendly.com/assets/frontend/media/fonts/gilroy-medium-f5b19951.woff2")
+    format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gilroy";
+  src: url("https://assets.calendly.com/assets/frontend/media/fonts/gilroy-semibold-d41d259d.woff2")
+    format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Gilroy";
+  src: url("https://assets.calendly.com/assets/frontend/media/fonts/gilroy-bold-11f8faa8.woff2")
+    format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Back button for Calendly iframe view */
+.back-button {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 10;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid #e2e2e2;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  font-family:
+    "Gilroy",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-weight: 500;
+  color: #666666;
+  opacity: 0.85;
+}
+
+.back-button:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: #d0d0d0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  opacity: 1;
+}
+
+.back-button span {
+  font-size: 15px;
+  margin-right: 2px;
+}

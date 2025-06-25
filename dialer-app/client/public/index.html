@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Dialer Application" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="stylesheet" href="override.css" />
+    <title>Dialer</title>
+    <style>
+      /* ABSOLUTE LOCK FOR NATIVE WINDOW EDGES */
+      @media screen {
+        html,
+        body,
+        #root,
+        html.detached-dialer,
+        body.detached-dialer {
+          resize: none !important;
+          min-width: 100% !important;
+          min-height: 100% !important;
+          width: 100% !important;
+          height: 100% !important;
+          overflow: hidden !important;
+          overscroll-behavior: none !important;
+          -webkit-overflow-scrolling: none !important;
+        }
+
+        /* NATIVE EDGE BLOCKERS - MAXIMUM COVERAGE */
+        html.detached-dialer::before {
+          content: "" !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 30px !important;
+          right: 30px !important;
+          height: 30px !important;
+          background: transparent !important;
+          z-index: 2147483647 !important;
+          pointer-events: auto !important;
+          cursor: default !important;
+          display: block !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+        }
+
+        html.detached-dialer::after {
+          content: "" !important;
+          position: fixed !important;
+          bottom: 0 !important;
+          left: 30px !important;
+          right: 30px !important;
+          height: 30px !important;
+          background: transparent !important;
+          z-index: 2147483647 !important;
+          pointer-events: auto !important;
+          cursor: default !important;
+          display: block !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+        }
+
+        body.detached-dialer::before {
+          content: "" !important;
+          position: fixed !important;
+          top: 30px !important;
+          bottom: 30px !important;
+          left: 0 !important;
+          width: 30px !important;
+          background: transparent !important;
+          z-index: 2147483647 !important;
+          pointer-events: auto !important;
+          cursor: default !important;
+          display: block !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+        }
+
+        body.detached-dialer::after {
+          content: "" !important;
+          position: fixed !important;
+          top: 30px !important;
+          bottom: 30px !important;
+          right: 0 !important;
+          width: 30px !important;
+          background: transparent !important;
+          z-index: 2147483647 !important;
+          pointer-events: auto !important;
+          cursor: default !important;
+          display: block !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+        }
+      }
+
+      /* FREEZE THE BUTTON SIZE */
+      .grid button,
+      .grid button img {
+        transform: none !important;
+        transition: none !important;
+      }
+
+      /* ABSOLUTE BUTTON SIZE CONTROL - NEVER ALLOW GROWTH */
+      body.detached-dialer .grid button {
+        width: var(--button-size, 65px) !important;
+        height: var(--button-size, 65px) !important;
+        max-width: var(--button-size, 65px) !important;
+        max-height: var(--button-size, 65px) !important;
+        min-width: var(--button-size, 65px) !important;
+        min-height: var(--button-size, 65px) !important;
+        transform: none !important;
+        transition: none !important;
+        border-width: calc(var(--button-size, 65px) * 0.06) !important;
+      }
+
+      /* ABSOLUTE BUTTON IMAGE SIZE CONTROL */
+      body.detached-dialer .grid button img {
+        width: calc(var(--button-size, 65px) * 0.85) !important;
+        height: calc(var(--button-size, 65px) * 0.85) !important;
+        max-width: calc(var(--button-size, 65px) * 0.85) !important;
+        max-height: calc(var(--button-size, 65px) * 0.85) !important;
+        min-width: calc(var(--button-size, 65px) * 0.85) !important;
+        min-height: calc(var(--button-size, 65px) * 0.85) !important;
+      }
+
+      /* INITIALIZE VARIABLE SIZES */
+      :root {
+        --button-size: 65px;
+        --scale: 1;
+      }
+
+      /* Reset all margins, paddings, borders */
+      * {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        box-sizing: border-box;
+      }
+
+      /* Base styles */
+      html,
+      body,
+      #root {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* For detached dialer window */
+      html.detached-dialer,
+      body.detached-dialer {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background-color: transparent !important;
+        overflow: hidden !important;
+      }
+
+      /* Critical edge locking - applied at the HTML level */
+      html.detached-dialer {
+        resize: none !important;
+      }
+
+      /* Center dialer in detached window */
+      body.detached-dialer {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+      }
+
+      /* Preserve dialer styling, but fix positioning */
+      body.detached-dialer .dialer-container {
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+    </style>
+    <script>
+      // ULTRA-SIMPLE APPROACH: Just keep buttons sized correctly no matter what
+      window.addEventListener("DOMContentLoaded", function () {
+        if (window.location.search.includes("detached=true")) {
+          console.log("🔧 Setting up fixed-size dialer");
+
+          // Get button size from URL parameters
+          const urlParams = new URLSearchParams(window.location.search);
+          const buttonSize = parseFloat(urlParams.get("button_size")) || 65;
+
+          // Mark the document for special styling
+          document.documentElement.classList.add("detached-dialer");
+          document.body.classList.add("detached-dialer");
+
+          // Set CSS variables for styling
+          document.documentElement.style.setProperty(
+            "--button-size",
+            buttonSize + "px",
+          );
+
+          // Create a style element to keep the dialer centered and sized
+          const cssRules = document.createElement("style");
+          cssRules.textContent = `
+            /* Keep the dialer centered at all times */
+            .dialer-container {
+              position: fixed !important;
+              top: 50% !important;
+              left: 50% !important;
+              transform: translate(-50%, -50%) !important;
+              margin: 0 !important;
+            }
+            
+            /* Force buttons to maintain exact size */
+            .grid button {
+              width: ${buttonSize}px !important;
+              height: ${buttonSize}px !important;
+              min-width: ${buttonSize}px !important;
+              min-height: ${buttonSize}px !important;
+              max-width: ${buttonSize}px !important;
+              max-height: ${buttonSize}px !important;
+              border-width: ${buttonSize * 0.06}px !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              flex: 0 0 auto !important;
+              box-sizing: border-box !important;
+            }
+            
+            /* Force button images to maintain exact size */
+            .grid button img {
+              width: ${buttonSize * 0.85}px !important;
+              height: ${buttonSize * 0.85}px !important;
+              min-width: ${buttonSize * 0.85}px !important;
+              min-height: ${buttonSize * 0.85}px !important;
+              max-width: ${buttonSize * 0.85}px !important;
+              max-height: ${buttonSize * 0.85}px !important;
+              padding: 0 !important;
+              margin: 0 !important;
+            }
+          `;
+          document.head.appendChild(cssRules);
+
+          // Function to force button sizes
+          function fixButtonSizes() {
+            // Apply to all grid buttons
+            document.querySelectorAll(".grid button").forEach((button) => {
+              if (button instanceof HTMLElement) {
+                button.style.width = buttonSize + "px";
+                button.style.height = buttonSize + "px";
+                button.style.minWidth = buttonSize + "px";
+                button.style.minHeight = buttonSize + "px";
+                button.style.maxWidth = buttonSize + "px";
+                button.style.maxHeight = buttonSize + "px";
+                button.style.borderWidth = buttonSize * 0.06 + "px";
+              }
+            });
+
+            // Apply to all button images
+            document.querySelectorAll(".grid button img").forEach((img) => {
+              if (img instanceof HTMLElement) {
+                const imgSize = buttonSize * 0.85;
+                img.style.width = imgSize + "px";
+                img.style.height = imgSize + "px";
+                img.style.minWidth = imgSize + "px";
+                img.style.minHeight = imgSize + "px";
+                img.style.maxWidth = imgSize + "px";
+                img.style.maxHeight = imgSize + "px";
+              }
+            });
+
+            // Center the dialer
+            const dialer = document.querySelector(".dialer-container");
+            if (dialer instanceof HTMLElement) {
+              dialer.style.position = "fixed";
+              dialer.style.top = "50%";
+              dialer.style.left = "50%";
+              dialer.style.transform = "translate(-50%, -50%)";
+              dialer.style.margin = "0";
+            }
+          }
+
+          // Fix button sizes initially
+          fixButtonSizes();
+
+          // Fix button sizes on window resize
+          window.addEventListener("resize", fixButtonSizes);
+
+          // Fix button sizes on regular interval to ensure they stay correct
+          setInterval(fixButtonSizes, 100);
+
+          // Fix button sizes whenever DOM changes (React updates)
+          const observer = new MutationObserver(fixButtonSizes);
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["style", "class"],
+          });
+
+          console.log("✅ Fixed-size dialer enabled");
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

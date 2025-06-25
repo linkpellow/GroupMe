@@ -1,0 +1,1690 @@
+{
+  "duplicateFiles": [
+    {
+      "name": "leads",
+      "files": [
+        "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Leads.tsx",
+        "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx"
+      ]
+    }
+  ],
+  "hiddenFiles": [
+    "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/.Leads.tsx.swp",
+    "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/._Leads.tsx",
+    "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/._Leads.tsx.backup-corrupted"
+  ],
+  "backupFiles": [
+    "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/.Leads.tsx.swp",
+    "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/._Leads.tsx.backup-corrupted",
+    "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx.backup-corrupted"
+  ],
+  "duplicateCode": [],
+  "axiosInstances": [
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/api/axiosInstance.ts",
+      "hasCreate": true,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/CampaignSelectionModal.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/AuthContext.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/GroupMeContext.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/LeadContext.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/hooks/useLeadsSearchIntegration.ts",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Clients.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/CsvUpload.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Integrations.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx",
+      "hasCreate": false,
+      "imports": 2
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Login.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "hasCreate": false,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/services/leadsApi.ts",
+      "hasCreate": true,
+      "imports": 1
+    },
+    {
+      "path": "/Volumes/LaCie/sheesh/dialer-app/client/src/utils/axiosInstance.ts",
+      "hasCreate": true,
+      "imports": 1
+    }
+  ],
+  "tempPatches": [],
+  "inconsistentNaming": [],
+  "unusedExports": [],
+  "todoComments": [
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/api/axiosInstance.ts",
+      "line": 59,
+      "content": "// Add additional debugging"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/DailyGoals.tsx",
+      "line": 240,
+      "content": "console.error('Attempted to delete a goal without a valid ID');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Dialer.tsx",
+      "line": 327,
+      "content": "// This will help us debug any resize loops"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Dialer.tsx",
+      "line": 1095,
+      "content": "// Temporarily pause the aspect ratio interval during manual resize"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Dialer.tsx",
+      "line": 2335,
+      "content": "// Add event listeners to cancel any resize attempts"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Dialer.tsx",
+      "line": 2788,
+      "content": "// Create DOM elements with maximum z-index to intercept all resize attempts"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Dialer.tsx",
+      "line": 3373,
+      "content": "gridTemplateColumns: 'repeat(3, 65px)',  // Fixed size without scale"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 98,
+      "content": "dateObj = new Date(unixTimestamp); // Attempt to parse if string"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 278,
+      "content": "// The second argument is for debugging to track call origin"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 283,
+      "content": "console.log(\"CRITICAL: Attempting URL-based group selection\");"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 289,
+      "content": "document.dispatchEvent(event);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 488,
+      "content": "const [liveMessages, setLiveMessages] = useState<LiveMessage[]>([]); // For temporary pop-up notifications"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 696,
+      "content": "// Add debug logging"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 732,
+      "content": "const optimisticId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 1149,
+      "content": "{/* Add a debug button to the list when in non-sidebar mode */}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/GroupMeChat.tsx",
+      "line": 1164,
+      "content": "DEBUG: Click First Group"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Layout.tsx",
+      "line": 4,
+      "content": "// import Dialer from './Dialer'; // Temporarily hide Dialer"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Layout.tsx",
+      "line": 38,
+      "content": "{/* <Dialer /> */}{/* Temporarily hidden */}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Navigation.tsx",
+      "line": 264,
+      "content": "// Remove debugging logs that could cause re-renders"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Notification.tsx",
+      "line": 19,
+      "content": "interface NotificationItemProps {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Notification.tsx",
+      "line": 24,
+      "content": "const NotificationItem = styled.div<NotificationItemProps>`"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/Notification.tsx",
+      "line": 115,
+      "content": "// Add event listeners for debugging"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/debug/DebugPanel.tsx",
+      "line": 33,
+      "content": "const DebugPanel = () => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/debug/DebugPanel.tsx",
+      "line": 39,
+      "content": "// Collect debug info"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/debug/DebugPanel.tsx",
+      "line": 52,
+      "content": "console.error('Error collecting debug info:', error);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/debug/DebugPanel.tsx",
+      "line": 92,
+      "content": "Debug"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/debug/DebugPanel.tsx",
+      "line": 108,
+      "content": "<h3 style={{ margin: '0 0 10px 0' }}>Debug Panel</h3>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/components/debug/DebugPanel.tsx",
+      "line": 138,
+      "content": "export default DebugPanel;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/AuthContext.tsx",
+      "line": 177,
+      "content": "// For debugging - log when user state changes"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/AuthContext.tsx",
+      "line": 330,
+      "content": "console.log('Attempting login with:', { email });"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/AuthContext.tsx",
+      "line": 394,
+      "content": "// Dispatch save event"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/AuthContext.tsx",
+      "line": 395,
+      "content": "console.log('Dispatching save event before logout');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/AuthContext.tsx",
+      "line": 397,
+      "content": "window.dispatchEvent(event);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/GroupMeContext.tsx",
+      "line": 195,
+      "content": "// Log message range for debugging"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/GroupMeContext.tsx",
+      "line": 287,
+      "content": "console.log('GroupMeContext: Attempting to connect to WebSocket at', wsUrl);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/GroupMeContext.tsx",
+      "line": 327,
+      "content": "// Potentially close connection or attempt re-auth with a fresh token"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/GroupMeContext.tsx",
+      "line": 340,
+      "content": "// setTimeout(() => connectWebSocket(), 5000); // Simple reconnect attempt"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 11,
+      "content": "// Session storage key for temporary storage"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 16,
+      "content": "// Max retry attempts for server sync"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 17,
+      "content": "const MAX_RETRY_ATTEMPTS = 3;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 67,
+      "content": "console.warn(`Attempted to save empty notes for lead ${leadId} but prevented data loss`);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 259,
+      "content": "console.warn(`Preventing data loss: Blocked attempt to replace notes for lead ${leadId} with empty string`);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 299,
+      "content": "? currentNotes  // Keep existing notes if attempted to save empty"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 331,
+      "content": "// Dispatch event for other components that might be interested"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 335,
+      "content": "window.dispatchEvent(event);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 353,
+      "content": "// If we haven't exceeded max retries, schedule another attempt"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/context/NotesContext.tsx",
+      "line": 354,
+      "content": "if (currentRetries < MAX_RETRY_ATTEMPTS) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/hooks/useLeadsData.ts",
+      "line": 59,
+      "content": "retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Clients.tsx",
+      "line": 578,
+      "content": "// If the first attempt failed, try listing all uploads"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Clients.tsx",
+      "line": 869,
+      "content": "templateColumns={[\"1fr\", \"1fr\", \"1fr 1fr\", \"1fr 2fr\"]}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Clients.tsx",
+      "line": 1268,
+      "content": "templateColumns={[\"1fr\", \"1fr\", \"repeat(2, 1fr)\", \"repeat(3, 1fr)\"]}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/CsvUpload.tsx",
+      "line": 339,
+      "content": "These tools attempt to fix data inconsistencies from previous CSV uploads."
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 117,
+      "content": "// Template interface"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 118,
+      "content": "interface EmailTemplate {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 364,
+      "content": "templateId: string;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 419,
+      "content": "// Templates state"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 420,
+      "content": "const [templates, setTemplates] = useState<EmailTemplate[]>(() => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 421,
+      "content": "// Try to load templates from localStorage first"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 422,
+      "content": "const savedTemplates = localStorage.getItem('emailTemplates');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 423,
+      "content": "if (savedTemplates) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 425,
+      "content": "return JSON.parse(savedTemplates);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 427,
+      "content": "console.error('Error parsing saved templates', e);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 431,
+      "content": "// Default templates if none are saved"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 487,
+      "content": "const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 488,
+      "content": "const [newTemplateName, setNewTemplateName] = useState<string>('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 489,
+      "content": "const [newTemplateSubject, setNewTemplateSubject] = useState<string>('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 490,
+      "content": "const [newTemplateBody, setNewTemplateBody] = useState<string>('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 491,
+      "content": "const [editingTemplate, setEditingTemplate] = useState<boolean>(false);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 499,
+      "content": "// Add state for selected lead when applying template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 500,
+      "content": "const [selectedLeadForTemplate, setSelectedLeadForTemplate] = useState<Lead | null>(null);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 514,
+      "content": "// Add state to track currently editing template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 515,
+      "content": "const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 533,
+      "content": "const [selectedTemplateId, setSelectedTemplateId] = useState('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 542,
+      "content": "const [currentStepTemplateId, setCurrentStepTemplateId] = useState('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 861,
+      "content": "setSelectedLeadForTemplate(lead);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 880,
+      "content": "// Parse template for a specific lead - fixed variable naming"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 881,
+      "content": "const parseTemplateForLead = (text: string, lead: Lead): string => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 911,
+      "content": "// Apply template with proper null checking"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 912,
+      "content": "const applyTemplate = (template: EmailTemplate, lead: Lead | null = null) => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 914,
+      "content": "const targetLead = lead || selectedLeadForTemplate || findLeadByEmail(to);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 917,
+      "content": "let parsedSubject = template.subject;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 918,
+      "content": "let parsedBody = template.body;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 921,
+      "content": "// Parse template with lead data"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 922,
+      "content": "parsedSubject = parseTemplateForLead(template.subject, targetLead);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 923,
+      "content": "parsedBody = parseTemplateForLead(template.body, targetLead);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 933,
+      "content": "title: 'Template Applied',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 934,
+      "content": "description: `\"${template.name}\" template has been applied${targetLead ? ' with lead data' : ''}`,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 942,
+      "content": "const sendEmailToLead = async (lead: Lead, subjectTemplate: string, bodyTemplate: string): Promise<boolean> => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 944,
+      "content": "// Parse the templates with this lead's data"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 945,
+      "content": "const parsedSubject = parseTemplateForLead(subjectTemplate, lead);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 946,
+      "content": "const parsedBody = parseTemplateForLead(bodyTemplate, lead);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1136,
+      "content": "// Modify the saveTemplate function to handle both new and edited templates"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1137,
+      "content": "const saveTemplate = () => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1138,
+      "content": "if (!newTemplateName || !newTemplateSubject || !newTemplateBody) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1141,
+      "content": "description: 'Please fill in all template fields',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1149,
+      "content": "if (editingTemplateId) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1150,
+      "content": "// Update existing template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1151,
+      "content": "setTemplates(prevTemplates =>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1152,
+      "content": "prevTemplates.map(template =>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1153,
+      "content": "template.id === editingTemplateId"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1155,
+      "content": "...template,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1156,
+      "content": "name: newTemplateName,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1157,
+      "content": "subject: newTemplateSubject,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1158,
+      "content": "body: newTemplateBody"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1160,
+      "content": ": template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1165,
+      "content": "title: 'Template Updated',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1166,
+      "content": "description: `\"${newTemplateName}\" template has been updated`,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1172,
+      "content": "// Create new template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1176,
+      "content": "const newTemplate: EmailTemplate = {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1178,
+      "content": "name: newTemplateName,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1179,
+      "content": "subject: newTemplateSubject,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1180,
+      "content": "body: newTemplateBody,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1181,
+      "content": "description: 'Custom template'"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1184,
+      "content": "// Add the new template to state"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1185,
+      "content": "setTemplates(prevTemplates => [...prevTemplates, newTemplate]);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1188,
+      "content": "title: 'Template Saved',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1189,
+      "content": "description: `\"${newTemplateName}\" template has been saved and will persist between sessions`,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1197,
+      "content": "setNewTemplateName('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1198,
+      "content": "setNewTemplateSubject('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1199,
+      "content": "setNewTemplateBody('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1200,
+      "content": "setEditingTemplateId(null);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1201,
+      "content": "setEditingTemplate(false);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1204,
+      "content": "// Add function to start editing a template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1205,
+      "content": "const startEditingTemplate = (template: EmailTemplate) => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1206,
+      "content": "setNewTemplateName(template.name);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1207,
+      "content": "setNewTemplateSubject(template.subject);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1208,
+      "content": "setNewTemplateBody(template.body);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1209,
+      "content": "setEditingTemplateId(template.id);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1210,
+      "content": "setEditingTemplate(true);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1218,
+      "content": "setNewTemplateName('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1219,
+      "content": "setNewTemplateSubject('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1220,
+      "content": "setNewTemplateBody('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1221,
+      "content": "setEditingTemplateId(null);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1222,
+      "content": "setEditingTemplate(false);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1225,
+      "content": "// Delete template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1226,
+      "content": "const deleteTemplate = (id: string) => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1227,
+      "content": "setTemplates(prevTemplates => prevTemplates.filter(template => template.id !== id));"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1230,
+      "content": "title: 'Template Deleted',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1231,
+      "content": "description: 'The template has been removed',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1238,
+      "content": "// Save the current compose form as a template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1239,
+      "content": "const saveCurrentAsTemplate = () => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1251,
+      "content": "setNewTemplateName('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1252,
+      "content": "setNewTemplateSubject(subject);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1253,
+      "content": "setNewTemplateBody(body);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1254,
+      "content": "setEditingTemplate(true);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1256,
+      "content": "// Switch to templates tab"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1260,
+      "content": "// Add effect to save templates to localStorage when they change"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1262,
+      "content": "localStorage.setItem('emailTemplates', JSON.stringify(templates));"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1263,
+      "content": "}, [templates]);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1274,
+      "content": "setCurrentStepTemplateId('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1284,
+      "content": "if (!currentStepTemplateId) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1286,
+      "content": "title: 'Template Required',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1287,
+      "content": "description: 'Please select a template for this step',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1297,
+      "content": "templateId: currentStepTemplateId,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1303,
+      "content": "setCurrentStepTemplateId('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1485,
+      "content": "// Get the template name by ID"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1486,
+      "content": "const getTemplateName = (templateId: string): string => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1487,
+      "content": "const template = templates.find(t => t.id === templateId);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1488,
+      "content": "return template ? template.name : 'Unknown Template';"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1555,
+      "content": "// Debug logging"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1732,
+      "content": "<Text>Templates</Text>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 1763,
+      "content": "{renderTemplatesInterface()}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2103,
+      "content": "// Render templates interface"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2104,
+      "content": "const renderTemplatesInterface = () => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2108,
+      "content": "<Heading size=\"md\" color=\"orange.600\">Email Templates</Heading>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2112,
+      "content": "onClick={editingTemplate ? cancelEditing : () => setEditingTemplate(true)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2114,
+      "content": "{editingTemplate ? 'Cancel' : 'Create New Template'}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2118,
+      "content": "{editingTemplate ? ("
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2123,
+      "content": "{editingTemplateId ? 'Edit Template' : 'Create New Template'}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2128,
+      "content": "<FormLabel fontWeight=\"medium\">Template Name</FormLabel>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2131,
+      "content": "value={newTemplateName}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2132,
+      "content": "onChange={(e) => setNewTemplateName(e.target.value)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2141,
+      "content": "value={newTemplateSubject}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2142,
+      "content": "onChange={(e) => setNewTemplateSubject(e.target.value)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2150,
+      "content": "<Text fontSize=\"sm\" fontWeight=\"medium\">Available Template Variables:</Text>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2169,
+      "content": "placeholder=\"Write your template here...\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2170,
+      "content": "value={newTemplateBody}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2171,
+      "content": "onChange={(e) => setNewTemplateBody(e.target.value)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2186,
+      "content": "onClick={saveTemplate}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2188,
+      "content": "{editingTemplateId ? 'Update Template' : 'Save Template'}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2196,
+      "content": "{templates.length === 0 ? ("
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2199,
+      "content": "No templates available. Create your first template to get started."
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2202,
+      "content": "templates.map(template => ("
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2203,
+      "content": "<Card key={template.id} variant=\"outline\" mb={2}>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2207,
+      "content": "<Heading size=\"sm\" mb={2}>{template.name}</Heading>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2208,
+      "content": "{template.description && ("
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2209,
+      "content": "<Text fontSize=\"sm\" color=\"gray.600\" mb={2}>{template.description}</Text>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2211,
+      "content": "<Badge>{template.subject}</Badge>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2217,
+      "content": "onClick={() => applyTemplate(template)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2221,
+      "content": "Use Template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2224,
+      "content": "aria-label=\"Edit template\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2229,
+      "content": "onClick={() => startEditingTemplate(template)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2232,
+      "content": "aria-label=\"Delete template\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2237,
+      "content": "onClick={() => deleteTemplate(template.id)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2255,
+      "content": "// Debugging information"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2322,
+      "content": "const template = templates.find(t => t.id === step.templateId);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2332,
+      "content": "{template?.name || 'Unknown Template'}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2390,
+      "content": "<FormLabel fontSize=\"sm\">Template</FormLabel>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2392,
+      "content": "placeholder=\"Select a template\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2393,
+      "content": "value={currentStepTemplateId}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2394,
+      "content": "onChange={(e) => setCurrentStepTemplateId(e.target.value)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2397,
+      "content": "{templates.map(template => ("
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2398,
+      "content": "<option key={template.id} value={template.id}>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2399,
+      "content": "{template.name}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2441,
+      "content": "const template = templates.find(t => t.id === step.templateId);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2446,
+      "content": "<strong>Day {step.delayDays}:</strong> {template?.name || 'Unknown Template'}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2716,
+      "content": "// Modify the renderComposeInterface function to add a template selector dropdown"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2725,
+      "content": "{/* Add template selector dropdown */}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2728,
+      "content": "placeholder=\"Select Template\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2732,
+      "content": "const selectedTemplate = templates.find(t => t.id === e.target.value);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2733,
+      "content": "if (selectedTemplate) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2734,
+      "content": "applyTemplate(selectedTemplate);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2742,
+      "content": "{templates.map(template => ("
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2743,
+      "content": "<option key={template.id} value={template.id}>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2744,
+      "content": "{template.name}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2754,
+      "content": "onClick={saveCurrentAsTemplate}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Gmail.tsx",
+      "line": 2756,
+      "content": "Save as Template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx",
+      "line": 464,
+      "content": "grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1.5fr !important;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx",
+      "line": 466,
+      "content": "grid-template-rows: auto auto !important; /* Two rows: one for headers, one for values */"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx",
+      "line": 721,
+      "content": "grid-template-columns: 1fr 1fr; // 2 columns on mobile"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx",
+      "line": 1744,
+      "content": "console.log('Attempting API request to /api/leads/call-counts');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx",
+      "line": 3641,
+      "content": "grid-template-columns: 2fr 2fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1.5fr !important;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx",
+      "line": 3643,
+      "content": "grid-template-rows: auto auto !important; /* Two rows: one for headers, one for values */"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Leads.tsx",
+      "line": 3898,
+      "content": "grid-template-columns: 1fr 1fr; // 2 columns on mobile"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Login.tsx",
+      "line": 85,
+      "content": "console.log('Attempting registration for:', email);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Login.tsx",
+      "line": 108,
+      "content": "console.log('Attempting login for:', email);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 32,
+      "content": "interface Template {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 46,
+      "content": "const [templates, setTemplates] = useState<Template[]>([]);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 47,
+      "content": "const [selectedTemplate, setSelectedTemplate] = useState('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 49,
+      "content": "const [newTemplate, setNewTemplate] = useState({ name: '', content: '' });"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 50,
+      "content": "const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 52,
+      "content": "const debouncedSaveTemplate = debounce(async (templateId: string, updates: { name?: string; content?: string }) => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 54,
+      "content": "const response = await fetch(`/api/templates/${templateId}`, {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 66,
+      "content": "description: 'Failed to save template changes',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 75,
+      "content": "description: 'Failed to save template changes',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 88,
+      "content": "fetchTemplates();"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 91,
+      "content": "const fetchTemplates = async () => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 93,
+      "content": "const response = await fetch('/api/templates', {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 100,
+      "content": "setTemplates(data);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 103,
+      "content": "console.error('Error fetching templates:', error);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 122,
+      "content": "const handleTemplateSelect = (templateId: string) => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 123,
+      "content": "const template = templates.find(t => t._id === templateId);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 124,
+      "content": "if (template) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 125,
+      "content": "setMessage(template.content);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 126,
+      "content": "setSelectedTemplate(templateId);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 130,
+      "content": "const handleTemplateChange = (field: 'name' | 'content', value: string) => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 131,
+      "content": "if (editingTemplate) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 132,
+      "content": "setNewTemplate(prev => ({ ...prev, [field]: value }));"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 133,
+      "content": "debouncedSaveTemplate(editingTemplate._id, { [field]: value });"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 135,
+      "content": "setNewTemplate(prev => ({ ...prev, [field]: value }));"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 139,
+      "content": "const handleSaveTemplate = async () => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 141,
+      "content": "const method = editingTemplate ? 'PUT' : 'POST';"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 142,
+      "content": "const url = editingTemplate"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 143,
+      "content": "? `/api/templates/${editingTemplate._id}`"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 144,
+      "content": ": '/api/templates';"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 153,
+      "content": "name: newTemplate.name,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 154,
+      "content": "content: newTemplate.content"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 161,
+      "content": "description: `Template ${editingTemplate ? 'updated' : 'created'} successfully`,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 166,
+      "content": "fetchTemplates();"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 168,
+      "content": "setNewTemplate({ name: '', content: '' });"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 169,
+      "content": "setEditingTemplate(null);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 174,
+      "content": "description: 'Failed to save template',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 182,
+      "content": "const handleDeleteTemplate = async (templateId: string) => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 183,
+      "content": "if (!window.confirm('Are you sure you want to delete this template?')) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 188,
+      "content": "const response = await fetch(`/api/templates/${templateId}`, {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 198,
+      "content": "description: 'Template deleted successfully',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 203,
+      "content": "fetchTemplates();"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 204,
+      "content": "if (selectedTemplate === templateId) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 205,
+      "content": "setSelectedTemplate('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 212,
+      "content": "description: 'Failed to delete template',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 220,
+      "content": "const handleEditTemplate = (template: Template) => {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 221,
+      "content": "setEditingTemplate(template);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 222,
+      "content": "setNewTemplate({ name: template.name, content: template.content });"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 275,
+      "content": "templateId: selectedTemplate || undefined,"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 322,
+      "content": "setSelectedTemplate('');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 347,
+      "content": "setEditingTemplate(null);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 348,
+      "content": "setNewTemplate({ name: '', content: '' });"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 351,
+      "content": "New Template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 356,
+      "content": "<FormLabel>Template</FormLabel>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 358,
+      "content": "value={selectedTemplate}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 359,
+      "content": "onChange={(e) => handleTemplateSelect(e.target.value)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 360,
+      "content": "placeholder=\"Select template\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 362,
+      "content": "{templates.map((template) => ("
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 363,
+      "content": "<option key={template._id} value={template._id}>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 364,
+      "content": "{template.name}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 368,
+      "content": "{selectedTemplate && ("
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 371,
+      "content": "aria-label=\"Edit template\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 374,
+      "content": "onClick={() => handleEditTemplate(templates.find(t => t._id === selectedTemplate)!)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 377,
+      "content": "aria-label=\"Delete template\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 381,
+      "content": "onClick={() => handleDeleteTemplate(selectedTemplate)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 457,
+      "content": "{editingTemplate ? 'Edit Template' : 'New Template'}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 463,
+      "content": "<FormLabel>Template Name</FormLabel>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 465,
+      "content": "value={newTemplate.name}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 466,
+      "content": "onChange={(e) => handleTemplateChange('name', e.target.value)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 467,
+      "content": "placeholder=\"Enter template name\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 471,
+      "content": "<FormLabel>Template Content</FormLabel>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 473,
+      "content": "value={newTemplate.content}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 474,
+      "content": "onChange={(e) => handleTemplateChange('content', e.target.value)}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 475,
+      "content": "placeholder=\"Enter template content\""
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 479,
+      "content": "<Button colorScheme=\"blue\" onClick={handleSaveTemplate}>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/MassText.tsx",
+      "line": 480,
+      "content": "Save Template"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 106,
+      "content": "grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 370,
+      "content": "grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 376,
+      "content": "grid-template-columns: 1fr;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 453,
+      "content": "grid-template-columns: repeat(8, 1fr);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 1808,
+      "content": "{/* Debug info */}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 1817,
+      "content": "{/* Debug buttons - only shown in development mode */}"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 1820,
+      "content": "<Text fontSize=\"sm\" fontWeight=\"bold\" mb={2}>Debug Tools</Text>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 1827,
+      "content": "const response = await axiosInstance.get('/api/auth/debug-profile');"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 1828,
+      "content": "console.log('Debug profile:', response.data);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 1830,
+      "content": "title: 'Debug Info',"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Settings.tsx",
+      "line": 1837,
+      "content": "console.error('Error fetching debug info:', error);"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Spreadsheet.tsx",
+      "line": 122,
+      "content": "const firstEmptyRowIndex = prev.findIndex(row =>"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Spreadsheet.tsx",
+      "line": 126,
+      "content": "if (firstEmptyRowIndex === -1) {"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/pages/Spreadsheet.tsx",
+      "line": 145,
+      "content": "newCells[firstEmptyRowIndex] = row;"
+    },
+    {
+      "file": "/Volumes/LaCie/sheesh/dialer-app/client/src/services/leadsApi.ts",
+      "line": 223,
+      "content": "// Add request/response interceptors for debugging in development"
+    }
+  ],
+  "multipleImports": []
+}

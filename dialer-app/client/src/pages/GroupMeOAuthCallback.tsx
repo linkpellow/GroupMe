@@ -1,0 +1,124 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Box, Spinner, Text, Alert, AlertIcon, VStack } from '@chakra-ui/react';
+import { groupMeOAuthService } from '../services/groupMeOAuth.service';
+
+const GroupMeOAuthCallback: React.FC = () => {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(true);
+
+  useEffect(() => {
+    handleCallback();
+  }, []);
+
+  const handleCallback = async () => {
+    console.log('=== GroupMe OAuth Callback Page ===');
+    console.log('Full URL:', window.location.href);
+    console.log('Hash:', window.location.hash);
+    
+    try {
+      // GroupMe returns the token in the URL fragment (after #)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const state = hashParams.get('state');
+      const error = hashParams.get('error');
+      const errorDescription = hashParams.get('error_description');
+
+      console.log('Parsed parameters:');
+      console.log('- access_token:', accessToken ? 'Present' : 'Missing');
+      console.log('- state:', state);
+      console.log('- error:', error);
+      console.log('- error_description:', errorDescription);
+
+      if (error) {
+        console.error('OAuth error from GroupMe:', error, errorDescription);
+        setError(`GroupMe authorization failed: ${errorDescription || error}`);
+        setIsProcessing(false);
+        setTimeout(() => {
+          navigate('/settings');
+        }, 3000);
+        return;
+      }
+
+      if (!accessToken) {
+        console.error('No access token in URL');
+        setError('No access token received from GroupMe');
+        setIsProcessing(false);
+        setTimeout(() => {
+          navigate('/settings');
+        }, 3000);
+        return;
+      }
+
+      if (!state) {
+        console.error('No state parameter in URL');
+        setError('Invalid OAuth response - missing state parameter');
+        setIsProcessing(false);
+        setTimeout(() => {
+          navigate('/settings');
+        }, 3000);
+        return;
+      }
+
+      console.log('Sending token to backend...');
+      // Send the token to the backend
+      await groupMeOAuthService.handleOAuthCallback(accessToken, state);
+      
+      console.log('OAuth callback successful, redirecting to settings...');
+      // Success - redirect to settings page
+      navigate('/settings', { 
+        state: { 
+          groupMeConnected: true,
+          message: 'GroupMe connected successfully!' 
+        } 
+      });
+    } catch (err: any) {
+      console.error('Error in OAuth callback:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to connect GroupMe';
+      setError(errorMessage);
+      setIsProcessing(false);
+      
+      // Redirect back to settings after a delay
+      setTimeout(() => {
+        navigate('/settings');
+      }, 3000);
+    }
+  };
+
+  return (
+    <Box 
+      display="flex" 
+      alignItems="center" 
+      justifyContent="center" 
+      minHeight="100vh"
+      bg="gray.50"
+    >
+      <VStack spacing={4} p={8} bg="white" borderRadius="lg" boxShadow="md">
+        {isProcessing ? (
+          <>
+            <Spinner size="xl" color="blue.500" thickness="4px" />
+            <Text fontSize="lg" fontWeight="medium">
+              Connecting your GroupMe account...
+            </Text>
+            <Text fontSize="sm" color="gray.600">
+              Please wait while we complete the authorization
+            </Text>
+          </>
+        ) : error ? (
+          <>
+            <Alert status="error" borderRadius="md">
+              <AlertIcon />
+              {error}
+            </Alert>
+            <Text fontSize="sm" color="gray.600">
+              Redirecting back to settings...
+            </Text>
+          </>
+        ) : null}
+      </VStack>
+    </Box>
+  );
+};
+
+export default GroupMeOAuthCallback; 
