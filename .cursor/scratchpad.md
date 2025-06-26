@@ -289,3 +289,21 @@ Next Executor task
 2. Re-add optional dependency `@rollup/rollup-linux-x64-gnu` so prod build stops erroring **OR** keep it disabled but force `ROLLUP_NO_NATIVE` in *build* script just like we do locally.
 3. Delete lingering `postinstall/prepare/heroku-postbuild` lines from root `package.json`.
 4. Regenerate lockfile, commit, push → verify build.
+
+### Rollup WASM finalisation & console-error remediation  (8 Jul 2025)
+Goal: get flawless local dev (no native addon) and a clean browser console in production before moving on to long-term tasks.
+
+| ID | Task | Owner | Success Criteria |
+|----|------|-------|------------------|
+| DEV-1 | One-time clean install with native addons fully disabled (`rm -rf node_modules package-lock.json && npm install --legacy-peer-deps --no-optional`) | Executor | `npm --prefix dialer-app/client run dev` starts without `rollup.darwin-arm64.node` error |
+| DEV-2 | Verify override hygiene – grep lockfile for `rollup-darwin` / `rollup-linux` (should be zero) | Executor | `grep -i rollup-darwin package-lock.json` returns no hits |
+| PROD-1 | Open https://crokodial.com with DevTools, record console/network errors (404, CORS, JS exceptions) | Executor | Screenshot + bullet list of unique errors in scratchpad |
+| PROD-2 | Fix highest-impact runtime error (likely missing `/api/auth/profile` call → causes auth loop) | Executor | Refresh page – no red errors in DevTools console |
+| PROD-3 | Retest key flows: login, leads table, websocket ping | Executor | Manual smoke test passes |
+
+### Updated Project Status Board (trimmed to active)
+- [ ] DEV-1 local clean WASM install
+- [ ] DEV-2 confirm lockfile free of native addons
+- [ ] PROD-1 capture console errors
+- [ ] PROD-2 patch highest-impact error
+- [ ] PROD-3 validate prod flows
