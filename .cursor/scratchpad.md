@@ -42,6 +42,7 @@
 - [ ] TD-6 Enable flag & smoke test
 - [x] CLEAN-ROLLUP remove mac rollup (optional deps pruned, lockfile regenerated)
 - [ ] BUILD-LOCK regenerate & deploy (pending push & Heroku build)
+- [x] DEP-MONGO Update Heroku MONGODB_URI (Lp_heroku user)
 
 ### Executor Notes / Guidance
 1. Complete tasks **one at a time** — commit & push after each BUILD step, run `heroku logs` to verify.  
@@ -50,7 +51,8 @@
 4. Keep PR granularity small to ease rollback.
 
 ### Executor's Feedback or Assistance Requests
-• CLEAN-ROLLUP done. Removed linux native binary optional dep and regenerated lockfile. Expect ~40-50 MB slug reduction. Next: push to Heroku (BUILD-LOCK) and verify slug +  EBADPLATFORM gone.
+• DEP-MONGO done. Set new URI on Heroku (release v249) and `/api/health` now returns 200 — server boots cleanly.
+• Next priority per board: CLEAN-ROLLUP (mac) and CLEAN-SCRIPTS to eliminate leftover postinstall/prepare lines and shrink slug. Let me know if we proceed or jump straight to DNS cut-over.
 
 ---
 ### Lessons (append)
@@ -92,10 +94,10 @@ Root causes:
 | BUILD-LOCK | Regenerate lockfile, commit, push | Build green, slug ok |
 
 ### Project Status Board (additions)
-- [ ] DEP-MONGO fix Mongo URI
-- [ ] CLEAN-ROLLUP remove mac rollup
-- [ ] CLEAN-SCRIPTS purge hooks again
-- [ ] BUILD-LOCK regenerate & deploy
+- [x] DEP-MONGO Update Heroku MONGODB_URI
+- [ ] CLEAN-ROLLUP (mac) remove @rollup/rollup-darwin-arm64 from all deps & lock
+- [ ] CLEAN-SCRIPTS ensure no postinstall/prepare scripts (they re-appeared)
+- [ ] BUILD-LOCK regenerate lockfile & deploy once above done
 
 ### Executor Notes / Guidance
 1. Complete tasks **one at a time** — commit & push after each BUILD step, run `heroku logs` to verify.  
@@ -104,7 +106,7 @@ Root causes:
 4. Keep PR granularity small to ease rollback.
 
 ### Executor's Feedback or Assistance Requests
-• CLEAN-ROLLUP done. Removed linux native binary optional dep and regenerated lockfile. Expect ~40-50 MB slug reduction. Next: push to Heroku (BUILD-LOCK) and verify slug +  EBADPLATFORM gone.
+• Removed *linux* native Rollup binary; mac binary still referenced in lockfile so local dev errors persist. Need new CLEAN-ROLLUP (mac). Also Heroku still runs `postinstall`/`prepare`; need CLEAN-SCRIPTS repeat.
 
 ---
 ### Lessons (append)
@@ -122,3 +124,25 @@ Root causes:
 | ID | Task | Note |
 |----|------|------|
 | BUILD-1b | Shrink slug < 370 MB – remove Rollup native optionals, archive heavy assets | nice-to-have | 
+
+### DEP-MONGO — HOW TO CREATE AND SET THE NEW MONGODB_URI (copy to send user)
+1. Log in to MongoDB Atlas → your Cluster.
+2. Security → Database Access → "Add Database User"
+   • Username: **heroku_app**
+   • Password: **<StrongPassword>** (copy it!)
+   • Role: Built-in Role → **Read and write to any database** (or limit to crokodial DB).
+3. Security → Network Access → IP Access List → "Add IP Address" → **0.0.0.0/0** (Allow Anywhere) while we test.
+4. Atlas left nav → Database → Connect → "Drivers" → Copy the **Standard SRV** connection string. It looks like:
+   ```
+   mongodb+srv://heroku_app:<PASSWORD>@cluster0.xxxxx.mongodb.net/crokodial?retryWrites=true&w=majority
+   ```
+   Replace `<PASSWORD>` with the password you just set.
+5. In a terminal (from repo root):
+   ```bash
+   heroku config:set MONGODB_URI="mongodb+srv://heroku_app:<PASSWORD>@cluster0.xxxxx.mongodb.net/crokodial?retryWrites=true&w=majority" --app crokodial
+   ```
+6. Heroku restarts automatically. Wait ~30 seconds then check:
+   ```bash
+   curl https://crokodial-2a1145cec713.herokuapp.com/api/health
+   ```
+   Expect `{ "status": "ok" … }` (HTTP 200).
