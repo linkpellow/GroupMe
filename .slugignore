@@ -1,0 +1,31 @@
+# Exclude client/source files that are not required at runtime
+# The compiled static bundle is in dialer-app/client/dist which we keep
+ dialer-app/client/src
+ dialer-app/client/public/ANIMATION/
+ dialer-app/client/public/images/
+ dialer-app/client/public/states/
+ dialer-app/client/public/sounds/
+ dialer-app/client/public/direct-entry.html
+ dialer-app/client/public/direct-test.html
+ 
+# Exclude original server TypeScript sources (compiled output lives in dist)
+ dialer-app/server/src
+ 
+# Tests and docs
+ **/__tests__/
+ **/tests/
+ **/*.test.*
+ docs/
+ sample/
+ scripts/
+ 
+# Generated uploads and data samples
+ uploads/
+ csv/
+ notes-db/
+ 
+# Backups and temp directories
+ dialer-app-backup-*/
+ dialer-app/temp/
+ 
+# Include everything else 
