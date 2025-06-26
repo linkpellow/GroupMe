@@ -19,7 +19,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import fs from 'fs';
-import { parse } from 'csv-parse';
+import { Parser } from 'csv-parse';
 import http from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { JWT_SECRET, verifyToken } from './config/jwt.config';
@@ -351,10 +351,22 @@ const candidateClientDistPaths = [
 const clientDistPath = candidateClientDistPaths.find((p) => fs.existsSync(p));
 
 if (clientDistPath) {
+  // Serve static files from the client dist directory
   app.use(express.static(clientDistPath));
+  
+  // Serve index.html for all non-API routes that don't match static files
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.resolve(clientDistPath as string, 'index.html'));
+    
+    // Check if the requested file exists in the static directory
+    const requestedFile = path.join(clientDistPath, req.path);
+    if (fs.existsSync(requestedFile) && fs.statSync(requestedFile).isFile()) {
+      // File exists, let express.static handle it
+      return next();
+    }
+    
+    // File doesn't exist, serve index.html for SPA routing
+    res.sendFile(path.resolve(clientDistPath, 'index.html'));
   });
 } else {
   console.warn('Client dist path not found. Checked:', candidateClientDistPaths);
