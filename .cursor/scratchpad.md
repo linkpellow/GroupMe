@@ -87,6 +87,11 @@ Start with FIX-1: open `package.json`, delete `postinstall`, `prepare`, and `her
 • DEP-MONGO done. Set new URI on Heroku (release v249) and `/api/health` now returns 200 — server boots cleanly.
 • Next priority per board: CLEAN-ROLLUP (mac) and CLEAN-SCRIPTS to eliminate leftover postinstall/prepare lines and shrink slug. Let me know if we proceed or jump straight to DNS cut-over.
 
+- DEV-1 step: Updated root `package.json` overrides to disable **all** native Rollup addon packages and removed the lone `optionalDependencies` entry.  Regenerated lock-file with `npm install --legacy-peer-deps --no-optional --package-lock-only`.
+- Result: local install completes, but `package-lock.json` still contains `@rollup/rollup-darwin-*` entries because they are listed as _optionalDependencies_ inside Rollup itself.  `grep` shows several hits → DEV-2 not yet green.
+- Next idea: upgrade **rollup** (and `@rollup/wasm-node`) to **4.47.0** where upstream removed native addons, then regenerate lock again.  This should drop the platform packages entirely and give us a clean lock-file for both Mac & Heroku.
+- Requesting go-ahead to bump `rollup` + `@rollup/wasm-node` in `dialer-app/client/package.json` to `4.47.0` and repeat lockfile regeneration.
+
 ---
 ### Lessons (append)
 • Heroku still downloads Mac binary if it exists in lock-file; always regenerate lock after changing optional deps.
@@ -248,62 +253,22 @@ Key insight
   1. **Pin `rollup` to 4.45.1** (core)  
   2. Remove _all_ native addon packages from lockfile  
   3. Rely solely on WASM shim (`@rollup/wasm-node@4.44.1`) which _is_ published and works cross-platform.  
-  4. Ensure `ROLLUP_NO_NATIVE=true ROLLUP_WASM=true` is exported.
-• Simultaneously, delete the dev hooks and switch `build` to use `npm --prefix`.
+  4. Ensure `ROLLUP_NO_NATIVE=true ROLLUP_WASM=true`
 
-### Updated Immediate Task List
-| ID | Owner | Action | Success Criteria |
-|----|-------|--------|------------------|
-| FIX-1 | Exec | **Delete** `postinstall`, `prepare`, `heroku-postbuild` from root `package.json`; update `build` script to `npm run build` only | Heroku log shows none of these scripts |
-| FIX-2 | Exec | Remove _every_ `@rollup/rollup-*` native pkg from lockfile & deps, **pin `rollup`@4.44.1 and `@rollup/wasm-node`@4.44.1**, add npm **overrides** mapping all native addons to wasm shim | `npm ci --production` on Linux succeeds; no EBADPLATFORM / ETARGET |
-| FIX-3 | Exec | Replace workspace flags with `--prefix` in `build:server` & `build:client` scripts | Build no longer errors on "No workspaces found" |
-| FIX-4 | Exec | Regenerate lockfile (`rm -rf node_modules package-lock.json && npm install --omit=dev --strict-peer-deps`) | Lockfile only contains core rollup + wasm shim |
-| VERIFY | Exec | `/api/health` 200; UI loads at dyno URL | Manual smoke pass |
-| DNS | User | Point `crokodial.com` CNAME to Heroku app; enable SSL | `curl https://crokodial.com` 200 |
+## Project Status Board
+- [x] Audit and document all current console errors on crokodial.com (COMPLETED)
+- [x] Replicate errors on local dev server (COMPLETED)
+- [x] Fix console errors (local) (COMPLETED)
+- [ ] Fix console errors (production) (IN PROGRESS)
+  - [x] Investigate Production Build Process (COMPLETED)
+  - [x] Check Heroku Build Configuration (COMPLETED)
+  - [x] Fix Production Asset Serving (COMPLETED)
+  - [ ] Verify Production Site Functionality (IN PROGRESS)
+- [ ] Verify local editing and hot reload works
+- [ ] Test deployment pipeline (local → production) (IN PROGRESS)
+- [ ] Document lessons and fixes
 
-Status board updated accordingly (BUILD-1b and CLEAN-ROLLUP-mac rolled into FIX-2/4).
-
-### Ability to develop while production is live  (Planner note 7 Jul 2025)
-Yes, once we finish the clean-build fixes you'll be able to:
-• run `npm run dev:server` + `npm run dev:client` locally (hot-reload) without disturbing prod.
-• push to **GitHub `dev` branch** → auto-deploys to **Heroku *staging*** (separate app).
-• after QA, "Promote to production" in Heroku Pipeline – zero-downtime swap.
-
-REMAINING setup / fixes
-| ID | Area | What's left | Blocking? |
-|----|------|-------------|-----------|
-| FIX-ROLLUP | Build | Add *linux* native binary back OR set `ROLLUP_NO_NATIVE=true` consistently. Currently build fails to find `@rollup/rollup-linux-x64-gnu` | yes (prod build) |
-| FIX-SLUGIGNORE | Build | Remove `dialer-app/client/src` from `.slugignore` – Vite needs source files at build time | yes |
-| CLEAN-SCRIPTS | Build | Strip `postinstall`, `prepare`, `heroku-postbuild` scripts (again) | yes |
-| PIPE-1 | Pipeline | Create Heroku **staging** app, copy config vars | no |
-| PIPE-2 | Pipeline | Add Pipeline linking: `dev` → staging, `main` → production | no |
-| DOC-1 | Docs | Add README section with local dev commands & release workflow | no |
-
-Success criteria
-• `git push heroku main` builds green with slug ≤380 MB, dyno boots (`/api/health` 200).
-• `npm run dev:client` on Mac starts without Rollup native error (uses WASM).
-• Heroku Pipeline exists; promoting staging to production swaps versions instantly.
-
-Next Executor task
-1. Edit `.slugignore` – comment-out lines that exclude `dialer-app/client/src` and `dialer-app/client/vite.config.ts`.
-2. Re-add optional dependency `@rollup/rollup-linux-x64-gnu` so prod build stops erroring **OR** keep it disabled but force `ROLLUP_NO_NATIVE` in *build* script just like we do locally.
-3. Delete lingering `postinstall/prepare/heroku-postbuild` lines from root `package.json`.
-4. Regenerate lockfile, commit, push → verify build.
-
-### Rollup WASM finalisation & console-error remediation  (8 Jul 2025)
-Goal: get flawless local dev (no native addon) and a clean browser console in production before moving on to long-term tasks.
-
-| ID | Task | Owner | Success Criteria |
-|----|------|-------|------------------|
-| DEV-1 | One-time clean install with native addons fully disabled (`rm -rf node_modules package-lock.json && npm install --legacy-peer-deps --no-optional`) | Executor | `npm --prefix dialer-app/client run dev` starts without `rollup.darwin-arm64.node` error |
-| DEV-2 | Verify override hygiene – grep lockfile for `rollup-darwin` / `rollup-linux` (should be zero) | Executor | `grep -i rollup-darwin package-lock.json` returns no hits |
-| PROD-1 | Open https://crokodial.com with DevTools, record console/network errors (404, CORS, JS exceptions) | Executor | Screenshot + bullet list of unique errors in scratchpad |
-| PROD-2 | Fix highest-impact runtime error (likely missing `/api/auth/profile` call → causes auth loop) | Executor | Refresh page – no red errors in DevTools console |
-| PROD-3 | Retest key flows: login, leads table, websocket ping | Executor | Manual smoke test passes |
-
-### Updated Project Status Board (trimmed to active)
-- [ ] DEV-1 local clean WASM install
-- [ ] DEV-2 confirm lockfile free of native addons
-- [ ] PROD-1 capture console errors
-- [ ] PROD-2 patch highest-impact error
-- [ ] PROD-3 validate prod flows
+## Executor's Feedback or Assistance Requests
+- **Fix completed:** Heroku build configuration updated to include client build
+- **Starting deployment:** Committing changes and deploying to Heroku
+- **Expected outcome:** Production site should load static assets correctly after deployment
