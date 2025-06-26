@@ -6,7 +6,7 @@
     "dev": "vite --port 5173 --host 0.0.0.0",
     "dev:wasm": "ROLLUP_WASM=true vite --port 5173 --host 0.0.0.0",
     "dev:bare": "vite --port 5173 --host 0.0.0.0",
-    "build": "cross-env ROLLUP_WASM=true npx vite build",
+    "build": "cross-env ROLLUP_NO_NATIVE=true ROLLUP_WASM=true npx vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "rebuild": "rm -rf node_modules package-lock.json && npm install"
