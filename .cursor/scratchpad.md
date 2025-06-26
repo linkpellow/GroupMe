@@ -9,6 +9,40 @@
 2. TEXTDRIP v1: move token storage to user scope with secure CRUD API & minimal React UI.
 
 ---
+### Key Challenges and Analysis (update 26 Jun 2025)
+The deploy still fails for two independent reasons:
+1. Rollup native binaries
+   • `@rollup/rollup-darwin-arm64` sneaks into the lockfile –> EBADPLATFORM on Heroku Linux.
+   • When we removed optionals, the loader then tries `@rollup/rollup-linux-x64-gnu` → MODULE_NOT_FOUND.
+   • Root problem: Rollup <4.45 auto-requires a native addon unless BOTH are true: `ROLLUP_NO_NATIVE=true` **and** `ROLLUP_WASM=true`, *and* no native packages are installed.
+2. Dev hooks keep coming back
+   • `postinstall` (fixNativeBinaries) + `prepare` (husky) + `heroku-postbuild` still exist in root `package.json`, causing missing-file errors or double builds.
+3. Workspace script path
+   • Heroku build fails on `npm --workspace dialer-app/server` – the `--workspace` flag only works if the workspace has its own `package.json`. We removed that earlier; correct flag is `--prefix`.
+
+### High-level Task Breakdown (fix-deploy branch)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| FIX-1 | Purge dev hooks (`postinstall`, `prepare`, `heroku-postbuild`) from root `package.json`; switch build to `npm run build` only | Heroku log shows no husky nor fixNativeBinaries |
+| FIX-2 | Lock Rollup to 4.44.1, remove ALL native addon packages, add `.npmrc` with `optional=false` | `npm ls @rollup/rollup-*` shows no darwin/linux pkgs |
+| FIX-3 | Update build scripts: `cross-env ROLLUP_NO_NATIVE=true ROLLUP_WASM=true` for client build | Vite build passes locally & CI |
+| FIX-4 | Delete `package-lock.json` & `node_modules`, run `npm install --legacy-peer-deps --no-optional` to regenerate clean lockfile | Lockfile contains wasm-node only |
+| FIX-5 | Replace all `--workspace` calls with `--prefix` in root scripts | Heroku build no longer errors on "No workspaces found" |
+| FIX-6 | Add `.slugignore` (already exists) – expand patterns to cut slug to <300 MB | Heroku slug ≤ 300 MB |
+| VERIFY | `npm run build` && `npm start` locally; then push to Heroku and confirm green build + live site | `curl /api/health` returns 200 on dyno |
+
+### Project Status Board (excerpt)
+- [ ] FIX-1 remove dev hooks
+- [ ] FIX-2 rollup dependency cleanup
+- [ ] FIX-3 set build env flags
+- [ ] FIX-4 regenerate lockfile
+- [ ] FIX-5 script workspace fix
+- [ ] FIX-6 slim slug (optional)
+
+### Executor's Next Step
+Start with FIX-1: open `package.json`, delete `postinstall`, `prepare`, and `heroku-postbuild`; adjust `build` / `start` scripts accordingly, commit.
+
+---
 ### Key Challenges & Analysis
 1. Build hooks are hard-coded in root `package.json`; deleting lines is trivial but we must regenerate lock-file once and ensure scripts never creep back.  
 2. Textdrip token is consumed in `dialer-app/server/src/services/textdripService.ts` via `process.env.TEXTDRIP_API_TOKEN`; we need DB lookup per user and graceful fallback for legacy env token.
@@ -30,7 +64,6 @@
 | TD-5 | Front-end Integrations page (route `/settings/integrations/textdrip`) with connect / disconnect UI | Admin can connect token and send test SMS successfully |
 | TD-6 | Feature flag rollout — set `TEXTDRIP_PER_USER=true` on staging/production | Global env token no longer required; server boots |
 
----
 ### Project Status Board
 - [x] BUILD-1a Remove scripts from package.jsons
 - [ ] BUILD-1b Regenerate lockfile & deploy
@@ -184,3 +217,48 @@ Tasks
 - [ ] LAUNCH-4 write contribution guide
 
 • Attempted CLEAN-ROLLUP mac: added .npmrc optional=false, regenerated lockfile, and changed build script to ROLLUP_WASM. Heroku build still fails requiring linux native, so rollup loader ignores env var; need alternative: remove @rollup/rollup-* packages from lockfile entirely or add stub. Seeking better approach.
+
+---
+### Status Report – 7 Jul 2025
+**Main production goal:** Heroku build must be deterministic, free of dev-only hooks, and Rollup must compile using either the Linux native binary _or_ the WASM shim, with no platform-specific addons that break the build. Once green we can point DNS and call the launch complete.
+
+Current blockers / obstacles
++0. **Version mismatch** – `package-lock.json` references `@rollup/wasm-node@^4.45.1` but the registry only publishes up to **4.44.1** → `ETARGET` aborts install on Heroku.
+  
+1. **Dev hooks keep resurrecting** – `postinstall`, `prepare`, `heroku-postbuild` are still present in _root_ `package.json`, causing:  
+   • missing `scripts/fixNativeBinaries.mjs`  
+   • pointless Husky install (no git repo on dyno)  
+   • double-build via `heroku-postbuild` (runs `npm --workspace …` which fails).
+2. **Rollup native addon resolution**  
+   • Lockfile still contains `@rollup/rollup-darwin-*` despite overrides; Heroku sees them → `EBADPLATFORM`.  
+   • When `optional=false` removes them, Rollup then requires `@rollup/rollup-linux-x64-gnu` but **npm does not install optional deps on Heroku** unless present in _dependencies_.  
+   • Attempted overrides (`false`) + explicit optional dep + `ROLLUP_NO_NATIVE=true ROLLUP_WASM=true`; build now fails on _wasm-node@4.45.1 not found_ because that version isn't published.
+3. **Workspace flag** – build script still uses `npm --workspace dialer-app/server` which errors (No workspaces found) since server isn't defined in workspaces array.
+4. **Slug size** – currently 380 MB (soft-limit warning). Lower priority once build is stable.
+
+Attempts so far
+• Removed mac native Rollup packages locally; added .npmrc optional=false; regenerated lockfile.  
+• Added Linux native Rollup as `optionalDependencies` and overrides map for mac pkgs.  
+• Added .slugignore to drop bulky static assets.  
+• Changed client build flags to `ROLLUP_NO_NATIVE / ROLLUP_WASM`.  
+Outcome: build still alternates between (a) `EBADPLATFORM` on mac binary, (b) `MODULE_NOT_FOUND` on linux binary, or (c) `ETARGET` for non-existent wasm-node 4.45.1.
+
+Key insight
+• Rollup >= 4.45 moves the native / wasm resolution logic to respect `ROLLUP_WASM` **and** stops bundling platform specific addons. The published `4.45.1` packages exist for **core Rollup**, but **wasm-node** only published up to 4.44.1. Therefore the cleanest path is:  
+  1. **Pin `rollup` to 4.45.1** (core)  
+  2. Remove _all_ native addon packages from lockfile  
+  3. Rely solely on WASM shim (`@rollup/wasm-node@4.44.1`) which _is_ published and works cross-platform.  
+  4. Ensure `ROLLUP_NO_NATIVE=true ROLLUP_WASM=true` is exported.
+• Simultaneously, delete the dev hooks and switch `build` to use `npm --prefix`.
+
+### Updated Immediate Task List
+| ID | Owner | Action | Success Criteria |
+|----|-------|--------|------------------|
+| FIX-1 | Exec | **Delete** `postinstall`, `prepare`, `heroku-postbuild` from root `package.json`; update `build` script to `npm run build` only | Heroku log shows none of these scripts |
+| FIX-2 | Exec | Remove _every_ `@rollup/rollup-*` native pkg from lockfile & deps, **pin `rollup`@4.44.1 and `@rollup/wasm-node`@4.44.1**, add npm **overrides** mapping all native addons to wasm shim | `npm ci --production` on Linux succeeds; no EBADPLATFORM / ETARGET |
+| FIX-3 | Exec | Replace workspace flags with `--prefix` in `build:server` & `build:client` scripts | Build no longer errors on "No workspaces found" |
+| FIX-4 | Exec | Regenerate lockfile (`rm -rf node_modules package-lock.json && npm install --omit=dev --strict-peer-deps`) | Lockfile only contains core rollup + wasm shim |
+| VERIFY | Exec | `/api/health` 200; UI loads at dyno URL | Manual smoke pass |
+| DNS | User | Point `crokodial.com` CNAME to Heroku app; enable SSL | `curl https://crokodial.com` 200 |
+
+Status board updated accordingly (BUILD-1b and CLEAN-ROLLUP-mac rolled into FIX-2/4).
