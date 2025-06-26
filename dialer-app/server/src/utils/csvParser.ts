@@ -3,7 +3,7 @@
  * Production-grade CSV parsing with automatic vendor detection and field mapping
  */
 
-import { parse } from 'csv-parse';
+import { parse } from 'csv-parse/sync';
 import { Readable } from 'stream';
 import { fixDob } from './fixDob';
 
@@ -338,28 +338,14 @@ export async function parseVendorCSV(
   };
 
   try {
-    const records: any[] = await new Promise((resolve, reject) => {
-      const output: any[] = [];
-
-      parse(
-        csvContent,
-        {
-          columns: true,
-          skip_empty_lines: options.skipEmptyLines ?? true,
-          trim: true,
-          cast: true,
-          cast_date: false, // Handle dates manually
-          relax_quotes: true,
-          relax_column_count: true,
-        },
-        (err, records) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(records);
-          }
-        }
-      );
+    const records: any[] = parse(csvContent, {
+      columns: true,
+      skip_empty_lines: options.skipEmptyLines ?? true,
+      trim: true,
+      cast: true,
+      cast_date: false, // Handle dates manually
+      relax_quotes: true,
+      relax_column_count: true,
     });
 
     if (records.length === 0) {

@@ -125,18 +125,12 @@ export async function processCsvFile<T = any>(
   processor: (records: T[]) => Promise<void>
 ): Promise<void> {
   const fs = await import('fs');
-  const csv = await import('csv-parse');
-  const { parse } = csv;
+  const { parse } = await import('csv-parse/sync');
 
   console.log(`Processing CSV file: ${filePath}`);
 
   const fileContent = await fs.promises.readFile(filePath, 'utf-8');
-  const records: T[] = await new Promise((resolve, reject) => {
-    parse(fileContent, CSV_PARSE_OPTIONS, (err, output) => {
-      if (err) reject(err);
-      else resolve(output);
-    });
-  });
+  const records: T[] = parse(fileContent, CSV_PARSE_OPTIONS);
 
   console.log(`Found ${records.length} records in CSV`);
   await processor(records);

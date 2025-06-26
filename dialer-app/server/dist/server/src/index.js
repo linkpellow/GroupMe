@@ -241,16 +241,26 @@ const allowedOrigins = [
     'http://127.0.0.1:5173',
     `http://localhost:${port}`,
     `http://127.0.0.1:${port}`,
+    'https://crokodial.com',
+    'https://www.crokodial.com',
     process.env.CLIENT_URL,
 ].filter(Boolean);
 const corsOptions = {
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin))
-            callback(null, true);
-        else {
-            console.warn(`CORS block for origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) {
+            return callback(null, true);
         }
+        // Allow same-origin requests (important for static assets)
+        if (origin === 'https://crokodial.com' || origin === 'https://www.crokodial.com') {
+            return callback(null, true);
+        }
+        // Allow requests from allowed origins
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        console.warn(`CORS block for origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
 };

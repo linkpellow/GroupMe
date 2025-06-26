@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import fs from 'fs';
-import { parse } from 'csv-parse';
+import { parse } from 'csv-parse/sync';
 import path from 'path';
 import dotenv from 'dotenv';
 import UserModel from '../models/User';
@@ -39,24 +39,9 @@ async function reimportLeadsFixed() {
 
       // Read and parse CSV file
       const fileContent = fs.readFileSync(filePath, 'utf-8');
-      const records: any[] = [];
-
-      await new Promise((resolve, reject) => {
-        parse(
-          fileContent,
-          {
-            columns: true,
-            skip_empty_lines: true,
-          },
-          (err, data) => {
-            if (err) {
-              reject(err);
-            } else {
-              records.push(...data);
-              resolve(null);
-            }
-          }
-        );
+      const records: any[] = parse(fileContent, {
+        columns: true,
+        skip_empty_lines: true,
       });
 
       console.log(`Found ${records.length} records in file ${file}`);
