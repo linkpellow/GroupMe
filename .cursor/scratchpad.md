@@ -146,3 +146,41 @@ Root causes:
    curl https://crokodial-2a1145cec713.herokuapp.com/api/health
    ```
    Expect `{ "status": "ok" … }` (HTTP 200).
+
+### Post-Launch Change Workflow (added 1 Jul 2025)
+Goal: keep production live while allowing ongoing feature work and hot-fixes.
+
+1. Git branching strategy
+   • `main` (or `production`) – always deployable; Heroku auto-deploys from this branch.
+   • `dev` – daily work; merged to `main` via PR when stable.
+   • Hot-fix branches off `main` for urgent bug fixes; merge & deploy quickly.
+
+2. Environments
+   • **Heroku production app**: `crokodial-2a1145cec713` – bound to crokodial.com.
+   • **Heroku staging app** (to create): identical config but on free/eco dyno; auto-deploys from `dev` branch for QA.
+
+3. CI pipeline
+   • Use Heroku Git auto-deploy + pipelines: staging promotion → production.
+   • Optionally add GitHub Actions for tests/lint before push.
+
+4. Secrets management
+   • Config vars duplicated to staging (with non-live creds where possible).
+
+5. Rollback
+   • Heroku keeps last 5 slugs; `heroku releases:rollback v###`.
+
+Tasks
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| LAUNCH-1 | Create Heroku Pipeline, add existing prod app, create staging app | Pipeline shows both apps; staging builds from `dev` |
+| LAUNCH-2 | Update repo: default branch `dev`; protect `main` | GitHub protected branch rules active |
+| LAUNCH-3 | Enable auto-deploy on both apps | New commit to `dev` → staging build; merge to main → prod release |
+| LAUNCH-4 | Document hot-fix procedure in README | Team can follow checklist |
+
+### Project Status Board (additions)
+- [ ] LAUNCH-1 create Heroku pipeline & staging app
+- [ ] LAUNCH-2 set branch protections / default `dev`
+- [ ] LAUNCH-3 enable auto-deploy flow
+- [ ] LAUNCH-4 write contribution guide
+
+• Attempted CLEAN-ROLLUP mac: added .npmrc optional=false, regenerated lockfile, and changed build script to ROLLUP_WASM. Heroku build still fails requiring linux native, so rollup loader ignores env var; need alternative: remove @rollup/rollup-* packages from lockfile entirely or add stub. Seeking better approach.
