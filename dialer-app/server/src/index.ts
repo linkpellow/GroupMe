@@ -345,6 +345,7 @@ const candidateClientDistPaths = [
   path.join(__dirname, '..', '..', 'client', 'dist'), // ../../client/dist  (dist/src -> dialer-app/server)
   path.join(__dirname, '..', '..', '..', 'client', 'dist'), // ../../../client/dist (dist/server/src -> dialer-app)
   path.join(__dirname, '..', '..', '..', '..', 'client', 'dist'), // ../../../../client/dist  (dist/server/src -> project root)
+  path.join(process.cwd(), 'dialer-app', 'client', 'dist'), // absolute from project root when cwd is repo root
 ];
 
 const clientDistPath = candidateClientDistPaths.find((p) => fs.existsSync(p));
