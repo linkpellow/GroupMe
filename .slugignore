@@ -1,6 +1,6 @@
 # Exclude client/source files that are not required at runtime
 # The compiled static bundle is in dialer-app/client/dist which we keep
- dialer-app/client/src
+# dialer-app/client/src
  dialer-app/client/public/ANIMATION/
  dialer-app/client/public/images/
  dialer-app/client/public/states/
