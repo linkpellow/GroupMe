@@ -95,11 +95,9 @@
     "react-icons": "^5.5.0",
     "zod": "^3.25.42"
   },
-  "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.44.1"
-  },
   "overrides": {
     "@rollup/rollup-darwin-arm64": false,
-    "@rollup/rollup-darwin-x64": false
+    "@rollup/rollup-darwin-x64": false,
+    "@rollup/rollup-linux-x64-gnu": false
   }
 }
