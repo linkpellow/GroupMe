@@ -16,6 +16,7 @@
     "build:server": "npm --prefix dialer-app/server run build",
     "build:client": "cross-env ROLLUP_NO_NATIVE=true ROLLUP_WASM=true npm --prefix dialer-app/client run build",
     "build:all": "npm run build:server && npm run build:client",
+    "postinstall": "npm run build",
     "start": "node dialer-app/server/dist/server/src/index.js",
     "test": "npm run test:client && npm run test:server",
     "test:client": "cd dialer-app/client && npm test",
