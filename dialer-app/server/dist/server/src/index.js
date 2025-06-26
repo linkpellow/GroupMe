@@ -319,17 +319,33 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString(),
     });
 });
-const clientDistPath = path_1.default.join(__dirname, '../../../../client/dist');
-if (fs_1.default.existsSync(clientDistPath)) {
+// Determine client dist directory dynamically to work in dev, build, and Heroku slug paths
+const candidateClientDistPaths = [
+    path_1.default.join(__dirname, '..', '..', 'client', 'dist'), // ../../client/dist  (dist/src -> dialer-app/server)
+    path_1.default.join(__dirname, '..', '..', '..', 'client', 'dist'), // ../../../client/dist (dist/server/src -> dialer-app)
+    path_1.default.join(__dirname, '..', '..', '..', '..', 'client', 'dist'), // ../../../../client/dist  (dist/server/src -> project root)
+    path_1.default.join(process.cwd(), 'dialer-app', 'client', 'dist'), // absolute from project root when cwd is repo root
+];
+const clientDistPath = candidateClientDistPaths.find((p) => fs_1.default.existsSync(p));
+if (clientDistPath) {
+    // Serve static files from the client dist directory
     app.use(express_1.default.static(clientDistPath));
+    // Serve index.html for all non-API routes that don't match static files
     app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api'))
             return next();
+        // Check if the requested file exists in the static directory
+        const requestedFile = path_1.default.join(clientDistPath, req.path);
+        if (fs_1.default.existsSync(requestedFile) && fs_1.default.statSync(requestedFile).isFile()) {
+            // File exists, let express.static handle it
+            return next();
+        }
+        // File doesn't exist, serve index.html for SPA routing
         res.sendFile(path_1.default.resolve(clientDistPath, 'index.html'));
     });
 }
 else {
-    console.warn('Client dist path not found:', clientDistPath);
+    console.warn('Client dist path not found. Checked:', candidateClientDistPaths);
 }
 app.use(errorHandler_1.errorHandler);
 const CAMPAIGN_ENABLED = process.env.ENABLE_CAMPAIGN_PROCESSOR !== 'false';
