@@ -262,3 +262,30 @@ Key insight
 | DNS | User | Point `crokodial.com` CNAME to Heroku app; enable SSL | `curl https://crokodial.com` 200 |
 
 Status board updated accordingly (BUILD-1b and CLEAN-ROLLUP-mac rolled into FIX-2/4).
+
+### Ability to develop while production is live  (Planner note 7 Jul 2025)
+Yes, once we finish the clean-build fixes you'll be able to:
+• run `npm run dev:server` + `npm run dev:client` locally (hot-reload) without disturbing prod.
+• push to **GitHub `dev` branch** → auto-deploys to **Heroku *staging*** (separate app).
+• after QA, "Promote to production" in Heroku Pipeline – zero-downtime swap.
+
+REMAINING setup / fixes
+| ID | Area | What's left | Blocking? |
+|----|------|-------------|-----------|
+| FIX-ROLLUP | Build | Add *linux* native binary back OR set `ROLLUP_NO_NATIVE=true` consistently. Currently build fails to find `@rollup/rollup-linux-x64-gnu` | yes (prod build) |
+| FIX-SLUGIGNORE | Build | Remove `dialer-app/client/src` from `.slugignore` – Vite needs source files at build time | yes |
+| CLEAN-SCRIPTS | Build | Strip `postinstall`, `prepare`, `heroku-postbuild` scripts (again) | yes |
+| PIPE-1 | Pipeline | Create Heroku **staging** app, copy config vars | no |
+| PIPE-2 | Pipeline | Add Pipeline linking: `dev` → staging, `main` → production | no |
+| DOC-1 | Docs | Add README section with local dev commands & release workflow | no |
+
+Success criteria
+• `git push heroku main` builds green with slug ≤380 MB, dyno boots (`/api/health` 200).
+• `npm run dev:client` on Mac starts without Rollup native error (uses WASM).
+• Heroku Pipeline exists; promoting staging to production swaps versions instantly.
+
+Next Executor task
+1. Edit `.slugignore` – comment-out lines that exclude `dialer-app/client/src` and `dialer-app/client/vite.config.ts`.
+2. Re-add optional dependency `@rollup/rollup-linux-x64-gnu` so prod build stops erroring **OR** keep it disabled but force `ROLLUP_NO_NATIVE` in *build* script just like we do locally.
+3. Delete lingering `postinstall/prepare/heroku-postbuild` lines from root `package.json`.
+4. Regenerate lockfile, commit, push → verify build.
