@@ -86,4 +86,4 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
     console.error('\n  \x1b[32mJWT_SECRET=your_super_secret_random_string_of_at_least_32_characters\x1b[0m\n');
     process.exit(1);
 }
-// -------------------------------------------------------------------------- 
+// --------------------------------------------------------------------------

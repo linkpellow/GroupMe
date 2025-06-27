@@ -15,7 +15,7 @@ const router = (0, express_1.Router)();
  * GET /api/textdrip/campaigns
  * Fetches all Textdrip campaigns.
  */
-router.get("/campaigns", auth_1.auth, async (req, res) => {
+router.get('/campaigns', auth_1.auth, async (req, res) => {
     try {
         console.log('GET /api/textdrip/campaigns route hit');
         const userId = req.user._id;
@@ -34,22 +34,22 @@ router.get("/campaigns", auth_1.auth, async (req, res) => {
  * POST /api/textdrip/campaign
  * body: { leadId, campaignId, removeExisting?:boolean }
  */
-router.post("/campaign", auth_1.auth, async (req, res) => {
+router.post('/campaign', auth_1.auth, async (req, res) => {
     const { leadId, campaignId, removeExisting = false } = req.body;
     console.log('Textdrip add-campaign request:', {
         leadId,
         campaignId,
         removeExisting,
-        headers: req.headers
+        headers: req.headers,
     });
     if (!leadId || !campaignId) {
-        return res.status(400).json({ status: false, message: "leadId and campaignId are required" });
+        return res.status(400).json({ status: false, message: 'leadId and campaignId are required' });
     }
     try {
         const service = (0, textdripService_1.createTextdripService)(req.user?.textdripToken);
         const lead = await Lead_1.default.findById(leadId);
         if (!lead) {
-            return res.status(404).json({ status: false, message: "Lead not found" });
+            return res.status(404).json({ status: false, message: 'Lead not found' });
         }
         // Ensure contact exists in Textdrip and get contactId
         const contactId = await service.ensureContact(lead);
@@ -64,16 +64,16 @@ router.post("/campaign", auth_1.auth, async (req, res) => {
  * POST /api/textdrip/quick-drip
  * body: { phone, message, imageId?:string }
  */
-router.post("/quick-drip", auth_1.auth, async (req, res) => {
+router.post('/quick-drip', auth_1.auth, async (req, res) => {
     const { leadId, message, imageId = null } = req.body;
     if (!leadId || !message) {
-        return res.status(400).json({ status: false, message: "leadId and message are required" });
+        return res.status(400).json({ status: false, message: 'leadId and message are required' });
     }
     try {
         const service = (0, textdripService_1.createTextdripService)(req.user?.textdripToken);
         const lead = await Lead_1.default.findById(leadId);
         if (!lead) {
-            return res.status(404).json({ status: false, message: "Lead not found" });
+            return res.status(404).json({ status: false, message: 'Lead not found' });
         }
         const result = await service.sendMessage(lead, message, imageId);
         return res.status(200).json(result);

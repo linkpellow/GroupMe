@@ -40,7 +40,10 @@
   "license": "ISC",
   "dependencies": {
     "@fast-csv/format": "^4.3.2",
+    "@sentry-internal/tracing": "^7.120.3",
+    "@sentry/integrations": "^7.120.3",
     "@sentry/node": "^7.120.3",
+    "@sentry/utils": "^7.120.3",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "bson": "^6.10.3",

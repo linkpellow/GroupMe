@@ -21,7 +21,7 @@ module.exports = {
     'no-console': 'off', // Backend uses console for logging
     'semi': ['error', 'always'],
     'quotes': ['error', 'single'],
-    'comma-dangle': 'off',
+    'comma-dangle': ['error', 'always-multiline'],
     'no-trailing-spaces': 'error',
     'eol-last': 'error',
     'no-undef': 'off',

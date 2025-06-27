@@ -24,7 +24,9 @@ class DialCountService {
         if (phones.length === 0)
             return {};
         const cleaned = phones.map(phoneUtils_1.normalizePhone);
-        const docs = await DialCount_1.default.find({ userId, phone: { $in: cleaned } }).lean().exec();
+        const docs = await DialCount_1.default.find({ userId, phone: { $in: cleaned } })
+            .lean()
+            .exec();
         const map = {};
         for (const doc of docs) {
             map[doc.phone] = doc.count;

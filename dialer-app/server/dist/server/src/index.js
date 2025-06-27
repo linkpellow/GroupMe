@@ -109,7 +109,7 @@ console.log(`ENV sanity → JWT_SECRET: ${jwtPreview}… (${(process.env.JWT_SEC
 console.log('=== PRODUCTION SERVER: UNIFIED IMPLEMENTATION ===');
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3005;
 const host = '0.0.0.0'; // Force IPv4 to prevent EADDRINUSE on ::1 and ensure wider network accessibility
 // WebSocket Server Setup
 const wss = new ws_1.WebSocketServer({ server });
@@ -241,26 +241,16 @@ const allowedOrigins = [
     'http://127.0.0.1:5173',
     `http://localhost:${port}`,
     `http://127.0.0.1:${port}`,
-    'https://crokodial.com',
-    'https://www.crokodial.com',
     process.env.CLIENT_URL,
 ].filter(Boolean);
 const corsOptions = {
     origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) {
-            return callback(null, true);
+        if (!origin || allowedOrigins.includes(origin))
+            callback(null, true);
+        else {
+            console.warn(`CORS block for origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
         }
-        // Allow same-origin requests (important for static assets)
-        if (origin === 'https://crokodial.com' || origin === 'https://www.crokodial.com') {
-            return callback(null, true);
-        }
-        // Allow requests from allowed origins
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
-        console.warn(`CORS block for origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
 };
@@ -338,19 +328,10 @@ const candidateClientDistPaths = [
 ];
 const clientDistPath = candidateClientDistPaths.find((p) => fs_1.default.existsSync(p));
 if (clientDistPath) {
-    // Serve static files from the client dist directory
     app.use(express_1.default.static(clientDistPath));
-    // Serve index.html for all non-API routes that don't match static files
     app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api'))
             return next();
-        // Check if the requested file exists in the static directory
-        const requestedFile = path_1.default.join(clientDistPath, req.path);
-        if (fs_1.default.existsSync(requestedFile) && fs_1.default.statSync(requestedFile).isFile()) {
-            // File exists, let express.static handle it
-            return next();
-        }
-        // File doesn't exist, serve index.html for SPA routing
         res.sendFile(path_1.default.resolve(clientDistPath, 'index.html'));
     });
 }

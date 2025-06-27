@@ -169,7 +169,7 @@ class TextdripService {
                 ...(imageId ? { image: imageId } : {}),
             }, { headers: { 'phone-token': tokenHeader } });
             if (!data?.status)
-                throw new Error(data?.message ?? "Unknown error");
+                throw new Error(data?.message ?? 'Unknown error');
             return data;
         }
         catch (err) {
@@ -232,20 +232,20 @@ const createTextdripService = (overrideToken) => {
     return new TextdripService(token);
 };
 exports.createTextdripService = createTextdripService;
-const BASE_URL = "https://api.textdrip.com/api";
+const BASE_URL = 'https://api.textdrip.com/api';
 const TOKEN = process.env.TEXTDRIP_API_TOKEN;
-const SENDER_PHONE = "18136679756"; // Your Textdrip phone number
+const SENDER_PHONE = '18136679756'; // Your Textdrip phone number
 /* ------------- shared helpers ------------------------------------------------ */
 const buildHeaders = (phoneToken = null) => ({
     Authorization: `Bearer ${TOKEN}`,
-    Accept: "application/json",
-    "Content-Type": "application/json",
-    ...(phoneToken ? { "phone-token": phoneToken } : {}),
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    ...(phoneToken ? { 'phone-token': phoneToken } : {}),
 });
 const unwrap = (err) => {
     if (err.response) {
         const { status, data } = err.response;
-        throw new Error(`TextDrip ${status}: ${typeof data === "string" ? data : data.message || data.error || 'Unknown error'}`);
+        throw new Error(`TextDrip ${status}: ${typeof data === 'string' ? data : data.message || data.error || 'Unknown error'}`);
     }
     throw err;
 };
@@ -258,7 +258,7 @@ async function addCampaign(contactId, campaignId, alreadyScheduledRemove = false
             already_scheduled_remove: alreadyScheduledRemove,
         }, { headers: buildHeaders(contactId) });
         if (!data?.status)
-            throw new Error(data?.message ?? "Unknown error");
+            throw new Error(data?.message ?? 'Unknown error');
         return data; // { status:true, message:"Campaign added successfully." }
     }
     catch (err) {
@@ -277,14 +277,14 @@ message, imageId // optional TextDrip image ID
             ...(imageId ? { image: imageId } : {}),
         }, { headers: buildHeaders(receiver) });
         if (!data?.status)
-            throw new Error(data?.message ?? "Unknown error");
+            throw new Error(data?.message ?? 'Unknown error');
         return data; // { status:true, message:"<Message details>" }
     }
     catch (err) {
         unwrap(err);
     }
 }
-// NOTE: I am omitting getConversations and getChats for now as they are not used. 
+// NOTE: I am omitting getConversations and getChats for now as they are not used.
 const buildBaseUrl = (user, fallbackBase) => {
     return (user.textdrip?.baseUrl?.replace(/\/?$/, '') || // remove trailing /
         fallbackBase?.replace(/\/?$/, '') ||
@@ -352,7 +352,10 @@ const getCampaigns = async (user) => {
     const access = await (0, exports.ensureFreshAccessToken)(user);
     const base = buildBaseUrl(user);
     const url = `${base}/campaigns`;
-    const { data } = await axios_1.default.get(url, { headers: { Authorization: `Bearer ${access}` }, timeout: 10000 });
+    const { data } = await axios_1.default.get(url, {
+        headers: { Authorization: `Bearer ${access}` },
+        timeout: 10000,
+    });
     return data;
 };
 exports.getCampaigns = getCampaigns;

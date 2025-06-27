@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const fs_1 = __importDefault(require("fs"));
-const sync_1 = require("csv-parse/sync");
+const csv_parse_1 = require("csv-parse");
 const path_1 = __importDefault(require("path"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const User_1 = __importDefault(require("../models/User"));
@@ -39,9 +39,19 @@ async function reimportLeads() {
             console.log(`Processing file: ${file}`);
             // Read and parse CSV file
             const fileContent = fs_1.default.readFileSync(filePath, 'utf-8');
-            const records = (0, sync_1.parse)(fileContent, {
-                columns: true,
-                skip_empty_lines: true,
+            const records = [];
+            await new Promise((resolve, reject) => {
+                (0, csv_parse_1.parse)(fileContent, {
+                    columns: true,
+                    skip_empty_lines: true,
+                }, (err, data) => {
+                    if (err)
+                        reject(err);
+                    else {
+                        records.push(...data);
+                        resolve(null);
+                    }
+                });
             });
             console.log(`Found ${records.length} records in file ${file}`);
             let importedCount = 0;

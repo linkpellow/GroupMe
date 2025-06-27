@@ -3,24 +3,51 @@
 ### Background
 • Heroku build is green but still runs two obsolete dev hooks (`postinstall` & `prepare`) slowing every deploy and polluting logs.  
 • TEXTDRIP_API_TOKEN is currently a **global env var**; the product design requires each rep to connect their **own** Textdrip account.
+• **NEW**: Local development environment has multiple blocking issues preventing proper testing.
 
 ### Objectives
 1. CLEAN-BUILD: strip dev-only hooks, shrink slug, keep CI logs quiet.  
 2. TEXTDRIP v1: move token storage to user scope with secure CRUD API & minimal React UI.
+3. **NEW**: Fix local development environment for testing and development workflow.
 
 ---
-### Key Challenges and Analysis (update 26 Jun 2025)
-The deploy still fails for two independent reasons:
-1. Rollup native binaries
-   • `@rollup/rollup-darwin-arm64` sneaks into the lockfile –> EBADPLATFORM on Heroku Linux.
-   • When we removed optionals, the loader then tries `@rollup/rollup-linux-x64-gnu` → MODULE_NOT_FOUND.
-   • Root problem: Rollup <4.45 auto-requires a native addon unless BOTH are true: `ROLLUP_NO_NATIVE=true` **and** `ROLLUP_WASM=true`, *and* no native packages are installed.
-2. Dev hooks keep coming back
-   • `postinstall` (fixNativeBinaries) + `prepare` (husky) + `heroku-postbuild` still exist in root `package.json`, causing missing-file errors or double builds.
-3. Workspace script path
-   • Heroku build fails on `npm --workspace dialer-app/server` – the `--workspace` flag only works if the workspace has its own `package.json`. We removed that earlier; correct flag is `--prefix`.
+### Key Challenges and Analysis (update 27 Jun 2025 - Current Issues)
 
-### High-level Task Breakdown (fix-deploy branch)
+**CRITICAL BLOCKING ISSUES IN LOCAL DEV:**
+1. **Sentry Dependencies Missing**: `@sentry/integrations` and `@sentry-internal/tracing` cause server startup failures
+2. **Rollup Native Binary Issues**: Despite environment variables and .npmrc settings, Vite still tries to load `@rollup/rollup-darwin-arm64` 
+3. **Port Mismatch**: Server configured for port 3005 in .env.local but was defaulting to 3001, client expects 3005
+4. **Multiple Zombie Processes**: ts-node-dev processes accumulating and conflicting
+
+**ROOT CAUSES IDENTIFIED:**
+- Sentry package version mismatches after dependency cleanup
+- npm's optional dependency bug persists despite multiple workarounds  
+- Legacy port configurations not aligned between client/server
+- Development processes not properly cleaned up between restarts
+
+**PROGRESS MADE:**
+✅ Fixed server port configuration (now uses 3005)
+✅ Updated Vite proxy configuration to match
+✅ Added .npmrc with optional=false
+✅ Installed missing Sentry dependencies (@sentry/utils, @sentry-internal/tracing)
+✅ Updated Vite config with WASM-only environment variables
+✅ Regenerated package-lock.json with --no-optional flag
+
+**REMAINING ISSUES:**
+❌ @sentry/integrations still missing (new dependency needed)
+❌ Rollup native binaries still in lockfile despite all attempts
+❌ Need to verify MongoDB Atlas connection is working locally
+
+### High-level Task Breakdown (LOCAL DEV FIXES - PRIORITY 1)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| DEV-1 | Install missing @sentry/integrations dependency | Server starts without Sentry errors |
+| DEV-2 | Force WASM-only Rollup by manually editing package-lock.json | Client starts without native binary errors |
+| DEV-3 | Verify MongoDB connection and server startup | `curl localhost:3005/api/health` returns 200 |
+| DEV-4 | Test full dev environment (client + server) | Login page loads, can authenticate, API calls work |
+| DEV-5 | Document working dev setup commands | README with exact steps to start local environment |
+
+### High-level Task Breakdown (ORIGINAL DEPLOY TASKS - PRIORITY 2)
 | ID | Task | Success Criteria |
 |----|------|------------------|
 | FIX-1 | Purge dev hooks (`postinstall`, `prepare`, `heroku-postbuild`) from root `package.json`; switch build to `npm run build` only | Heroku log shows no husky nor fixNativeBinaries |
@@ -31,40 +58,17 @@ The deploy still fails for two independent reasons:
 | FIX-6 | Add `.slugignore` (already exists) – expand patterns to cut slug to <300 MB | Heroku slug ≤ 300 MB |
 | VERIFY | `npm run build` && `npm start` locally; then push to Heroku and confirm green build + live site | `curl /api/health` returns 200 on dyno |
 
-### Project Status Board (excerpt)
-- [ ] FIX-1 remove dev hooks
-- [ ] FIX-2 rollup dependency cleanup
-- [ ] FIX-3 set build env flags
-- [ ] FIX-4 regenerate lockfile
-- [ ] FIX-5 script workspace fix
-- [ ] FIX-6 slim slug (optional)
+### Project Status Board - LOCAL DEV (PRIORITY 1)
+- [x] DEV-PORT: Configure server for port 3005
+- [x] DEV-SENTRY-1: Install @sentry/utils and @sentry-internal/tracing  
+- [ ] DEV-SENTRY-2: Install @sentry/integrations
+- [x] DEV-NPMRC: Add .npmrc with optional=false
+- [x] DEV-LOCKFILE: Regenerate lockfile with --no-optional
+- [ ] DEV-ROLLUP: Manually remove native binaries from lockfile
+- [ ] DEV-TEST: Verify both client and server start successfully
+- [ ] DEV-E2E: Test login and basic API functionality
 
-### Executor's Next Step
-Start with FIX-1: open `package.json`, delete `postinstall`, `prepare`, and `heroku-postbuild`; adjust `build` / `start` scripts accordingly, commit.
-
----
-### Key Challenges & Analysis
-1. Build hooks are hard-coded in root `package.json`; deleting lines is trivial but we must regenerate lock-file once and ensure scripts never creep back.  
-2. Textdrip token is consumed in `dialer-app/server/src/services/textdripService.ts` via `process.env.TEXTDRIP_API_TOKEN`; we need DB lookup per user and graceful fallback for legacy env token.
-3. Must avoid breaking existing SMS features while rolling out per-user tokens — introduce token override param and feature-flag via ENV `TEXTDRIP_PER_USER=true`.
-
----
-### High-level Task Breakdown
-| ID | Task | Success Criteria |
-|----|------|------------------|
-| BUILD-1a | Remove `postinstall` + `prepare` scripts from ALL `package.json` files (root and workspaces); ensure deleted ones are not executed on Heroku | Heroku build log shows no `fixNativeBinaries` or `husky` steps |
-| BUILD-1b | Regenerate single root `package-lock.json`; commit & push | Build passes; slug ≤ 370 MB |
-| TD-1 | Create Mongoose model `TextdripToken` (`userId`, `token`, timestamps) | Unit test passes, collection auto-indexes |
-| TD-2 | Add TextdripTokenService with `getToken(userId)` + `setToken(userId, token)` | Jest test mocks DB and returns expected |
-| TD-3 | Refactor `textdripService.ts` to call `TextdripTokenService.getToken(userId)`; fallback to env var if absent | Existing Textdrip unit tests still pass |
-| TD-4 | Add routes:  
-  • `GET  /api/textdrip/token` → { connected: bool }  
-  • `POST /api/textdrip/token` → { success:true }  
-  • `DELETE /api/textdrip/token` | Swagger docs updated; 200 responses in Postman |
-| TD-5 | Front-end Integrations page (route `/settings/integrations/textdrip`) with connect / disconnect UI | Admin can connect token and send test SMS successfully |
-| TD-6 | Feature flag rollout — set `TEXTDRIP_PER_USER=true` on staging/production | Global env token no longer required; server boots |
-
-### Project Status Board
+### Project Status Board - DEPLOY (PRIORITY 2)  
 - [x] BUILD-1a Remove scripts from package.jsons
 - [ ] BUILD-1b Regenerate lockfile & deploy
 - [ ] TD-1 Create model
@@ -77,24 +81,37 @@ Start with FIX-1: open `package.json`, delete `postinstall`, `prepare`, and `her
 - [ ] BUILD-LOCK regenerate & deploy (pending push & Heroku build)
 - [x] DEP-MONGO Update Heroku MONGODB_URI (Lp_heroku user)
 
-### Executor Notes / Guidance
-1. Complete tasks **one at a time** — commit & push after each BUILD step, run `heroku logs` to verify.  
-2. For TD-tasks, use TDD — add Jest tests under `dialer-app/server/__tests__/textdripToken.test.ts`.  
-3. Hashing token is optional for MVP because Textdrip tokens are revocable; store plaintext but mark TODO for encryption.  
-4. Keep PR granularity small to ease rollback.
+### Executor's Next Steps (IMMEDIATE ACTIONS NEEDED)
+1. **Install @sentry/integrations**: `cd dialer-app && npm install @sentry/integrations`
+2. **Manually edit package-lock.json**: Remove all `@rollup/rollup-darwin-*` and `@rollup/rollup-linux-*` entries
+3. **Test server startup**: Verify server starts on port 3005 without errors
+4. **Test client startup**: Verify Vite starts without Rollup native binary errors  
+5. **End-to-end test**: Verify login page loads and API calls work
+
+### Critical Decision Point
+**Should we proceed with local dev fixes first (recommended) or focus on production deploy?**
+
+**Recommendation**: Fix local development environment first because:
+- Cannot properly test Heroku fixes without working local environment
+- Easier to debug issues locally than on Heroku
+- Faster iteration cycle for testing solutions
+- Essential for ongoing development work
+
+Once local environment is stable, we can confidently apply the same fixes to production deployment.
 
 ### Executor's Feedback or Assistance Requests
-• DEP-MONGO done. Set new URI on Heroku (release v249) and `/api/health` now returns 200 — server boots cleanly.
-• Next priority per board: CLEAN-ROLLUP (mac) and CLEAN-SCRIPTS to eliminate leftover postinstall/prepare lines and shrink slug. Let me know if we proceed or jump straight to DNS cut-over.
+**CURRENT STATUS**: Local development environment has multiple blocking issues preventing testing. Server fails on missing Sentry dependencies, client fails on Rollup native binary issues. Port configuration has been aligned (both using 3005) but services cannot start to test.
 
-- DEV-1 step: Updated root `package.json` overrides to disable **all** native Rollup addon packages and removed the lone `optionalDependencies` entry.  Regenerated lock-file with `npm install --legacy-peer-deps --no-optional --package-lock-only`.
-- Result: local install completes, but `package-lock.json` still contains `@rollup/rollup-darwin-*` entries because they are listed as _optionalDependencies_ inside Rollup itself.  `grep` shows several hits → DEV-2 not yet green.
-- Next idea: upgrade **rollup** (and `@rollup/wasm-node`) to **4.47.0** where upstream removed native addons, then regenerate lock again.  This should drop the platform packages entirely and give us a clean lock-file for both Mac & Heroku.
-- Requesting go-ahead to bump `rollup` + `@rollup/wasm-node` in `dialer-app/client/package.json` to `4.47.0` and repeat lockfile regeneration.
+**NEXT REQUIRED ACTION**: Need to install @sentry/integrations and manually edit package-lock.json to remove native Rollup binaries before we can proceed with testing.
+
+**BLOCKER**: The standard npm approaches to removing optional dependencies are not working. May need manual lockfile editing or alternative Rollup configuration approach.
 
 ---
 ### Lessons (append)
 • Heroku still downloads Mac binary if it exists in lock-file; always regenerate lock after changing optional deps.
+• **NEW**: Sentry dependencies are tightly coupled - when cleaning deps, must ensure all Sentry packages are compatible
+• **NEW**: Rollup native binary issues persist across multiple npm workarounds - may require manual lockfile editing
+• **NEW**: Port mismatches between client/server configs cause connection failures in dev environment
 
 ### Immediate Launch Checklist (added 30 Jun 2025)
 | ID | Task | Owner | Success Criteria |
@@ -287,166 +304,245 @@ Key insight
 - **Deployment:** Working correctly with automated client build process
 - **Status:** ✅ crokodial.com is now fully operational
 
-## Background and Motivation
+## 🚀 CRITICAL: Production Site Down - Emergency Fix Plan — 27 Jun 2025
 
-- **Project:** crokodial.com (monorepo: React frontend, Node/Express backend)
-- **Current State:** 
-  - ✅ Local development environment is fully functional
-  - ✅ Backend server connected to MongoDB Atlas successfully
-  - ❌ Production site (crokodial.com) still has 500 errors for static assets
-  - ❌ Production site stuck on refresh/loading animation
-- **Main Goal:** 
-  - Keep crokodial.com running in production.
-  - Fix console errors on production site.
-  - Fix loading animation issue preventing site functionality.
-  - Maintain the ability to edit and update the website locally (dev server).
+### Current Status: PRODUCTION CRASHED
+- **crokodial.com** is showing "Application Error" page
+- Heroku dyno crashes with: `Error: Cannot find module '/app/dist/index.js'`
+- Local development environment has multiple issues:
+  - Frontend can't connect to backend (ECONNREFUSED errors)
+  - Backend has missing Sentry dependency (`@sentry/utils`)
+  - MongoDB connection issues locally
 
-## Key Challenges and Analysis
+### Root Cause Analysis
+1. **Build Output Mismatch**: 
+   - TypeScript builds to `dist/server/src/index.js` 
+   - But start script expects `dist/index.js`
+   - This was partially fixed but not deployed correctly
 
-- **Production Static Asset Errors:** Still getting 500 errors for critical frontend files:
-  - `vendor-Cngt8-pv.js`
-  - `index-fh89sUS2.js`
-  - `ui-CBOJFStn.js`
-- **Loading Animation Issue:** Production site stuck on refresh/loading animation
-- **Deployment Discrepancy:** Local tests showed 200 OK, but production still failing
-- **Root Cause:** Need to investigate why production deployment isn't working despite successful build
+2. **Local Development Environment Broken**:
+   - Missing `@sentry/utils` dependency
+   - MongoDB connection issues
+   - Frontend-backend communication broken
 
-## High-level Task Breakdown
+3. **Deployment Pipeline Issues**:
+   - Build process not generating correct output structure
+   - Start script path mismatch between local and production
 
-1. **Investigate Production Deployment Discrepancy**
-   - Success Criteria: Understand why production still shows 500 errors despite successful build
-2. **Check Production Server Configuration**
-   - Success Criteria: Verify static file serving is configured correctly in production
-3. **Debug Loading Animation Issue**
-   - Success Criteria: Identify why site is stuck on loading animation
-4. **Fix Production Asset Serving**
-   - Success Criteria: Static assets load correctly on crokodial.com
-5. **Verify Production Site Functionality**
-   - Success Criteria: crokodial.com works without console errors and loading issues
-6. **Document Lessons and Fixes**
-   - Success Criteria: All fixes and lessons learned are documented
+### CRITICAL FIX PRIORITY (Emergency Mode)
 
-## Project Status Board
+#### Phase 1: IMMEDIATE PRODUCTION FIX (30 minutes)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| EMERG-1 | Fix start script path in server package.json | `"start": "node dist/server/src/index.js"` |
+| EMERG-2 | Test build locally: `npm run build` in server directory | `dist/server/src/index.js` exists |
+| EMERG-3 | Commit and push to Heroku | Heroku build succeeds, dyno starts |
+| EMERG-4 | Verify production site loads | `curl https://crokodial.com` returns 200 |
 
-- [x] Audit and document all current console errors on crokodial.com (COMPLETED)
-- [x] Replicate errors on local dev server (COMPLETED)
-- [x] Fix console errors (local) (COMPLETED)
-- [ ] Fix console errors (production) (IN PROGRESS)
-  - [x] Investigate Production Build Process (COMPLETED)
-  - [x] Check Heroku Build Configuration (COMPLETED)
-  - [ ] Fix Production Asset Serving (IN PROGRESS)
-  - [ ] Verify Production Site Functionality (IN PROGRESS)
-- [x] Verify local editing and hot reload works (COMPLETED)
-- [x] Test deployment pipeline (local → production) (COMPLETED)
-- [ ] Document lessons and fixes
+#### Phase 2: LOCAL DEVELOPMENT FIX (1 hour)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| DEV-1 | Install missing Sentry dependency | `npm install @sentry/utils` |
+| DEV-2 | Fix MongoDB connection (use Atlas cloud DB) | Backend starts without connection errors |
+| DEV-3 | Test full local development workflow | Frontend connects to backend, no ECONNREFUSED |
+| DEV-4 | Verify all API endpoints work locally | Login, dashboard, leads API all functional |
 
-### Current Production Issues
-- **Static Asset Errors:** Still getting 500 errors for JS/CSS files
-- **Loading Animation:** Site stuck on refresh/loading animation
-- **Deployment Status:** Build succeeded but production still not working
-
-## Executor's Feedback or Assistance Requests
-- **New issue identified:** Production site still showing 500 errors despite successful deployment
-- **Additional problem:** Site stuck on loading animation
-- **Next step:** Investigate why production deployment isn't working despite successful build
-- **Need to check:** Production server configuration and static file serving
-
-## 🚀 Critical Environment Fixes — 26 Jun 2025
-
-### Background and Motivation
-**MAJOR PROGRESS:** CORS issue resolved! Static assets are now loading correctly in production. However, new issue discovered:
-
-1. **✅ CORS Issue RESOLVED:** 
-   - Static assets (JS/CSS) now serving with 200 status
-   - Animation GIF is displaying correctly
-   - No more 500 errors for static files
-
-2. **🔄 NEW ISSUE - Loading Animation Loop:**
-   - Site is stuck on loading animation (CROCLOAD.gif)
-   - Never progresses to login page
-   - Indicates JavaScript execution or routing issue
-
-3. **✅ Local Development Working:**
-   - Backend server running and connected to MongoDB Atlas
-   - Frontend-backend integration working
-   - No proxy errors
-
-### Key Challenges and Analysis
-
-**CORS Fix Success:**
-- Fixed by adding `https://crokodial.com` and `https://www.crokodial.com` to allowed origins
-- Explicit handling for same-origin requests
-- Static assets now serving correctly
-
-**Loading Animation Issue Analysis:**
-- GIF is displaying (static serving works)
-- Site not progressing to login page
-- Likely causes:
-  1. JavaScript execution error preventing app initialization
-  2. React router not working correctly
-  3. API calls failing silently
-  4. Authentication check hanging
-
-### High-level Task Breakdown
-
-#### Phase 1: Loading Animation Debug (CRITICAL)
-- [ ] LOAD-1 Check browser console for JavaScript errors
-- [ ] LOAD-2 Verify React app initialization
-- [ ] LOAD-3 Test API connectivity from frontend
-- [ ] LOAD-4 Debug authentication flow
-
-#### Phase 2: Production Verification
-- [ ] PROD-1 Test production site functionality
-- [ ] PROD-2 Verify login page loads
-- [ ] PROD-3 Test user authentication
-- [ ] PROD-4 Final production validation
+#### Phase 3: PRODUCTION VERIFICATION (30 minutes)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| PROD-1 | Manual QA on production site | Login, dashboard, core features work |
+| PROD-2 | Check browser console for errors | No 500 errors for static assets |
+| PROD-3 | Test API endpoints on production | All endpoints return 200 responses |
+| PROD-4 | Monitor Heroku logs for stability | No crashes, clean startup |
 
 ### Project Status Board
+- [ ] EMERG-1 Fix start script path
+- [ ] EMERG-2 Test build locally  
+- [ ] EMERG-3 Deploy to Heroku
+- [ ] EMERG-4 Verify production site
+- [ ] DEV-1 Install Sentry dependency
+- [ ] DEV-2 Fix MongoDB connection
+- [ ] DEV-3 Test local development
+- [ ] DEV-4 Verify API endpoints
+- [ ] PROD-1 Manual QA
+- [ ] PROD-2 Check browser console
+- [ ] PROD-3 Test API endpoints
+- [ ] PROD-4 Monitor logs
 
-#### Local Development (COMPLETE ✅)
-- [x] LOCAL-1 Fix Sentry dependency issue ✅ COMPLETED
-- [x] LOCAL-2 Fix MongoDB connection ✅ COMPLETED
-- [x] LOCAL-3 Verify backend server starts ✅ COMPLETED
-- [x] LOCAL-4 Test frontend-backend integration ✅ COMPLETED
+### Executor's Next Step
+**START WITH EMERG-1**: Fix the start script path in `dialer-app/server/package.json` to point to the correct build output location.
 
-#### Production Verification (IN PROGRESS)
-- [x] PROD-1 Check current production site status ✅ COMPLETED
-- [x] PROD-2 Verify Heroku deployment status ✅ COMPLETED
-- [x] PROD-3 Test production API endpoints ✅ COMPLETED
-- [x] PROD-4 Debug static asset serving ✅ COMPLETED
+### Background and Motivation
+The production site crokodial.com is currently down due to a critical deployment issue. The server build process generates files in `dist/server/src/index.js` but the start script expects `dist/index.js`. This mismatch causes the Heroku dyno to crash immediately on startup.
 
-#### Production Fixes (IN PROGRESS)
-- [x] PROD-5 Fix static asset serving configuration ✅ COMPLETED
-- [ ] PROD-6 Resolve loading animation issue 🔄 IN PROGRESS
-- [ ] PROD-7 Final production verification
+Additionally, the local development environment has multiple dependency and connection issues that need to be resolved to ensure ongoing development can continue smoothly.
 
-### Executor's Feedback or Assistance Requests
+The priority is to get production back online immediately, then fix the local development environment.
 
-**MAJOR BREAKTHROUGH: CORS Issue Resolved! ✅**
+### Key Challenges and Analysis
+1. **Build Output Structure**: The TypeScript configuration outputs files to `dist/server/src/` but the deployment expects them in `dist/`. This is a configuration mismatch that needs to be resolved.
 
-**PROD-5 COMPLETED ✅** - Fixed CORS configuration by:
-1. Added `https://crokodial.com` and `https://www.crokodial.com` to allowed origins
-2. Implemented explicit same-origin request handling
-3. Deployed successfully (v253)
+2. **Dependency Management**: Missing `@sentry/utils` dependency is causing local development to fail. This needs to be added to the package.json.
 
-**Results:**
-- ✅ Static assets (JS/CSS) serving with 200 status
-- ✅ Animation GIF displaying correctly
-- ✅ No more 500 errors for static files
+3. **Database Connectivity**: Local MongoDB connection issues need to be resolved by using the cloud Atlas database instead of local MongoDB.
 
-**NEW ISSUE DISCOVERED: Loading Animation Loop 🔄**
-- Site displays loading animation but never progresses to login
-- Indicates JavaScript execution or routing issue
-- Need to investigate browser console and app initialization
-
-**Next Steps:**
-1. Check browser console for JavaScript errors
-2. Verify React app initialization
-3. Test API connectivity from frontend
-4. Debug authentication flow
+4. **Frontend-Backend Communication**: The frontend is trying to connect to the backend but getting ECONNREFUSED errors, indicating the backend isn't running or isn't accessible.
 
 ### Lessons
-- CORS configuration must explicitly allow production domains
-- Same-origin requests need special handling for static assets
-- Static file serving works correctly when CORS is properly configured
-- Loading animation loop indicates JavaScript execution issue, not static asset problem
+- Always verify build output structure matches start script expectations
+- Test deployment locally before pushing to production
+- Keep local and production environments in sync
+- Monitor Heroku logs immediately after deployment to catch startup issues
+
+### REPLACEMENT – Proper Production Redeploy Plan (27 Jun 2025 12:00 PM)
+The previous "Rescue" wording suggested a temporary hack. The user prefers a clean, maintainable fix. This section supersedes the "Production-First Rescue Plan".
+
+#### Goals
+1. **Production site up & stable** – crokodial.com must serve both static assets and API without errors.  
+2. **Deterministic Heroku build** – no manual edits to lockfile, no dev-only hooks, no platform-specific Rollup binaries.  
+3. **Keep local dev parity** – the same `npm run build && npm start` commands should work locally and on Heroku.
+
+#### Technical Strategy
+• **Single source of truth**: let Heroku compile both server & client during slug build – no committed build artefacts.  
+• **Rollup ≥ 4.45**: upgrade `rollup` & `@rollup/wasm-node` to latest **4.44.1** (wasm) while removing all native addon packages. Rollup ≥ 4.45 respects `ROLLUP_WASM=true` and no longer bundles platform addons.  
+• **No optional dependencies**: enforce via `.npmrc` (`optional=false`).  
+• **Clean scripts**: root `package.json` should _only_ build once – no `postinstall`, `prepare`, or `heroku-postbuild`.  
+• **Correct start path**: server start script must point to `node dialer-app/server/dist/server/src/index.js` (TypeScript build output path used in Heroku slug build).
+
+#### Task Breakdown (Production Redeploy)
+| Step | Task | Owner | Success Criteria |
+|------|------|-------|------------------|
+| P-1 | **Clean root `package.json`** – remove `postinstall`, `prepare`, `heroku-postbuild`; add `<build>:server` & `<build>:client` scripts; update `start` script | Exec | `git diff` shows no dev hooks; CI passes |
+| P-2 | **Upgrade Rollup** – in `dialer-app/client/package.json` set `"rollup": "^4.45.0"`, `"@rollup/wasm-node": "^4.44.1"`; delete any `@rollup/rollup-*` deps | Exec | `npm ls | grep rollup` shows only core & wasm-node |
+| P-3 | **Regenerate lockfile** – `rm -rf node_modules package-lock.json && npm i --legacy-peer-deps --no-optional` | Exec | lockfile builds without errors |
+| P-4 | **Add missing Sentry deps** (`@sentry/utils`, `@sentry/integrations`, `@sentry-internal/tracing`) to **dialer-app/server/package.json** | Exec | Server boots locally; no MODULE_NOT_FOUND |
+| P-5 | **Local verification** – `npm run build` then `npm start`; run `curl localhost:3005/api/health` = 200; run `npm run start:client` = Vite boots | Exec | Both services running locally |
+| P-6 | **Heroku deploy** – push branch, observe build; slug build must finish with Rollup WASM only; dyno starts | Exec | `heroku logs --tail` shows "Server listening on $PORT" |
+| P-7 | **Smoke test prod** – open crokodial.com, login, run a few API actions | Exec / User | No 500s, static assets load, testers confirm |
+
+#### Rollback/Contingency
+If Rollup native binary error resurfaces:
+1. Verify `.npmrc optional=false` is present.  
+2. Ensure `package-lock.json` contains **no** `@rollup/rollup-darwin-*` or `linux-*`.  
+3. As last resort, pin Rollup to `4.44.1` & rely solely on `@rollup/wasm-node`.
+
+#### Updated Production Status Board
+- [ ] P-1 Clean scripts
+- [ ] P-2 Upgrade Rollup & wasm-node
+- [ ] P-3 Regenerate lockfile
+- [ ] P-4 Add Sentry deps to server package.json
+- [ ] P-5 Local verification
+- [ ] P-6 Deploy to Heroku
+- [ ] P-7 Smoke-test crokodial.com
+
+_Local dev fixes (Mongo, Vite proxy, etc.) remain in secondary board._
+
+#### Executor – please begin with **P-1** and report back after local `npm run build` completes without errors.
+
+## 🎯 **COMPREHENSIVE PRODUCTION DEPLOYMENT ANALYSIS - BIRDS EYE VIEW**
+
+### **CURRENT STATE ASSESSMENT (27 Jun 2025 2:30 PM)**
+
+#### **✅ WHAT'S WORKING LOCALLY**
+- Server runs successfully on port 3005 with MongoDB Atlas connection
+- Client runs successfully on port 5173 with Vite dev server
+- Authentication system working (login successful in logs)
+- API endpoints responding (leads, dispositions, auth)
+- WebSocket connections established
+- All core functionality operational
+
+#### **❌ CRITICAL PRODUCTION BLOCKERS**
+
+**1. SENTRY DEPENDENCY CHAIN BREAK (BLOCKING)**
+- **Root Cause**: Version mismatch between root and server Sentry packages
+- **Impact**: Server cannot start in production due to missing `@sentry/integrations`
+- **Chain**: Root has `@sentry/node@^9.24.0` → Server has `@sentry/node@^7.120.3` → Version conflict breaks peer dependencies
+
+**2. ROLLUP NATIVE BINARY CONFLICT (BLOCKING)**
+- **Root Cause**: npm optional dependency bug with `@rollup/rollup-darwin-arm64`
+- **Impact**: Client build fails on Heroku (Linux) due to Mac-specific binaries
+- **Chain**: Rollup tries to load native binaries → fails on different platform → build crashes
+
+**3. BUILD OUTPUT MISMATCH (BLOCKING)**
+- **Root Cause**: Server TypeScript not compiled to JavaScript for production
+- **Impact**: `npm start` fails because `dist/index.js` doesn't exist
+- **Chain**: Development uses `ts-node-dev` → Production needs compiled JS → Missing build step
+
+**4. HEROKU DEPLOYMENT CONFIGURATION (BLOCKING)**
+- **Root Cause**: Missing or incorrect Heroku build/start scripts
+- **Impact**: Heroku cannot start the application
+- **Chain**: No proper build process → No start script → Dyno crashes
+
+### **FLAWLESS IMPLEMENTATION PATH**
+
+#### **PHASE 1: DEPENDENCY RESOLUTION (CRITICAL)**
+1. **Unify Sentry Versions**
+   - Remove Sentry from root package.json
+   - Keep only server-level Sentry dependencies
+   - Ensure all peer dependencies are installed in server workspace
+
+2. **Fix Rollup Native Binary Issue**
+   - Pin Rollup to version that doesn't require native binaries
+   - Add `.npmrc` with `optional=false` to prevent optional deps
+   - Force WASM-only mode for Vite
+
+#### **PHASE 2: BUILD SYSTEM FIXES (CRITICAL)**
+3. **Add Server Build Process**
+   - Add TypeScript compilation step to server package.json
+   - Ensure `dist/` directory is generated before deployment
+   - Update start script to use compiled JavaScript
+
+4. **Add Client Build Process**
+   - Ensure client builds to static files for production
+   - Configure Vite for production build
+   - Add build verification steps
+
+#### **PHASE 3: HEROKU DEPLOYMENT (CRITICAL)**
+5. **Configure Heroku Build Process**
+   - Add `heroku-postbuild` script to build both client and server
+   - Ensure proper start script points to compiled server
+   - Configure environment variables for production
+
+6. **Test Production Deployment**
+   - Deploy to Heroku
+   - Verify all endpoints respond
+   - Confirm authentication works
+   - Test full user workflow
+
+### **INTERRELATED VARIABLES ANALYSIS**
+
+#### **DEPENDENCY RESOLUTION CHAIN**
+```
+Root package.json Sentry v9 → Server package.json Sentry v7 → Peer deps missing → Server crash
+```
+
+#### **BUILD OUTPUT CHAIN**
+```
+TypeScript source → No compilation step → Missing dist/ → npm start fails → Heroku crash
+```
+
+#### **PLATFORM COMPATIBILITY CHAIN**
+```
+Mac Rollup binaries → Heroku Linux environment → Native binary missing → Build fails
+```
+
+#### **ENVIRONMENT CONFIGURATION CHAIN**
+```
+Local .env.local → Heroku config vars → Missing production settings → Runtime errors
+```
+
+### **SUCCESS CRITERIA**
+1. **Heroku build completes without errors**
+2. **Server starts and responds to health check**
+3. **Client serves static assets correctly**
+4. **Authentication system works in production**
+5. **All API endpoints respond properly**
+6. **crokodial.com loads and allows login**
+
+### **RISK MITIGATION**
+- Test each phase locally before deploying
+- Use Heroku logs to verify each step
+- Have rollback plan ready
+- Monitor application health after deployment
+
+This analysis provides a clear, step-by-step path to production deployment with all interrelated issues identified and solutions mapped out.

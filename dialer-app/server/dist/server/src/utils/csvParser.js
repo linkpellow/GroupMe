@@ -6,7 +6,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseVendorCSV = parseVendorCSV;
 exports.getVendorDisplayName = getVendorDisplayName;
-const sync_1 = require("csv-parse/sync");
+const csv_parse_1 = require("csv-parse");
 const fixDob_1 = require("./fixDob");
 // Vendor fingerprint headers - these are unique to each vendor
 const VENDOR_FINGERPRINTS = {
@@ -227,14 +227,24 @@ async function parseVendorCSV(csvContent, options = {}) {
         },
     };
     try {
-        const records = (0, sync_1.parse)(csvContent, {
-            columns: true,
-            skip_empty_lines: options.skipEmptyLines ?? true,
-            trim: true,
-            cast: true,
-            cast_date: false, // Handle dates manually
-            relax_quotes: true,
-            relax_column_count: true,
+        const records = await new Promise((resolve, reject) => {
+            const output = [];
+            (0, csv_parse_1.parse)(csvContent, {
+                columns: true,
+                skip_empty_lines: options.skipEmptyLines ?? true,
+                trim: true,
+                cast: true,
+                cast_date: false, // Handle dates manually
+                relax_quotes: true,
+                relax_column_count: true,
+            }, (err, records) => {
+                if (err) {
+                    reject(err);
+                }
+                else {
+                    resolve(records);
+                }
+            });
         });
         if (records.length === 0) {
             result.errors.push('CSV file is empty');

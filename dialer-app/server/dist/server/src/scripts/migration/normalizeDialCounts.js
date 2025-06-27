@@ -52,7 +52,7 @@ async function migrateDialCounts() {
                 userId: new mongoose_1.default.Types.ObjectId(userId),
                 phone: phone,
                 count: count,
-                lastDialedAt: new Date()
+                lastDialedAt: new Date(),
             });
         }
         if (newDocs.length > 0) {

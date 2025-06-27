@@ -88,7 +88,7 @@ console.log(`ENV sanity → JWT_SECRET: ${jwtPreview}… (${(process.env.JWT_SEC
 console.log('=== PRODUCTION SERVER: UNIFIED IMPLEMENTATION ===');
 const app = express();
 const server = http.createServer(app);
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3005;
 const host = '0.0.0.0'; // Force IPv4 to prevent EADDRINUSE on ::1 and ensure wider network accessibility
 
 // WebSocket Server Setup

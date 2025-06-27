@@ -46,7 +46,7 @@ const leadsController = __importStar(require("../controllers/leads.controller"))
 const validateQuery_middleware_1 = require("../middleware/validateQuery.middleware");
 const mongoose_1 = __importDefault(require("mongoose"));
 const multer_1 = __importDefault(require("multer"));
-const sync_1 = require("csv-parse/sync");
+const csv_parse_1 = require("csv-parse");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const Call_1 = __importDefault(require("../models/Call"));
@@ -214,14 +214,23 @@ router.post('/upload', auth_1.auth, upload.single('file'), async (req, res) => {
         console.log('File content preview:', fileContent.substring(0, 200));
         console.log('CSV Headers:', fileContent.split('\n')[0]);
         // Parse CSV in chunks to avoid timeout
-        const results = (0, sync_1.parse)(fileContent, {
-            columns: true,
-            skip_empty_lines: true,
-            quote: '"',
-            escape: '"',
-            relax_quotes: true,
-            relax_column_count: true,
-            trim: true,
+        const results = await new Promise((resolve, reject) => {
+            (0, csv_parse_1.parse)(fileContent, {
+                columns: true,
+                skip_empty_lines: true,
+                quote: '"',
+                escape: '"',
+                relax_quotes: true,
+                relax_column_count: true,
+                trim: true,
+            }, (err, records) => {
+                if (err) {
+                    console.error('CSV parsing error:', err);
+                    reject(err);
+                    return;
+                }
+                resolve(records);
+            });
         });
         console.log(`Parsed ${results.length} rows from CSV`);
         // Get the current maximum order
@@ -849,9 +858,20 @@ router.post('/update-leads-data', auth_1.auth, auth_1.isAdmin, async (req, res) 
     try {
         const csvPath = path_1.default.join(__dirname, '../../../csv/purchases-2025-02-03-to-2025-03-23.csv');
         const fileContent = fs_1.default.readFileSync(csvPath, 'utf-8');
-        const records = (0, sync_1.parse)(fileContent, {
-            columns: true,
-            skip_empty_lines: true,
+        const records = [];
+        await new Promise((resolve, reject) => {
+            (0, csv_parse_1.parse)(fileContent, {
+                columns: true,
+                skip_empty_lines: true,
+            }, (err, data) => {
+                if (err) {
+                    reject(err);
+                }
+                else {
+                    records.push(...data);
+                    resolve(null);
+                }
+            });
         });
         let updatedCount = 0;
         let notFoundCount = 0;

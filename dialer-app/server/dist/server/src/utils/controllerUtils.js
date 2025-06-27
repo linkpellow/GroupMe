@@ -127,7 +127,7 @@ function sendSuccessResponse(res, data, message, meta) {
     const response = {
         data,
         message,
-        meta
+        meta,
     };
     return res.status(200).json(response);
 }
@@ -158,6 +158,6 @@ function createPaginationMeta(total, page, limit) {
         page,
         limit,
         hasMore: page < totalPages,
-        totalPages
+        totalPages,
     };
 }

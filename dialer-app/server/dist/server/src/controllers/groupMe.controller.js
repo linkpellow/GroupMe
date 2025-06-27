@@ -176,9 +176,9 @@ exports.handleOAuthCallback = (0, controllerUtils_1.asyncHandler)(async (req, re
         const validationResponse = await axios.get('https://api.groupme.com/v3/users/me', {
             headers: {
                 'X-Access-Token': access_token,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            timeout: 10000 // 10 second timeout
+            timeout: 10000, // 10 second timeout
         });
         console.log('Token validation successful!');
         console.log('GroupMe user:', validationResponse.data.response);

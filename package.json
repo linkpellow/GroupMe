@@ -46,6 +46,7 @@
     "ci:e2e": "start-server-and-test ci:servers http://localhost:5173 test:e2e"
   },
   "devDependencies": {
+    "@rollup/rollup-darwin-arm64": "^4.44.1",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "concurrently": "^8.2.2",
@@ -91,8 +92,6 @@
   "author": "Crokodial CRM Team",
   "license": "UNLICENSED",
   "dependencies": {
-    "@sentry-internal/tracing": "^7.120.3",
-    "@sentry/node": "^9.24.0",
     "bcryptjs": "^3.0.2",
     "csv-parse": "^5.6.0",
     "module-alias": "^2.2.3",

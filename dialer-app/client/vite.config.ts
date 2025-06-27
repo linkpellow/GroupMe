@@ -2,6 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+// Force WASM-only mode for Rollup to avoid native binary issues
+process.env.ROLLUP_NO_NATIVE = 'true';
+process.env.ROLLUP_WASM = 'true';
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -13,7 +17,7 @@ export default defineConfig({
     hmr: false, // Disable HMR completely to avoid babel issues
     proxy: {
       '/api': {
-        target: 'http://localhost:3001', // Use localhost to match backend
+        target: 'http://localhost:3005',
         changeOrigin: true,
         secure: false,
         configure: (proxy, _options) => {

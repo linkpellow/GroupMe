@@ -151,10 +151,17 @@ exports.CSV_PARSE_OPTIONS = {
  */
 async function processCsvFile(filePath, processor) {
     const fs = await Promise.resolve().then(() => __importStar(require('fs')));
-    const { parse } = await Promise.resolve().then(() => __importStar(require('csv-parse/sync')));
+    const { parse } = await Promise.resolve().then(() => __importStar(require('csv-parse')));
     console.log(`Processing CSV file: ${filePath}`);
     const fileContent = await fs.promises.readFile(filePath, 'utf-8');
-    const records = parse(fileContent, exports.CSV_PARSE_OPTIONS);
+    const records = await new Promise((resolve, reject) => {
+        parse(fileContent, exports.CSV_PARSE_OPTIONS, (err, output) => {
+            if (err)
+                reject(err);
+            else
+                resolve(output);
+        });
+    });
     console.log(`Found ${records.length} records in CSV`);
     await processor(records);
 }
