@@ -993,25 +993,17 @@ This supersedes earlier fragmented check-lists.  Follow **exactly** in numeric o
 ### Stage 0 – Node 20 lock-in  🔒  (EXECUTOR)
 - [x] .nvmrc created (20.19.3)
 - [x] .npmrc updated with engine-strict=true
-- [x] Switched shell to Node 20.19.3 (`node -v` shows v20.19.3)
-- [x] Removed all node_modules and lock files
-- [x] Root package.json cleaned (`npm pkg delete dependencies devDependencies`)
-- [ ] Clean install (`npm install --omit=optional --legacy-peer-deps`) **RUNNING**
+- [x] Root package.json engines set, dependencies cleaned
+- [x] Clean install on Node 20 ✅ (npm install succeeded)
+- [x] Commit pushed (chore(stage0): enforce Node 20 lock-in)
+**Success check green**
 
-**Success check pending**: After install completes, run `node -v` (expect v20.19.3) and `npm ls @sentry/utils es-errors express` to ensure deps present.
-
-### Stage 1 – Workspaces Hygiene 🧹
-Tasks:
-1. From repo root run:
-   ```bash
-   npm pkg delete dependencies devDependencies || true
-   ```
-   (removes accidental pins)
-2. Add `"private": true` to root `package.json`.
-3. Re-declare workspaces array only (`[ "dialer-app/server", "dialer-app/client" ]`).
-Success Check:
-- `npm ls --depth=0` at root shows **no** direct deps other than workspaces helpers.
-- Heroku build log shows "Installing workspaces" not "Publishing package crokodial".
+### Stage 1 – Workspaces hygiene 🧹  (IN PROGRESS)
+- [ ] Delete any stray dependencies/devDependencies at root (done)
+- [ ] Add "private": true at root (already present)
+- [ ] Ensure each sub-package has its own .npmrc with install-strategy=hoisted ➜ TODO
+- [ ] Run npm pkg delete dependencies devDependencies in sub-packages (server/client) ➜ TODO
+- [ ] Commit changes when clean npm install passes
 
 ### Stage 2 – Build Pipeline Solidification 🏗️
 Tasks:
