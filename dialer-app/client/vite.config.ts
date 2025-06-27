@@ -8,11 +8,10 @@ process.env.ROLLUP_WASM = 'true';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
   server: {
     port: 5173,
     strictPort: true,
-    host: '127.0.0.1', // Explicitly listen on IPv4 localhost for client
+    host: '0.0.0.0',
     cors: true,
     hmr: false, // Disable HMR completely to avoid babel issues
     proxy: {
@@ -35,6 +34,10 @@ export default defineConfig({
       },
     },
   },
+  plugins: [react()],
+  define: {
+    global: 'globalThis',
+  },
   optimizeDeps: {
     exclude: ['debug'], // Exclude debug from optimization
     include: ['react', 'react-dom', '@shared/config/queryConfig'],
@@ -43,6 +46,7 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom'], // Avoid duplicate React instances
     alias: {
+      '@': path.resolve(__dirname, './src'),
       '@shared': path.resolve(__dirname, '../shared'),
     },
   },
@@ -50,7 +54,8 @@ export default defineConfig({
     logOverride: { 'this-is-undefined-in-esm': 'silent' },
   },
   build: {
-    sourcemap: false,
+    outDir: 'dist',
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: {
