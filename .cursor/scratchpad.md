@@ -1,3 +1,243 @@
+## 🎯 EXECUTOR MODE - IMPLEMENTING COMPREHENSIVE PLAN
+
+### **CURRENT STATUS (EXECUTOR)**
+- ✅ **Local Development Working**: Server on 3005, Client on 5173
+- ❌ **Heroku Deployment Blocked**: Multiple dependency conflicts
+- 🔄 **Starting Phase 1**: Dependency Chain Fixes
+
+### **EXECUTOR ACTIONS TAKEN:**
+- ✅ Identified all interrelated code and variables causing issues
+- ✅ Mapped flawless path to success
+- 🔄 **CURRENT**: Starting Phase 1 - Dependency Chain Fixes
+
+### **NEXT IMMEDIATE ACTIONS:**
+1. **Fix Sentry Dependencies** - Install missing @sentry/integrations in server
+2. **Remove Rollup Native Binaries** - Clean lockfile completely
+3. **Fix Environment Configuration** - Standardize port usage
+4. **Test Production Build** - Ensure build works locally
+5. **Deploy to Heroku** - Push working build to production
+
+## 🎯 COMPREHENSIVE BIRDS-EYE VIEW ANALYSIS - PLANNER MODE
+
+### **CURRENT STATE ANALYSIS (BIRDS-EYE VIEW)**
+
+**CRITICAL INTERRELATED ISSUES IDENTIFIED:**
+
+#### **1. DEPENDENCY CHAIN BREAKS**
+- **Root Cause**: Multiple conflicting dependency management approaches across 3 package.json files
+- **Impact**: Sentry modules missing, Rollup native binaries persisting, build failures
+- **Interrelated Variables**:
+  - Root `package.json`: Has `@sentry/integrations` but server needs it
+  - Server `package.json`: Has all Sentry deps but missing from node_modules
+  - Client `package.json`: Has Rollup 4.43.0 but lockfile has 4.44.1
+  - `package-lock.json`: Contains ALL platform-specific Rollup binaries despite cleanup attempts
+
+#### **2. ENVIRONMENT CONFIGURATION MISMATCHES**
+- **Root Cause**: Inconsistent environment variable loading and port configuration
+- **Impact**: Server/client communication failures, MongoDB connection issues
+- **Interrelated Variables**:
+  - Server expects port 3005 (`.env.local`) but sometimes defaults to 3001
+  - Client Vite config proxies to `localhost:3005` but server not always there
+  - MongoDB URI in `.env.local` but production needs different credentials
+  - Multiple `.env` files loading in different orders
+
+#### **3. BUILD SYSTEM CONFLICTS**
+- **Root Cause**: Rollup version mismatch and native binary persistence
+- **Impact**: Client fails to start, Heroku build failures
+- **Interrelated Variables**:
+  - Client uses Rollup 4.43.0, lockfile has 4.44.1
+  - Environment variables `ROLLUP_NO_NATIVE=true` set but binaries still load
+  - `.npmrc` has `optional=false` but lockfile still contains optional deps
+  - Vite config forces WASM mode but Rollup still tries native binaries
+
+#### **4. PROCESS MANAGEMENT ISSUES**
+- **Root Cause**: Multiple development processes not properly cleaned up
+- **Impact**: Port conflicts, zombie processes, inconsistent startup
+- **Interrelated Variables**:
+  - `ts-node-dev` processes accumulating
+  - Port 3005 and 5173 sometimes occupied by old processes
+  - Kill-port scripts not always effective
+  - Development restart cycles creating process conflicts
+
+### **FLAWLESS PATH TO SUCCESS - COMPREHENSIVE STRATEGY**
+
+#### **PHASE 1: DEPENDENCY SANITIZATION (CRITICAL FOUNDATION)**
+**Goal**: Create a single, clean, consistent dependency tree
+
+**Step 1.1: Dependency Audit & Cleanup**
+- Remove ALL package-lock.json files (root, client, server)
+- Remove ALL node_modules directories
+- Audit and align all package.json versions
+- Ensure Sentry versions match across all files
+- Pin Rollup to exact version (4.43.0) everywhere
+
+**Step 1.2: Single Source of Truth Installation**
+- Install from root with `--omit=optional --legacy-peer-deps`
+- Verify no platform-specific binaries in lockfile
+- Confirm all Sentry modules available in node_modules
+- Test that both client and server can resolve all dependencies
+
+**Success Criteria**: 
+- `npm ls @sentry/*` shows all modules available
+- `npm ls @rollup/rollup-*` shows only wasm-node
+- No missing module errors on startup
+
+#### **PHASE 2: ENVIRONMENT CONFIGURATION UNIFICATION**
+**Goal**: Single, consistent environment configuration
+
+**Step 2.1: Environment File Consolidation**
+- Create single `.env` file at root with all variables
+- Remove duplicate environment loading
+- Ensure consistent port configuration (3005 for server, 5173 for client)
+- Update MongoDB URI for production readiness
+
+**Step 2.2: Configuration Loading Standardization**
+- Update server to load environment from root
+- Update client Vite config to use consistent proxy settings
+- Ensure all processes use same environment variables
+- Test environment variable resolution
+
+**Success Criteria**:
+- Server starts on port 3005 consistently
+- Client proxies to correct server port
+- MongoDB connects successfully
+- No environment-related startup errors
+
+#### **PHASE 3: BUILD SYSTEM HARDENING**
+**Goal**: Eliminate all Rollup native binary issues
+
+**Step 3.1: Rollup Configuration Lockdown**
+- Force WASM-only mode at multiple levels
+- Update Vite config with additional Rollup overrides
+- Add build-time environment variable enforcement
+- Test build process locally
+
+**Step 3.2: Production Build Verification**
+- Test `npm run build` locally
+- Verify no native binary references in build output
+- Confirm client build works without Rollup errors
+- Test production server startup
+
+**Success Criteria**:
+- `npm run build` completes without errors
+- Client starts in production mode
+- No Rollup native binary errors
+- Heroku build passes
+
+#### **PHASE 4: PROCESS MANAGEMENT STABILIZATION**
+**Goal**: Reliable development and production startup
+
+**Step 4.1: Development Process Cleanup**
+- Implement robust port management
+- Add process cleanup on startup
+- Standardize development scripts
+- Test development environment stability
+
+**Step 4.2: Production Deployment Readiness**
+- Test production build locally
+- Verify all environment variables set correctly
+- Test MongoDB connection in production mode
+- Prepare Heroku deployment configuration
+
+**Success Criteria**:
+- Development environment starts reliably
+- No port conflicts or zombie processes
+- Production build works locally
+- Ready for Heroku deployment
+
+### **CRITICAL INTERDEPENDENCIES TO MANAGE**
+
+#### **Dependency Chain Dependencies**:
+1. **Sentry Chain**: `@sentry/node` → `@sentry/integrations` → `@sentry/utils` → `@sentry-internal/tracing`
+2. **Rollup Chain**: `rollup` → `@rollup/rollup-*` → `@rollup/wasm-node`
+3. **Build Chain**: `vite` → `rollup` → `esbuild`
+
+#### **Environment Chain Dependencies**:
+1. **Port Chain**: Server port → Client proxy → Vite config → Environment variables
+2. **Database Chain**: MongoDB URI → Connection string → Authentication → Environment loading
+3. **Process Chain**: Development scripts → Port management → Process cleanup → Startup sequence
+
+#### **Configuration Chain Dependencies**:
+1. **Package Chain**: Root package.json → Workspace packages → Lockfile → Node modules
+2. **Build Chain**: TypeScript config → Vite config → Rollup config → Environment variables
+3. **Deployment Chain**: Local build → Heroku build → Environment variables → Production startup
+
+### **RISK MITIGATION STRATEGY**
+
+#### **High-Risk Areas**:
+1. **Dependency Conflicts**: Multiple package.json files with overlapping dependencies
+2. **Environment Loading**: Multiple .env files loading in unpredictable order
+3. **Build System**: Rollup native binary persistence despite configuration
+4. **Process Management**: Development processes not properly cleaned up
+
+#### **Mitigation Approaches**:
+1. **Single Source of Truth**: Consolidate all dependencies to root package.json
+2. **Environment Isolation**: Single .env file with clear loading order
+3. **Build System Hardening**: Multiple layers of Rollup configuration
+4. **Process Cleanup**: Robust port and process management
+
+### **SUCCESS VALIDATION CHECKLIST**
+
+#### **Local Development**:
+- [ ] Server starts on port 3005 without errors
+- [ ] Client starts on port 5173 without Rollup errors
+- [ ] API calls work between client and server
+- [ ] MongoDB connection successful
+- [ ] Login functionality works
+- [ ] No missing module errors
+
+#### **Production Build**:
+- [ ] `npm run build` completes successfully
+- [ ] No Rollup native binary errors
+- [ ] Production server starts correctly
+- [ ] All environment variables resolved
+- [ ] Database connection works in production mode
+
+#### **Deployment Readiness**:
+- [ ] Heroku build passes
+- [ ] No missing dependencies in production
+- [ ] Environment variables configured correctly
+- [ ] Domain points to correct Heroku app
+- [ ] SSL certificate active
+
+### **NEXT IMMEDIATE ACTIONS**
+
+1. **Planner**: Complete this analysis and get user approval
+2. **Executor**: Begin Phase 1 (Dependency Sanitization)
+3. **User**: Confirm understanding of the comprehensive approach
+4. **Executor**: Execute Phase 1 step by step with validation
+
+### **TIMELINE ESTIMATE**
+- **Phase 1**: 45 minutes (dependency cleanup)
+- **Phase 2**: 30 minutes (environment unification)
+- **Phase 3**: 30 minutes (build system hardening)
+- **Phase 4**: 30 minutes (process stabilization)
+- **Total**: 2.5 hours for complete resolution
+
+**This approach addresses ALL interrelated variables and ensures a flawless path to success.**
+
+---
+
+## 🚀 DEPLOYMENT STATUS - EXECUTOR MODE
+
+### **CURRENT STATUS**: 🟡 **PLANNER ANALYSIS COMPLETE - READY FOR EXECUTION**
+
+**PLANNER ACTIONS COMPLETED:**
+- ✅ Comprehensive birds-eye view analysis of all interrelated code
+- ✅ Identified all dependency chain breaks and configuration mismatches
+- ✅ Mapped out flawless 4-phase path to success
+- ✅ Documented all critical interdependencies and risk mitigation strategies
+- ✅ Created comprehensive success validation checklist
+
+**NEXT IMMEDIATE ACTIONS:**
+1. **User**: Review and approve the comprehensive plan
+2. **Executor**: Begin Phase 1 (Dependency Sanitization) with user approval
+3. **Planner**: Monitor progress and provide guidance as needed
+
+**TIMELINE**: 2.5 hours total for complete resolution
+
+---
+
 ## 🎯 SIMPLE CROKODIAL.COM LAUNCH PLAN
 
 ### **CURRENT SITUATION ANALYSIS**
@@ -370,7 +610,7 @@ Attempts so far
 Outcome: build still alternates between (a) `EBADPLATFORM` on mac binary, (b) `MODULE_NOT_FOUND` on linux binary, or (c) `ETARGET` for non-existent wasm-node 4.45.1.
 
 Key insight
-• Rollup >= 4.45 moves the native / wasm resolution logic to respect `ROLLUP_WASM` **and** stops bundling platform specific addons. The published `4.45.1` packages exist for **core Rollup**, but **wasm-node** only published up to 4.44.1. Therefore the cleanest path is:  
+• Rollup >= 4.45 moves the native / wasm resolution logic to respect `ROLLUP_WASM` **and** stops bundling platform addons. The published `4.45.1` packages exist for **core Rollup**, but **wasm-node** only published up to 4.44.1. Therefore the cleanest path is:  
   1. **Pin `rollup` to 4.45.1** (core)  
   2. Remove _all_ native addon packages from lockfile  
   3. Rely solely on WASM shim (`@rollup/wasm-node@4.44.1`) which _is_ published and works cross-platform.  
@@ -508,7 +748,7 @@ The previous "Rescue" wording suggested a temporary hack. The user prefers a cle
 
 #### Technical Strategy
 • **Single source of truth**: let Heroku compile both server & client during slug build – no committed build artefacts.  
-• **Rollup ≥ 4.45**: upgrade `rollup` & `@rollup/wasm-node` to latest **4.44.1** (wasm) while removing all native addon packages. Rollup ≥ 4.45 respects `ROLLUP_WASM=true` and no longer bundles platform addons.  
+• **Rollup ≥ 4.45**: upgrade `rollup` & `@rollup/wasm-node` to latest **4.44.1** (wasm) while removing all native addon packages. Rollup ≥ 4.45 respects `ROLLUP_WASM` **and** stops bundling platform addons.  
 • **No optional dependencies**: enforce via `.npmrc` (`optional=false`).  
 • **Clean scripts**: root `package.json` should _only_ build once – no `postinstall`, `prepare`, or `heroku-postbuild`.  
 • **Correct start path**: server start script must point to `node dialer-app/server/dist/server/src/index.js` (TypeScript build output path used in Heroku slug build).
@@ -738,3 +978,115 @@ Production Start
 4. **Execute Phase 4**: Deploy and test on Heroku
 
 **Ready to proceed with Phase 1 implementation?**
+
+---
+
+## 🛠️ SIX-STAGE HEROKU FIX – FINAL, USER-APPROVED PLAN (PLANNER MODE)
+
+This supersedes earlier fragmented check-lists.  Follow **exactly** in numeric order (0 → 6).  Do **NOT** start a new stage until the success check for the current stage is ✔️ green.
+
+### 🗂  Prerequisites (before Stage 0)
+- [ ] Commit a single `.nvmrc` set to **20.19.3**.
+- [ ] Delete **all** local `node_modules` + lock files once, then `npm ci` on Node 20 to produce the golden lock.
+- [ ] Push branch ➜ open PR ➜ CI must pass `npm ci && npm run heroku-postbuild`.
+
+### Stage 0 – Node 20 lock-in  🔒  (EXECUTOR)
+- [x] .nvmrc created (20.19.3)
+- [x] .npmrc updated with engine-strict=true
+- [x] Switched shell to Node 20.19.3 (`node -v` shows v20.19.3)
+- [x] Removed all node_modules and lock files
+- [x] Root package.json cleaned (`npm pkg delete dependencies devDependencies`)
+- [ ] Clean install (`npm install --omit=optional --legacy-peer-deps`) **RUNNING**
+
+**Success check pending**: After install completes, run `node -v` (expect v20.19.3) and `npm ls @sentry/utils es-errors express` to ensure deps present.
+
+### Stage 1 – Workspaces Hygiene 🧹
+Tasks:
+1. From repo root run:
+   ```bash
+   npm pkg delete dependencies devDependencies || true
+   ```
+   (removes accidental pins)
+2. Add `"private": true` to root `package.json`.
+3. Re-declare workspaces array only (`[ "dialer-app/server", "dialer-app/client" ]`).
+Success Check:
+- `npm ls --depth=0` at root shows **no** direct deps other than workspaces helpers.
+- Heroku build log shows "Installing workspaces" not "Publishing package crokodial".
+
+### Stage 2 – Build Pipeline Solidification 🏗️
+Tasks:
+1. Add `.npmrc` inside both sub-packages with:
+   ```ini
+   install-strategy=hoisted
+   ```
+2. In both `build` scripts prepend `rimraf dist`.
+3. Root `heroku-postbuild` = `npm run build --workspaces`.
+Success Check:
+- `npm run build` from root creates **fresh** `dialer-app/*/dist` folders, sizes > 0.
+
+### Stage 3 – Unified Runtime 🌐
+Tasks:
+1. In `server/dist/index.js` (build folder path update in src):
+   ```ts
+   app.use(express.static(path.join(__dirname, '../../client/dist')));
+   ```
+2. Ensure server reads `process.env.PORT || 3005`.
+3. Remove any Vite dev server refs in production code.
+Success Check:
+- Local production start (`node dist/index.js`) serves built React app at `/` and `/api/health` returns 200.
+
+### Stage 4 – Rollup Native Detox 🧼
+Tasks:
+1. Set Heroku Config Var `ROLLUP_NO_NATIVE=1` (no hard-coding in scripts).
+2. Verify lock file contains only `@rollup/wasm-node` (no darwin/linux binaries).
+Success Check:
+- `grep -E "@rollup/rollup-(darwin|linux)" package-lock.json` outputs nothing.
+- Client `vite build` passes locally.
+
+### Stage 5 – Clean Env Config 🔑
+Tasks:
+1. Add `dotenv-safe` to server; create `.env.example`.
+2. Locally: `dotenv-safe` fails fast if required vars missing.
+3. Heroku Config Vars:
+   - `NODE_ENV=production`
+   - Valid `MONGODB_URI`, etc.
+Success Check:
+- `npm run dev:server` aborts if `.env` incomplete.
+- Heroku dyno shows correct env vars in `heroku config` output.
+
+### Stage 6 – Deploy 🚀
+Tasks:
+1. `git push heroku <fix-branch>:main`.
+2. After release, run:
+   ```bash
+   heroku ps:exec --app crokodial -- dyno=node -- bash -c "node -p \"require('fs').readdirSync('.').join('\n')\""
+   ```
+   to inspect file layout.
+Success Check:
+- `heroku open` loads SPA, login works.
+- `/api/health` returns 200.
+- DNS crokodial.com points to Heroku; SSL green.
+
+### 📋 Project Status Board (Six-Stage Plan)
+
+```
+- [ ] PREREQS – .nvmrc committed, golden lock generated, CI green
+- [ ] 0. Node 20 lock-in completed
+- [ ] 1. Workspaces hygiene completed
+- [ ] 2. Build pipeline solidified
+- [ ] 3. Unified runtime verified locally
+- [ ] 4. Rollup native detox done
+- [ ] 5. Clean env config validated
+- [ ] 6. Deploy successful, site live
+```
+
+Each unchecked box must turn ✅ before starting the next.
+
+---
+
+## 📝 Planner Notes
+• The existing scratchpad sections about earlier 3-step / 4-phase plans are now considered **legacy** but kept for audit.  All execution going forward must reference **this Six-Stage plan**.
+• Executor should update the status board after every success check.
+• Any deviation, unexpected error, or missing file halts the pipeline – ask Planner/User.
+
+---
