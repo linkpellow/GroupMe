@@ -7,7 +7,8 @@
 export const BANNER_REGEX = /^\s*(?:🌟\s*)?New\s+(?:Marketplace|NextGen)\s+Lead/im;
 
 // Additional metadata markers we may want to hide on output (same as client)
-export const META_REGEX = /^(Imported on:|File:|Location:|Demographics:|DOB:|Gender:|Campaign:|Source:|Original Status:)/i;
+export const META_REGEX =
+  /^(Imported on:|File:|Location:|Demographics:|DOB:|Gender:|Campaign:|Source:|Original Status:)/i;
 
 /**
  * Remove banner & metadata lines from a notes string.
@@ -25,4 +26,4 @@ export function sanitizeNotes(raw: string | undefined | null): string {
     })
     .join('\n')
     .trim();
-} 
+}

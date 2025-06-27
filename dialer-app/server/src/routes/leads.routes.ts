@@ -12,7 +12,7 @@ import {
 import mongoose from 'mongoose';
 import UserModel from '../models/User';
 import multer from 'multer';
-import { parse } from 'csv-parse/sync';
+import { parse } from 'csv-parse';
 import fs from 'fs';
 import path from 'path';
 import CallModel from '../models/Call';
@@ -288,14 +288,27 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
     console.log('CSV Headers:', fileContent.split('\n')[0]);
 
     // Parse CSV in chunks to avoid timeout
-    const results: CsvRow[] = parse(fileContent, {
-      columns: true,
-      skip_empty_lines: true,
-      quote: '"',
-      escape: '"',
-      relax_quotes: true,
-      relax_column_count: true,
-      trim: true,
+    const results = await new Promise<CsvRow[]>((resolve, reject) => {
+      parse(
+        fileContent,
+        {
+          columns: true,
+          skip_empty_lines: true,
+          quote: '"',
+          escape: '"',
+          relax_quotes: true,
+          relax_column_count: true,
+          trim: true,
+        },
+        (err: any, records: any) => {
+          if (err) {
+            console.error('CSV parsing error:', err);
+            reject(err);
+            return;
+          }
+          resolve(records as CsvRow[]);
+        }
+      );
     });
 
     console.log(`Parsed ${results.length} rows from CSV`);
@@ -998,9 +1011,24 @@ router.post('/update-leads-data', auth, isAdmin, async (req: Request, res: Respo
   try {
     const csvPath = path.join(__dirname, '../../../csv/purchases-2025-02-03-to-2025-03-23.csv');
     const fileContent = fs.readFileSync(csvPath, 'utf-8');
-    const records: any[] = parse(fileContent, {
-      columns: true,
-      skip_empty_lines: true,
+    const records: any[] = [];
+
+    await new Promise((resolve, reject) => {
+      parse(
+        fileContent,
+        {
+          columns: true,
+          skip_empty_lines: true,
+        },
+        (err: any, data: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            records.push(...data);
+            resolve(null);
+          }
+        }
+      );
     });
 
     let updatedCount = 0;

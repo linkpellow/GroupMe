@@ -339,7 +339,7 @@ export abstract class CrudController<T extends Document> {
           requestedCount: ids.length,
           authorizedCount: authorizedIds.length,
         },
-        `${result.deletedCount} ${this.resourceName}s deleted successfully`,
+        `${result.deletedCount} ${this.resourceName}s deleted successfully`
       );
     } catch (error) {
       handleControllerError(error, res, `Failed to bulk delete ${this.resourceName}s`);

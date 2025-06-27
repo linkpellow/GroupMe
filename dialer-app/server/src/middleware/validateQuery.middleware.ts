@@ -83,7 +83,7 @@ export const validateQuery = (req: Request, res: Response, next: NextFunction) =
         Math.max(
           QUERY_CONFIG.PAGINATION.minLimit,
           parseInt((query.limit as string) || '50', 10) || 50
-        )
+        ),
       ),
       sortBy: (query.sortBy as string) || 'createdAt',
       sortDirection:

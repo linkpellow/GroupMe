@@ -62,11 +62,15 @@ if (envPath && fs.existsSync(envPath)) {
         // A different strong secret was injected via the shell or another env file.
         // This causes token signature mismatches across restarts. Abort with a clear message.
         console.error('\n\x1b[31m[FATAL ERROR] JWT_SECRET mismatch detected.\x1b[0m');
-        console.error('The JWT_SECRET provided via the environment does not match the value in .env.local.');
+        console.error(
+          'The JWT_SECRET provided via the environment does not match the value in .env.local.'
+        );
         console.error('To avoid authentication issues, use the same secret everywhere.');
         console.error(`→ .env.local JWT_SECRET length: ${localSecret.length} chars`);
         console.error(`→ process.env JWT_SECRET length: ${process.env.JWT_SECRET.length} chars`);
-        console.error('\nResolve by removing inline JWT_SECRET assignments and relying solely on .env.local');
+        console.error(
+          '\nResolve by removing inline JWT_SECRET assignments and relying solely on .env.local'
+        );
         process.exit(1);
       }
     }
@@ -81,10 +85,16 @@ if (envPath && fs.existsSync(envPath)) {
 // least 32 characters.
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   console.error('\n\n\x1b[31m[FATAL ERROR] INSECURE JWT_SECRET DETECTED.\x1b[0m');
-  console.error('\x1b[33mThe JWT_SECRET environment variable is missing, or is less than 32 characters long.\x1b[0m');
+  console.error(
+    '\x1b[33mThe JWT_SECRET environment variable is missing, or is less than 32 characters long.\x1b[0m'
+  );
   console.error('For security, the server will not start.');
-  console.error('Please ensure the ".env.local" file in the "dialer-app/server" directory contains a line like this:');
-  console.error('\n  \x1b[32mJWT_SECRET=your_super_secret_random_string_of_at_least_32_characters\x1b[0m\n');
+  console.error(
+    'Please ensure the ".env.local" file in the "dialer-app/server" directory contains a line like this:'
+  );
+  console.error(
+    '\n  \x1b[32mJWT_SECRET=your_super_secret_random_string_of_at_least_32_characters\x1b[0m\n'
+  );
   process.exit(1);
 }
-// -------------------------------------------------------------------------- 
+// --------------------------------------------------------------------------

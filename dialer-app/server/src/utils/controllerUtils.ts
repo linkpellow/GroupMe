@@ -199,7 +199,7 @@ export function sendSuccessResponse<T>(
   const response: SuccessResponse<T> = {
     data,
     message,
-    meta
+    meta,
   };
   return res.status(200).json(response);
 }
@@ -207,20 +207,14 @@ export function sendSuccessResponse<T>(
 /**
  * Handle not found errors
  */
-export function handleNotFound(
-  res: Response,
-  resource: string = 'Resource'
-): Response {
+export function handleNotFound(res: Response, resource: string = 'Resource'): Response {
   return sendError(res, 404, `${resource} not found`);
 }
 
 /**
  * Validate required fields
  */
-export function validateRequiredFields(
-  data: any,
-  requiredFields: string[]
-): string | null {
+export function validateRequiredFields(data: any, requiredFields: string[]): string | null {
   for (const field of requiredFields) {
     if (!data[field]) {
       return `Missing required field: ${field}`;
@@ -243,17 +237,13 @@ export interface PaginationMeta {
 /**
  * Create pagination metadata
  */
-export function createPaginationMeta(
-  total: number,
-  page: number,
-  limit: number
-): PaginationMeta {
+export function createPaginationMeta(total: number, page: number, limit: number): PaginationMeta {
   const totalPages = Math.ceil(total / limit);
   return {
     total,
     page,
     limit,
     hasMore: page < totalPages,
-    totalPages
+    totalPages,
   };
 }

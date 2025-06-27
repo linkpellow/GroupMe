@@ -14,13 +14,14 @@ export function getJwtSecret(): string {
     }
 
     // DEV fallback: auto-generate or pad the secret so the server can boot
-    const generated = secret && secret.length > 0
-      ? secret.padEnd(32, '0')
-      : crypto.randomBytes(32).toString('hex').slice(0, 32);
+    const generated =
+      secret && secret.length > 0
+        ? secret.padEnd(32, '0')
+        : crypto.randomBytes(32).toString('hex').slice(0, 32);
 
     console.warn(
       `[DEV] JWT_SECRET was ${secret ? 'too short' : 'missing'} – using non-persistent fallback key. ` +
-      'Do NOT use this in production.'
+        'Do NOT use this in production.'
     );
     return generated;
   }
@@ -34,4 +35,4 @@ export function getJwtSecret(): string {
 export function getEncryptionKey(): Buffer {
   const jwtSecret = getJwtSecret();
   return crypto.createHash('sha256').update(jwtSecret).digest();
-} 
+}

@@ -34,9 +34,9 @@ export const startMemoryLogging = () => {
   setInterval(() => {
     const mem = process.memoryUsage();
     logger.info(
-      `Memory usage – rss ${(mem.rss / 1048576).toFixed(1)} MB | heapUsed ${(mem.heapUsed / 1048576).toFixed(
-        1,
-      )} MB | external ${(mem.external / 1048576).toFixed(1)} MB`,
+      `Memory usage – rss ${(mem.rss / 1048576).toFixed(1)} MB | heapUsed ${(
+        mem.heapUsed / 1048576
+      ).toFixed(1)} MB | external ${(mem.external / 1048576).toFixed(1)} MB`
     );
   }, interval).unref(); // unref so it doesn't keep the event loop alive
 };

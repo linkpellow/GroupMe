@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { createTextdripService } from '../services/textdripService';
-import LeadModel from "../models/Lead";
+import LeadModel from '../models/Lead';
 import { auth } from '../middleware/auth';
 import axios from 'axios';
 import UserModel from '../models/User';
@@ -12,36 +12,36 @@ const router = Router();
  * GET /api/textdrip/campaigns
  * Fetches all Textdrip campaigns.
  */
-router.get("/campaigns", auth, async (req: Request, res: Response) => {
-    try {
-      console.log('GET /api/textdrip/campaigns route hit');
-      const userId = req.user!._id;
-      const user = await UserModel.findById(userId);
-      if (!user) return res.status(404).json({ message: 'User not found' });
-      const data = await getCampaigns(user);
-      res.json(data);
-    } catch (e: any) {
-      console.error('TextDrip campaigns error:', e);
-      res.status(500).json({ message: e.message || 'Failed to fetch campaigns' });
-    }
+router.get('/campaigns', auth, async (req: Request, res: Response) => {
+  try {
+    console.log('GET /api/textdrip/campaigns route hit');
+    const userId = req.user!._id;
+    const user = await UserModel.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const data = await getCampaigns(user);
+    res.json(data);
+  } catch (e: any) {
+    console.error('TextDrip campaigns error:', e);
+    res.status(500).json({ message: e.message || 'Failed to fetch campaigns' });
+  }
 });
 
 /**
  * POST /api/textdrip/campaign
  * body: { leadId, campaignId, removeExisting?:boolean }
  */
-router.post("/campaign", auth, async (req, res) => {
+router.post('/campaign', auth, async (req, res) => {
   const { leadId, campaignId, removeExisting = false } = req.body;
-  
+
   console.log('Textdrip add-campaign request:', {
     leadId,
     campaignId,
     removeExisting,
-    headers: req.headers
+    headers: req.headers,
   });
-  
+
   if (!leadId || !campaignId) {
-    return res.status(400).json({ status: false, message: "leadId and campaignId are required" });
+    return res.status(400).json({ status: false, message: 'leadId and campaignId are required' });
   }
 
   try {
@@ -49,7 +49,7 @@ router.post("/campaign", auth, async (req, res) => {
     const lead = await LeadModel.findById(leadId);
 
     if (!lead) {
-      return res.status(404).json({ status: false, message: "Lead not found" });
+      return res.status(404).json({ status: false, message: 'Lead not found' });
     }
 
     // Ensure contact exists in Textdrip and get contactId
@@ -66,16 +66,16 @@ router.post("/campaign", auth, async (req, res) => {
  * POST /api/textdrip/quick-drip
  * body: { phone, message, imageId?:string }
  */
-router.post("/quick-drip", auth, async (req, res) => {
+router.post('/quick-drip', auth, async (req, res) => {
   const { leadId, message, imageId = null } = req.body;
   if (!leadId || !message) {
-    return res.status(400).json({ status: false, message: "leadId and message are required" });
+    return res.status(400).json({ status: false, message: 'leadId and message are required' });
   }
   try {
     const service = createTextdripService(req.user?.textdripToken);
     const lead = await LeadModel.findById(leadId);
     if (!lead) {
-      return res.status(404).json({ status: false, message: "Lead not found" });
+      return res.status(404).json({ status: false, message: 'Lead not found' });
     }
     const result = await service.sendMessage(lead, message, imageId);
     return res.status(200).json(result);
@@ -95,12 +95,16 @@ router.post('/login', auth, async (req, res) => {
     return res.status(400).json({ success: false, message: 'email and password are required' });
   }
   try {
-    const tdResp = await axios.post('https://api.textdrip.com/api/login', {
-      email,
-      password,
-    }, {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const tdResp = await axios.post(
+      'https://api.textdrip.com/api/login',
+      {
+        email,
+        password,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
 
     const { token } = tdResp.data || {};
     if (!token) {
@@ -160,4 +164,4 @@ router.delete('/', auth, async (req: Request, res: Response) => {
   }
 });
 
-export default router; 
+export default router;

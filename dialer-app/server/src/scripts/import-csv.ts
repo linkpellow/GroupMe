@@ -79,7 +79,7 @@ async function importCsvLeads(): Promise<void> {
 
         await Promise.all(promises);
       },
-      'CSV records',
+      'CSV records'
     );
   });
 

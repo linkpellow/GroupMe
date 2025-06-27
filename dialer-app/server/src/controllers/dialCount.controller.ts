@@ -49,4 +49,4 @@ export const getDialCounts = async (req: AuthRequest, res: Response) => {
     console.error('getDialCounts error:', err);
     return res.status(500).json({ message: 'Server error' });
   }
-}; 
+};

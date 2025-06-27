@@ -202,11 +202,7 @@ class TextdripService {
     }
   }
 
-  async sendMessage(
-    lead: ILead,
-    message: string,
-    imageId?: string | null
-  ) {
+  async sendMessage(lead: ILead, message: string, imageId?: string | null) {
     try {
       const senderPhone = this.getSenderForLead(lead);
       const tokenHeader = await this.resolveSenderToken(senderPhone);
@@ -220,7 +216,7 @@ class TextdripService {
         },
         { headers: { 'phone-token': tokenHeader } }
       );
-      if (!data?.status) throw new Error(data?.message ?? "Unknown error");
+      if (!data?.status) throw new Error(data?.message ?? 'Unknown error');
       return data;
     } catch (err) {
       this.unwrap(err);
@@ -250,7 +246,9 @@ class TextdripService {
       const list: PhoneEntry[] = data?.data || [];
       this.phoneCache = { list, expiresAt: now + 24 * 60 * 60 * 1000 }; // 24 h
       if (!list.length) {
-        console.error('[Textdrip] get-phone-list returned 0 numbers – API token may lack permission or account has no numbers');
+        console.error(
+          '[Textdrip] get-phone-list returned 0 numbers – API token may lack permission or account has no numbers'
+        );
       }
       return list;
     } catch (err) {
@@ -278,7 +276,10 @@ class TextdripService {
 
 export const createTextdripService = (overrideToken?: string): TextdripService => {
   const token = overrideToken || process.env.TEXTDRIP_API_TOKEN;
-  console.log('Creating Textdrip service with token:', token ? `${token.slice(0, 6)}...` : 'No Token Found');
+  console.log(
+    'Creating Textdrip service with token:',
+    token ? `${token.slice(0, 6)}...` : 'No Token Found'
+  );
   if (!token) {
     throw new Error('No TextDrip token provided');
   }
@@ -287,23 +288,23 @@ export const createTextdripService = (overrideToken?: string): TextdripService =
 
 export type { TextdripCampaign };
 
-const BASE_URL = "https://api.textdrip.com/api";
+const BASE_URL = 'https://api.textdrip.com/api';
 const TOKEN = process.env.TEXTDRIP_API_TOKEN;
-const SENDER_PHONE = "18136679756";  // Your Textdrip phone number
+const SENDER_PHONE = '18136679756'; // Your Textdrip phone number
 
 /* ------------- shared helpers ------------------------------------------------ */
 const buildHeaders = (phoneToken: string | null = null) => ({
   Authorization: `Bearer ${TOKEN}`,
-  Accept: "application/json",
-  "Content-Type": "application/json",
-  ...(phoneToken ? { "phone-token": phoneToken } : {}),
+  Accept: 'application/json',
+  'Content-Type': 'application/json',
+  ...(phoneToken ? { 'phone-token': phoneToken } : {}),
 });
 
 const unwrap = (err: unknown) => {
   if ((err as AxiosError).response) {
     const { status, data } = (err as AxiosError<TextdripErrorResponse>).response!;
     throw new Error(
-      `TextDrip ${status}: ${typeof data === "string" ? data : data.message || data.error || 'Unknown error'}`
+      `TextDrip ${status}: ${typeof data === 'string' ? data : data.message || data.error || 'Unknown error'}`
     );
   }
   throw err;
@@ -325,7 +326,7 @@ export async function addCampaign(
       },
       { headers: buildHeaders(contactId) }
     );
-    if (!data?.status) throw new Error(data?.message ?? "Unknown error");
+    if (!data?.status) throw new Error(data?.message ?? 'Unknown error');
     return data; // { status:true, message:"Campaign added successfully." }
   } catch (err) {
     unwrap(err);
@@ -334,9 +335,9 @@ export async function addCampaign(
 
 /* ------------- 2) Quick-drip one-off message --------------------------------- */
 export async function sendMessage(
-  receiver: string,          // E.164 number e.g. +15551234567
+  receiver: string, // E.164 number e.g. +15551234567
   message: string,
-  imageId?: string | null     // optional TextDrip image ID
+  imageId?: string | null // optional TextDrip image ID
 ) {
   try {
     const { data } = await axios.post(
@@ -344,19 +345,19 @@ export async function sendMessage(
       {
         receiver,
         message,
-        sender: SENDER_PHONE,  // Add sender phone number
+        sender: SENDER_PHONE, // Add sender phone number
         ...(imageId ? { image: imageId } : {}),
       },
       { headers: buildHeaders(receiver) }
     );
-    if (!data?.status) throw new Error(data?.message ?? "Unknown error");
+    if (!data?.status) throw new Error(data?.message ?? 'Unknown error');
     return data; // { status:true, message:"<Message details>" }
   } catch (err) {
     unwrap(err);
   }
 }
 
-// NOTE: I am omitting getConversations and getChats for now as they are not used. 
+// NOTE: I am omitting getConversations and getChats for now as they are not used.
 
 const buildBaseUrl = (user: IUser, fallbackBase?: string) => {
   return (
@@ -389,7 +390,11 @@ export const loginToTextDrip = async (creds: TextDripCredentials, user: IUser) =
     password: creds.password ?? '',
   };
 
-  const { data } = await axios.post<{ success: boolean; message: string; token: string }>(url, payload, { timeout: 10000 });
+  const { data } = await axios.post<{ success: boolean; message: string; token: string }>(
+    url,
+    payload,
+    { timeout: 10000 }
+  );
 
   if (!data?.success || !data?.token) {
     throw new Error(data?.message || 'Login failed');
@@ -440,6 +445,9 @@ export const getCampaigns = async (user: IUser) => {
   const access = await ensureFreshAccessToken(user);
   const base = buildBaseUrl(user);
   const url = `${base}/campaigns`;
-  const { data } = await axios.get(url, { headers: { Authorization: `Bearer ${access}` }, timeout: 10000 });
+  const { data } = await axios.get(url, {
+    headers: { Authorization: `Bearer ${access}` },
+    timeout: 10000,
+  });
   return data;
-}; 
+};

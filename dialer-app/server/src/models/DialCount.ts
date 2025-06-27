@@ -29,4 +29,4 @@ dialCountSchema.index({ userId: 1, count: -1 }); // quick leaderboard per user i
 type DialCountModelType = mongoose.Model<IDialCount>;
 
 const DialCountModel: DialCountModelType = mongoose.model<IDialCount>('DialCount', dialCountSchema);
-export default DialCountModel; 
+export default DialCountModel;

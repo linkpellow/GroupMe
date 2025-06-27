@@ -8,4 +8,4 @@ const router = Router();
 router.post('/increment', auth, incrementDialCount);
 router.get('/', auth, getDialCounts);
 
-export default router; 
+export default router;

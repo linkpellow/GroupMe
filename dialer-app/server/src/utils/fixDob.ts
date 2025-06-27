@@ -25,4 +25,4 @@ export function fixDob(raw: string | null | undefined): string | null {
   if (m < 1 || m > 12 || d < 1 || d > 31) return null;
 
   return `${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}/${year}`;
-} 
+}

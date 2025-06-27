@@ -30,11 +30,13 @@ export default class DialCountService {
     if (phones.length === 0) return {};
     const cleaned = phones.map(normalizePhone);
 
-    const docs = await DialCountModel.find({ userId, phone: { $in: cleaned } }).lean().exec();
+    const docs = await DialCountModel.find({ userId, phone: { $in: cleaned } })
+      .lean()
+      .exec();
     const map: Record<string, number> = {};
     for (const doc of docs) {
       map[doc.phone] = doc.count;
     }
     return map;
   }
-} 
+}

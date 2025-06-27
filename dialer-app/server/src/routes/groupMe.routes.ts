@@ -88,7 +88,7 @@ router.post('/webhook/:userId', async (req, res) => {
     const appUser = await User.findById(userId);
     if (!appUser) {
       console.warn(
-        `GroupMe Webhook: User ${userId} not found in database. Cannot deliver message.`,
+        `GroupMe Webhook: User ${userId} not found in database. Cannot deliver message.`
       );
       return res.status(404).send('Application user not found');
     }

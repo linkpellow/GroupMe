@@ -411,7 +411,12 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response) => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { broadcastMessage } = require('../index');
         const now = new Date();
-        broadcastMessage({ type: 'LEAD_NOTES_UPDATED', leadId: id, notes: updateData.notes, updatedAt: now.toISOString() });
+        broadcastMessage({
+          type: 'LEAD_NOTES_UPDATED',
+          leadId: id,
+          notes: updateData.notes,
+          updatedAt: now.toISOString(),
+        });
       } catch (err) {
         console.error('Failed to broadcast notesUpdated from updateLead:', err);
       }
@@ -841,8 +846,16 @@ export const getFilterOptions = async (req: Request, res: Response): Promise<voi
 
 // Helper to generate filename based on filters (simple version; client ultimately decides)
 export function buildCsvFilename(q: any): string {
-  const disposition = Array.isArray(q.dispositions) && q.dispositions.length === 1 ? q.dispositions[0] : 'Multiple';
-  const source = Array.isArray(q.sources) && q.sources.length === 1 ? (q.sources[0] === 'Marketplace' ? 'MP' : q.sources[0] === 'NextGen' ? 'NG' : 'Mixed') : 'Mixed';
+  const disposition =
+    Array.isArray(q.dispositions) && q.dispositions.length === 1 ? q.dispositions[0] : 'Multiple';
+  const source =
+    Array.isArray(q.sources) && q.sources.length === 1
+      ? q.sources[0] === 'Marketplace'
+        ? 'MP'
+        : q.sources[0] === 'NextGen'
+          ? 'NG'
+          : 'Mixed'
+      : 'Mixed';
   const safeDisposition = String(disposition || 'All').replace(/[^a-z0-9\-_ ]/gi, '_');
   return `CrokodialCSV (${safeDisposition}, ${source}).csv`;
 }
@@ -924,7 +937,7 @@ export const updateLeadNotes = async (req: AuthenticatedRequest, res: Response) 
     const updatedLead = await LeadModel.findOneAndUpdate(
       { _id: id },
       { $set: { notes: notes, updatedAt: now } },
-      { new: true, runValidators: true, upsert: false },
+      { new: true, runValidators: true, upsert: false }
     ).lean();
 
     if (!updatedLead) {
@@ -936,7 +949,12 @@ export const updateLeadNotes = async (req: AuthenticatedRequest, res: Response) 
       // Dynamic import to avoid circular dependency issues
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { broadcastMessage } = require('../index');
-      broadcastMessage({ type: 'LEAD_NOTES_UPDATED', leadId: id, notes: notes, updatedAt: now.toISOString() });
+      broadcastMessage({
+        type: 'LEAD_NOTES_UPDATED',
+        leadId: id,
+        notes: notes,
+        updatedAt: now.toISOString(),
+      });
     } catch (wsErr) {
       console.error('Failed to broadcast notesUpdated WS message:', wsErr);
     }

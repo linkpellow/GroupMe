@@ -71,4 +71,4 @@ export const healthCheckConfig = {
     uptime: true,
   },
   timeout: 3000,
-}; 
+};

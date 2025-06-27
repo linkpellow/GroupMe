@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { parse } from 'csv-parse/sync';
+import { parse } from 'csv-parse';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import UserModel from '../models/User';
@@ -38,9 +38,23 @@ async function importLeadsFromFile(filePath: string, adminUser: any) {
   // Read and parse CSV file
   const fileContent = fs.readFileSync(filePath, 'utf-8');
 
-  const records: NextGenLead[] = parse(fileContent, {
-    columns: true,
-    skip_empty_lines: true,
+  const records: NextGenLead[] = [];
+  await new Promise((resolve, reject) => {
+    parse(
+      fileContent,
+      {
+        columns: true,
+        skip_empty_lines: true,
+      },
+      (err: any, data: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          records.push(...(data as NextGenLead[]));
+          resolve(null);
+        }
+      }
+    );
   });
 
   console.log(`Found ${records.length} leads to process in ${path.basename(filePath)}`);

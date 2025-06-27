@@ -31,7 +31,7 @@ async function checkLeads(): Promise<void> {
   console.log('\nRecent leads:');
   recentLeads.forEach((lead) => {
     console.log(
-      `  ${lead.firstName} ${lead.lastName} - ${lead.source} - ${formatDate(lead.createdAt)}`,
+      `  ${lead.firstName} ${lead.lastName} - ${lead.source} - ${formatDate(lead.createdAt)}`
     );
   });
 

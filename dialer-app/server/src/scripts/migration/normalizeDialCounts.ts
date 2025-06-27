@@ -47,7 +47,7 @@ async function migrateDialCounts() {
       const newCount = existingCount + doc.count;
       seenKeys.set(`${doc.userId}-${normalized}`, newCount);
     }
-    
+
     // Clear the collection
     await DialCountModel.deleteMany({});
     console.log('Cleared existing dialcounts collection.');
@@ -55,21 +55,21 @@ async function migrateDialCounts() {
     // Insert the merged records
     const newDocs = [];
     for (const [key, count] of seenKeys.entries()) {
-        const [userId, phone] = key.split('-');
-        newDocs.push({
-            userId: new mongoose.Types.ObjectId(userId),
-            phone: phone,
-            count: count,
-            lastDialedAt: new Date()
-        });
+      const [userId, phone] = key.split('-');
+      newDocs.push({
+        userId: new mongoose.Types.ObjectId(userId),
+        phone: phone,
+        count: count,
+        lastDialedAt: new Date(),
+      });
     }
 
     if (newDocs.length > 0) {
-        await DialCountModel.insertMany(newDocs);
-        updatedCount = newDocs.length;
-        console.log(`Successfully inserted ${updatedCount} merged and normalized records.`);
+      await DialCountModel.insertMany(newDocs);
+      updatedCount = newDocs.length;
+      console.log(`Successfully inserted ${updatedCount} merged and normalized records.`);
     } else {
-        console.log('No records needed to be inserted.');
+      console.log('No records needed to be inserted.');
     }
 
     console.log(`Migration complete. ${updatedCount} records in collection.`);
@@ -81,4 +81,4 @@ async function migrateDialCounts() {
   }
 }
 
-migrateDialCounts(); 
+migrateDialCounts();

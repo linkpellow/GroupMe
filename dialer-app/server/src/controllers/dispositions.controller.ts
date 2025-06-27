@@ -236,7 +236,7 @@ export const seedDefaultDispositions = async (req: Request, res: Response) => {
           isDefault: true,
           createdBy: req.user?._id,
         })
-      )
+      ),
     );
 
     // Get all dispositions after adding the new ones
@@ -297,7 +297,7 @@ export const seedDefaultDispositionsOnStartup = async (userId: string) => {
             isDefault: true,
             createdBy: userId,
           })
-        )
+        ),
       );
 
       console.log('Default dispositions seeded successfully');

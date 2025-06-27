@@ -60,7 +60,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         const userObj = user.toObject();
         userObj.id = userObj._id;
         req.user = userObj;
-        if (process.env.NODE_ENV === 'development') console.debug('[AUTH] Auth success %s', userObj.email || userObj._id);
+        if (process.env.NODE_ENV === 'development')
+          console.debug('[AUTH] Auth success %s', userObj.email || userObj._id);
 
         next();
       } catch (jwtError) {

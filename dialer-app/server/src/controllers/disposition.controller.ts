@@ -140,14 +140,14 @@ class DispositionController extends CrudController<IDisposition> {
             createdBy: req.user?.id, // Ensure user owns the disposition
           },
           { sortOrder: index }
-        )
+        ),
       );
 
       await Promise.all(updates);
 
       // Fetch updated list
       const updatedDispositions = await Disposition.find({ createdBy: req.user?.id }).sort(
-        'sortOrder',
+        'sortOrder'
       );
 
       res.json({

@@ -45,7 +45,7 @@ const allowedMimeTypes = new Set([
   'text/plain', // .txt
   'application/rtf', // .rtf
   'text/csv', // .csv
-  
+
   // Images
   'image/jpeg', // .jpeg, .jpg, .jfif
   'image/pjpeg',

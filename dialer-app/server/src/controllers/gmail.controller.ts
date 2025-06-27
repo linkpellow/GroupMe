@@ -17,7 +17,7 @@ let oauth2Client: any = null;
 try {
   if (fs.existsSync(CREDENTIALS_PATH)) {
     credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-    
+
     // Configure OAuth client
     oauth2Client = new google.auth.OAuth2(
       credentials.web?.client_id || process.env.GMAIL_CLIENT_ID,
