@@ -16,7 +16,7 @@
     "build:server": "npm --prefix dialer-app/server run build",
     "build:client": "cross-env ROLLUP_NO_NATIVE=true ROLLUP_WASM=true npm --prefix dialer-app/client run build",
     "build:all": "npm run build:server && npm run build:client",
-    "start": "node dialer-app/server/dist/index.js",
+    "start": "node dialer-app/server/dist/server/src/index.js",
     "test": "npm run test:client && npm run test:server",
     "test:client": "cd dialer-app/client && npm test",
     "test:server": "cd dialer-app/server && npm test",
@@ -37,7 +37,7 @@
     "clean:dist": "rm -rf dialer-app/client/dist dialer-app/server/dist",
     "migrate": "cd dialer-app/server && npm run migrate",
     "seed:admin": "cd dialer-app/server && npm run seed:admin",
-    "start:server": "node dialer-app/server/dist/index.js --host 0.0.0.0",
+    "start:server": "node dialer-app/server/dist/server/src/index.js --host 0.0.0.0",
     "start:client": "vite --config dialer-app/client/vite.config.ts --port 5173",
     "ci:servers": "concurrently -k -s first -n SERVER,CLIENT \"npm run start:server\" \"npm run start:client\"",
     "ci:e2e": "start-server-and-test ci:servers http://localhost:5173 test:e2e"
@@ -46,6 +46,7 @@
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
     "cypress": "^13.7.3",
     "eslint": "^8.54.0",
     "eslint-config-prettier": "^9.1.0",
@@ -56,8 +57,7 @@
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.4",
     "start-server-and-test": "^2.0.3",
-    "wait-on": "^7.0.1",
-    "cross-env": "^7.0.3"
+    "wait-on": "^7.0.1"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -89,14 +89,12 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@sentry/node": "^9.24.0",
+    "@sentry/utils": "^8.55.0",
     "bcryptjs": "^3.0.2",
     "csv-parse": "^5.6.0",
     "module-alias": "^2.2.3",
     "react-icons": "^5.5.0",
     "zod": "^3.25.42"
   },
-  "optionalDependencies": {
-  },
-  "overrides": {
-  }
+  "overrides": {}
 }
