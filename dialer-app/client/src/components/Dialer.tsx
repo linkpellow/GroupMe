@@ -3308,7 +3308,7 @@ const DialerWrapper = () => {
       >
         <div className="flex-1 flex items-center">
           <img
-            src="/images/CROKODIAL-HEADER-TITLE.png"
+            src="/images/CROKODIAL%20HEADER%3ATITLE.png"
             alt="Crokodial"
             className="w-auto"
             style={{ height: `${4 * scale}px` }}
