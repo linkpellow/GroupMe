@@ -68,7 +68,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   const pre = document.getElementById('croc-preloader');
   if (!pre) return;
   
-  const MIN_SHOW = 2000; // ms - increased minimum time
+  const MIN_SHOW = 1000; // ms - reduced to 1 second
   const gif = pre.querySelector('img[src="/ANIMATION/HEADER LOGO REFRESH.gif"]') as HTMLImageElement;
   
   let hasFadedOut = false;
