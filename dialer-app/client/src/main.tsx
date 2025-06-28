@@ -69,7 +69,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   if (!pre) return;
   
   const MIN_SHOW = 2000; // ms - increased minimum time
-  const gif = pre.querySelector('img[src="/ANIMATION/CROCLOAD.gif"]') as HTMLImageElement;
+  const gif = pre.querySelector('img[src="/ANIMATION/HEADER LOGO REFRESH.gif"]') as HTMLImageElement;
   
   let hasFadedOut = false;
   
@@ -91,15 +91,15 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         setTimeout(fadeOut, MIN_SHOW);
       };
       gif.onerror = () => {
-        // If GIF fails to load, still show for minimum time
+        // Fallback if GIF fails to load
         setTimeout(fadeOut, MIN_SHOW);
       };
     }
   } else {
-    // Fallback if GIF not found
+    // Fallback if GIF element not found
     setTimeout(fadeOut, MIN_SHOW);
   }
   
-  // Safety timeout - ensure preloader doesn't stay forever
-  setTimeout(fadeOut, 10000); // 10 second maximum
+  // Safety timeout - always fade out after 10 seconds max
+  setTimeout(fadeOut, 10000);
 })();
