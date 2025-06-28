@@ -322,7 +322,7 @@ const Navigation: React.FC = () => {
             gap={2}
           >
             <Link as={RouterLink} to="/" display="flex" alignItems="center">
-              <Image src="/images/HEADER LOGO.png" alt="Crokodial Logo" h="75px" mr={2} />
+              <Image src="/images/HEADER LOGO.png?v=1" alt="Crokodial Logo" h="75px" mr={2} />
               <Image
                 src="/images/CROKODIAL TITLE LOGO.png"
                 alt="Crokodial"
