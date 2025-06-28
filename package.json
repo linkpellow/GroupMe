@@ -44,7 +44,8 @@
     "seed:admin": "cd dialer-app/server && npm run seed:admin",
     "ci:servers": "concurrently -k -s first -n SERVER,CLIENT \"npm run start:server\" \"npm run start:client\"",
     "ci:e2e": "start-server-and-test ci:servers http://localhost:5173 test:e2e",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "postbuild": "ls -l dialer-app/server/dist/server/src/ || echo 'Server build output missing!'"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
