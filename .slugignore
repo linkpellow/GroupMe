@@ -8,9 +8,6 @@
  dialer-app/client/public/direct-entry.html
  dialer-app/client/public/direct-test.html
  
-# Exclude original server TypeScript sources (compiled output lives in dist)
- dialer-app/server/src
- 
 # Tests and docs
  **/__tests__/
  **/tests/
