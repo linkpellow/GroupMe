@@ -17,7 +17,7 @@
     "build:server": "npm --workspace dialer-app/server run build",
     "build:client": "npm --workspace dialer-app/client run build",
     "start": "npm run start:server",
-    "start:server": "node dialer-app/server/dist/server/index.js",
+    "start:server": "node dialer-app/server/dist/server/src/index.js",
     "start:client": "npm --workspace dialer-app/client run start",
     "clean": "rm -rf node_modules package-lock.json dialer-app/*/node_modules dialer-app/*/package-lock.json && npm install",
     "kill-ports": "kill-port 3005 5173 || true",

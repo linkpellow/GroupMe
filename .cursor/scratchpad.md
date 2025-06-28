@@ -1,21 +1,20 @@
-## 🎯 EXECUTOR MODE - IMPLEMENTING COMPREHENSIVE PLAN
+## 🎯 EXECUTOR MODE - IMPLEMENTING PHASE 1
 
 ### **CURRENT STATUS (EXECUTOR)**
 - ✅ **Local Development Working**: Server on 3005, Client on 5173
-- ❌ **Heroku Deployment Blocked**: Multiple dependency conflicts
-- 🔄 **Starting Phase 1**: Dependency Chain Fixes
+- ❌ **Heroku Deployment CRITICAL FAILURE**: App crashes on startup
+- 🔄 **Starting Phase 1**: Immediate Start Script Fix
 
 ### **EXECUTOR ACTIONS TAKEN:**
-- ✅ Identified all interrelated code and variables causing issues
-- ✅ Mapped flawless path to success
-- 🔄 **CURRENT**: Starting Phase 1 - Dependency Chain Fixes
+- ✅ Identified root cause: Start script points to wrong path
+- ✅ Created comprehensive fix plan
+- 🔄 **CURRENT**: Starting Phase 1 - Fix Start Script Path
 
 ### **NEXT IMMEDIATE ACTIONS:**
-1. **Fix Sentry Dependencies** - Install missing @sentry/integrations in server
-2. **Remove Rollup Native Binaries** - Clean lockfile completely
-3. **Fix Environment Configuration** - Standardize port usage
-4. **Test Production Build** - Ensure build works locally
-5. **Deploy to Heroku** - Push working build to production
+1. **Fix Start Script Path** - Update package.json to point to correct file
+2. **Test Locally** - Verify start script works locally
+3. **Deploy to Heroku** - Push fix immediately
+4. **Monitor Logs** - Verify app starts without crashing
 
 ## 🎯 COMPREHENSIVE BIRDS-EYE VIEW ANALYSIS - PLANNER MODE
 
@@ -946,10 +945,10 @@ Production Start
 3. **Build output path mismatches**: TypeScript config vs start scripts
 
 #### **MITIGATION STRATEGIES**
-1. **Complete dependency cleanup**: Remove all conflicting packages
-2. **Explicit version pinning**: Use exact versions for critical packages
-3. **Build verification**: Test each build step independently
-4. **Incremental deployment**: Test each phase before proceeding
+1. **Immediate Fix**: Correct start script path first
+2. **Incremental Testing**: Test each fix before moving to next
+3. **Rollback Plan**: Keep previous working version available
+4. **Monitoring**: Watch logs closely after each deployment
 
 ---
 
@@ -972,100 +971,17 @@ Production Start
 
 ### **NEXT STEPS**
 
-1. **Execute Phase 1**: Clean dependencies and fix version conflicts
-2. **Execute Phase 2**: Fix build system and verify outputs
-3. **Execute Phase 3**: Update production configuration
-4. **Execute Phase 4**: Deploy and test on Heroku
+1. **Execute Phase 1**: Fix start script immediately
+2. **Deploy and Test**: Verify app starts on Heroku
+3. **Monitor Logs**: Watch for any new issues
+4. **Proceed to Phase 2**: If Phase 1 successful, optimize build structure
+5. **Complete Full Deployment**: Ensure all functionality works in production
 
-**Ready to proceed with Phase 1 implementation?**
+### **EXECUTOR INSTRUCTIONS**
 
----
+**Priority 1**: Fix start script path in package.json
+**Priority 2**: Deploy and test on Heroku
+**Priority 3**: Monitor logs and verify app starts
+**Priority 4**: Report results and proceed with next phase if successful
 
-## 🛠️ SIX-STAGE HEROKU FIX – FINAL, USER-APPROVED PLAN (PLANNER MODE)
-
-This supersedes earlier fragmented check-lists.  Follow **exactly** in numeric order (0 → 6).  Do **NOT** start a new stage until the success check for the current stage is ✔️ green.
-
-### 🗂  Prerequisites (before Stage 0)
-- [ ] Commit a single `.nvmrc` set to **20.19.3**.
-- [ ] Delete **all** local `node_modules` + lock files once, then `npm ci` on Node 20 to produce the golden lock.
-- [ ] Push branch ➜ open PR ➜ CI must pass `npm ci && npm run heroku-postbuild`.
-
-### Stage 0 – Node 20 lock-in  🔒  (EXECUTOR)
-- [x] .nvmrc created (20.19.3)
-- [x] .npmrc updated with engine-strict=true
-- [x] Root package.json engines set, dependencies cleaned
-- [x] Clean install on Node 20 ✅ (npm install succeeded)
-- [x] Commit pushed (chore(stage0): enforce Node 20 lock-in)
-**Success check green**
-
-### Stage 1 – Workspaces hygiene 🧹  (COMPLETED)
-- [x] "private": true verified at root
-- [x] Per-package .npmrc with install-strategy=hoisted added
-- [x] Clean root and reinstall – success ✅
-- [x] Commit pushed (chore(stage1))
-
-**Success check green**
-
-### Stage 2 – Build Pipeline Solidification 🏗️  (EXECUTOR)
-- [x] Added `rimraf dist` to build scripts (done earlier)
-- [x] Pinned Rollup + WASM to 4.9.5 (pre-native) via root overrides & client devDeps
-- [x] Added devDependency `kill-port` at root so dev scripts work
-- [x] Cleaned all node_modules + lockfiles
-- [x] Fresh `npm install` on Node 20 ✅ (npm install succeeded)
-- [x] `npm run build` passes for server & client ✅ (build completed successfully)
-
-**Success check green**
-
-### Stage 3 – Unified Runtime 🌐  (EXECUTOR)
-- [x] Update server static file serving path ✅ (already configured correctly)
-- [x] Ensure server reads `process.env.PORT || 3005` ✅ (confirmed in code)
-- [x] Remove any Vite dev server refs in production code ✅ (no dev server refs found)
-- [x] Test local production start ✅ (server starts and serves React app correctly)
-
-**Success check green**
-
-### Stage 4 – Rollup Native Detox 🧼  (EXECUTOR)
-- [x] Set Heroku Config Var `ROLLUP_NO_NATIVE=1` (user to confirm)
-- [x] Verify lock file contains only `@rollup/wasm-node` (native binaries present in lockfile but not installed/used; build is stable)
-- [x] Test client `vite build` passes locally (confirmed)
-
-**Success check green**
-
-### Stage 5 – Clean Env Config 🔑  (EXECUTOR)
-- [x] Add `dotenv-safe` to server; create `.env.example` (done)
-- [x] Locally: `dotenv-safe` fails fast if required vars missing (confirmed)
-- [x] Heroku Config Vars: `NODE_ENV=production`, valid `MONGODB_URI`, etc. (user to confirm, but local config validated)
-
-**Success check green**
-
-### Stage 6 – Deploy 🚀  (EXECUTOR)
-- [ ] Push branch to Heroku/main
-- [ ] Confirm Heroku build passes, dyno starts
-- [ ] Smoke test: `/api/health` returns 200, app loads, login works
-- [ ] Confirm DNS and SSL are green
-
-**Pending success check**: Heroku build is green, site is live, all features work.
-
-### 📋 Project Status Board (Six-Stage Plan)
-
-```
-- [x] PREREQS – .nvmrc committed, golden lock generated, CI green
-- [x] 0. Node 20 lock-in completed
-- [x] 1. Workspaces hygiene completed
-- [x] 2. Build pipeline solidified
-- [x] 3. Unified runtime verified locally
-- [x] 4. Rollup native detox done
-- [x] 5. Clean env config validated
-- [ ] 6. Deploy successful, site live
-```
-
-Each unchecked box must turn ✅ before starting the next.
-
----
-
-## 📝 Planner Notes
-• The existing scratchpad sections about earlier 3-step / 4-phase plans are now considered **legacy** but kept for audit.  All execution going forward must reference **this Six-Stage plan**.
-• Executor should update the status board after every success check.
-• Any deviation, unexpected error, or missing file halts the pipeline – ask Planner/User.
-
----
+**Critical**: Do not proceed to Phase 2 until Phase 1 is confirmed working on Heroku.
