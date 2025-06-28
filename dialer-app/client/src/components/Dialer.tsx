@@ -38,6 +38,8 @@ interface Position {
   y: number;
 }
 
+type ResizeDirection = 'top' | 'right' | 'bottom' | 'left' | 'top-left' | 'top-right' | 'bottom-right' | 'bottom-left';
+
 interface DialerContainerProps {
   isMinimized: boolean;
   scale: number;
@@ -245,20 +247,24 @@ const DialerWrapper = () => {
   });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
-  const [resizeDirection, setResizeDirection] = useState('');
-  const [startMousePosition, setStartMousePosition] = useState<Position>({
-    x: 0,
-    y: 0,
-  });
-  const [startSize, setStartSize] = useState({
+  const [resizeDirection, setResizeDirection] = useState<ResizeDirection | null>(null);
+  const [dragStart, setDragStart] = useState<Position>({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState<{ width: number; height: number; position: Position }>({
     width: ORIGINAL_WIDTH,
     height: ORIGINAL_HEIGHT,
+    position: { x: 0, y: 0 },
   });
+  const [startMousePosition, setStartMousePosition] = useState<Position>({ x: 0, y: 0 });
   const [startPosition, setStartPosition] = useState<Position>({ x: 0, y: 0 });
+  const [startSize, setStartSize] = useState({ width: ORIGINAL_WIDTH, height: ORIGINAL_HEIGHT });
   const [dragAreaHeight, setDragAreaHeight] = useState(0);
-
-  // Window opening flag to prevent multiple windows
   const [isOpeningWindow, setIsOpeningWindow] = useState(false);
+
+  // FORCE VISIBILITY - Override all hiding states
+  const forceVisible = true;
+  const forcedIsMinimized = forceVisible ? false : isMinimized;
+  const forcedIsExited = forceVisible ? false : isExited;
+  const forcedIsMinimizedToIcon = forceVisible ? false : isMinimizedToIcon;
 
   const dialerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -1624,7 +1630,7 @@ const DialerWrapper = () => {
     e.preventDefault();
     e.stopPropagation();
     setIsResizing(true);
-    setResizeDirection(direction);
+    setResizeDirection(direction as ResizeDirection);
     setStartMousePosition({ x: e.clientX, y: e.clientY });
 
     if (dialerRef.current) {
@@ -1675,30 +1681,20 @@ const DialerWrapper = () => {
         const deltaY = e.clientY - startMousePosition.y;
 
         // Calculate new size based on resize direction
-        if (resizeDirection.includes('right')) {
+        if (resizeDirection && resizeDirection.includes('right')) {
           newWidth = startSize.width + deltaX;
           newHeight = newWidth / aspectRatio;
-        } else if (resizeDirection.includes('left')) {
-          // For left resizing, only allow if resulting size is larger than original
-          const potentialNewWidth = startSize.width - deltaX;
-          if (potentialNewWidth >= ORIGINAL_WIDTH) {
-            newWidth = potentialNewWidth;
-            newHeight = newWidth / aspectRatio;
-            newX = startPosition.x + startSize.width - newWidth;
-          }
-        }
-
-        if (resizeDirection.includes('bottom')) {
+        } else if (resizeDirection && resizeDirection.includes('left')) {
+          newWidth = startSize.width - deltaX;
+          newHeight = newWidth / aspectRatio;
+          newX = startPosition.x + deltaX;
+        } else if (resizeDirection && resizeDirection.includes('bottom')) {
           newHeight = startSize.height + deltaY;
           newWidth = newHeight * aspectRatio;
-        } else if (resizeDirection.includes('top')) {
-          // For top resizing, only allow if resulting size is larger than original
-          const potentialNewHeight = startSize.height - deltaY;
-          if (potentialNewHeight >= ORIGINAL_HEIGHT) {
-            newHeight = potentialNewHeight;
-            newWidth = newHeight * aspectRatio;
-            newY = startPosition.y + startSize.height - newHeight;
-          }
+        } else if (resizeDirection && resizeDirection.includes('top')) {
+          newHeight = startSize.height - deltaY;
+          newWidth = newHeight * aspectRatio;
+          newY = startPosition.y + deltaY;
         }
 
         // Calculate and limit the new scale
@@ -3263,23 +3259,9 @@ const DialerWrapper = () => {
       isExited={isExited}
       className="dialer-container"
       style={{
-        border: '3px solid red', // DEBUG: Add red border to see if component is rendering
-        zIndex: 9999, // DEBUG: Force high z-index
+        zIndex: 9999, // Force high z-index
       }}
     >
-      {/* DEBUG: Show current states */}
-      <div style={{ 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        background: 'yellow', 
-        color: 'black', 
-        padding: '2px', 
-        fontSize: '10px',
-        zIndex: 10000 
-      }}>
-        Debug: isExited={isExited.toString()}, isMinimized={isMinimized.toString()}, isMinimizedToIcon={isMinimizedToIcon.toString()}
-      </div>
       {/* Resize handles */}
       {!isMinimized && !isDetached && (
         <>

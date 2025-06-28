@@ -329,7 +329,7 @@ const Navigation: React.FC = () => {
                 h="50px"
                 style={{ maxWidth: 'none' }}
               />
-              <Badge colorScheme="orange" variant="solid" fontSize="xs" mt={1}>
+              <Badge colorScheme="orange" variant="solid" fontSize="xs" mt={1} color="black">
                 BETA
               </Badge>
             </Link>

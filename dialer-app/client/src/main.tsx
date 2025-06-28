@@ -12,9 +12,6 @@ import LifetimeCountsProvider from "./context/LifetimeCountsContext";
 import * as scrollLockUtil from "./shared/scrollLock";
 import { ZoomProvider, useZoom } from './context/ZoomContext';
 
-console.log("=== APP INITIALIZATION START ===");
-console.log("main.tsx - Starting to mount application");
-
 // Prevent touch scrolling when dropdown lock is active
 window.addEventListener(
   'touchmove',
@@ -66,15 +63,43 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </React.StrictMode>
 );
 
-console.log("=== APP INITIALIZATION COMPLETE ===");
-
-// Fade out and remove global preloader after minimum 3s
+// Fade out and remove global preloader after GIF loads or minimum time
 (() => {
   const pre = document.getElementById('croc-preloader');
   if (!pre) return;
-  const MIN_SHOW = 1600; // ms
-  setTimeout(() => {
+  
+  const MIN_SHOW = 2000; // ms - increased minimum time
+  const gif = pre.querySelector('img[src="/ANIMATION/CROCLOAD.gif"]') as HTMLImageElement;
+  
+  let hasFadedOut = false;
+  
+  const fadeOut = () => {
+    if (hasFadedOut) return;
+    hasFadedOut = true;
     pre.classList.add('fade-out');
     setTimeout(() => pre.remove(), 400); // match CSS transition
-  }, MIN_SHOW);
+  };
+  
+  // Wait for GIF to load
+  if (gif) {
+    if (gif.complete) {
+      // GIF already loaded
+      setTimeout(fadeOut, MIN_SHOW);
+    } else {
+      // Wait for GIF to load
+      gif.onload = () => {
+        setTimeout(fadeOut, MIN_SHOW);
+      };
+      gif.onerror = () => {
+        // If GIF fails to load, still show for minimum time
+        setTimeout(fadeOut, MIN_SHOW);
+      };
+    }
+  } else {
+    // Fallback if GIF not found
+    setTimeout(fadeOut, MIN_SHOW);
+  }
+  
+  // Safety timeout - ensure preloader doesn't stay forever
+  setTimeout(fadeOut, 10000); // 10 second maximum
 })();
