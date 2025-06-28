@@ -9,7 +9,7 @@
   "scripts": {
     "dev:prep": "kill-port 3005 || true",
     "dev": "npm run dev:prep && ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "rimraf dist && tsc --listFiles --verbose",
+    "build": "rimraf dist && tsc",
     "postbuild": "cd ../client && npm run build && echo 'Build completed successfully'",
     "clean": "rm -rf dist node_modules package-lock.json && npm install && npm run build",
     "rebuild": "npm run clean && npm run build",
