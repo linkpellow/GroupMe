@@ -46,24 +46,7 @@ const ZoomControls: React.FC = () => {
 };
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <ZoomProvider>
-    <QueryClientProvider client={queryClient}>
-      <ChakraProvider theme={theme}>
-        <CallCountsProvider>
-          <LifetimeCountsProvider>
-            <GroupMeProvider>
-              <SidebarToggleProvider>
-                  <App />
-                  <ZoomControls />
-              </SidebarToggleProvider>
-            </GroupMeProvider>
-          </LifetimeCountsProvider>
-        </CallCountsProvider>
-      </ChakraProvider>
-    </QueryClientProvider>
-    </ZoomProvider>
-  </React.StrictMode>
+  <div style={{fontSize: 32, color: 'green', textAlign: 'center', marginTop: '20vh'}}>Hello World</div>
 );
 
 console.log("=== APP INITIALIZATION COMPLETE ===");
