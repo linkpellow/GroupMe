@@ -85,7 +85,7 @@ const jwtPreview = (process.env.JWT_SECRET || '').slice(0, 6) || 'NONE';
 const tdPreview = (process.env.TEXTDRIP_API_TOKEN || '').slice(0, 6) || 'NONE';
 console.log(`ENV sanity → JWT_SECRET: ${jwtPreview}… (${(process.env.JWT_SECRET || '').length} chars), TEXTDRIP_API_TOKEN: ${tdPreview}… (${(process.env.TEXTDRIP_API_TOKEN || '').length} chars)`);
 
-console.log('=== PRODUCTION SERVER: UNIFIED IMPLEMENTATION ===');
+console.log('=== SERVER ENTRYPOINT REACHED ===');
 const app = express();
 const server = http.createServer(app);
 const port = process.env.PORT || 3005;
