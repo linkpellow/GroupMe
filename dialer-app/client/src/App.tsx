@@ -255,8 +255,9 @@ function App() {
                               path="/dialer"
                               element={
                                 <AuthenticatedRoute>
-                                  <DailyGoals />
-                                  <Dialer />
+                                  <Layout>
+                                    <DailyGoals />
+                                  </Layout>
                                 </AuthenticatedRoute>
                               }
                             />

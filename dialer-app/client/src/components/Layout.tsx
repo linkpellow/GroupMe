@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Navigation from './Navigation';
+import Dialer from './Dialer';
 // No longer import FollowUpStrip or useFollowUpUI here
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -41,6 +42,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
+      {/* Add Dialer component to all pages */}
+      <Dialer />
     </div>
   );
 }
