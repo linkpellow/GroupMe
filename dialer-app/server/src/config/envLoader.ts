@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import dotenvSafe from 'dotenv-safe';
 import path from 'path';
 import fs from 'fs';
 
@@ -35,13 +35,17 @@ function locateEnvLocal(): string | undefined {
 }
 
 const envPath = locateEnvLocal();
+const examplePath = path.resolve(__dirname, '../../.env.example');
 
-// Load variables if we found the file
-if (envPath) {
-  dotenv.config({ path: envPath });
+// Use dotenv-safe to load and validate environment variables
+if (envPath && fs.existsSync(examplePath)) {
+  dotenvSafe.config({ path: envPath, example: examplePath });
+} else if (envPath) {
+  dotenvSafe.config({ path: envPath });
+} else if (fs.existsSync(examplePath)) {
+  dotenvSafe.config({ example: examplePath });
 } else {
-  // Still call dotenv without path so it respects generic .env if present
-  dotenv.config();
+  dotenvSafe.config();
 }
 
 // ----------------------------------------------------------------------
@@ -51,7 +55,7 @@ if (envPath) {
 //-----------------------------------------------------------------------
 if (envPath && fs.existsSync(envPath)) {
   try {
-    const parsedLocal = dotenv.parse(fs.readFileSync(envPath));
+    const parsedLocal = dotenvSafe.parse(fs.readFileSync(envPath));
     const localSecret = parsedLocal.JWT_SECRET;
     if (localSecret && localSecret.length >= 32) {
       if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -75,7 +79,7 @@ if (envPath && fs.existsSync(envPath)) {
       }
     }
   } catch {
-    // ignore parse errors – dotenv already handled absence
+    // ignore parse errors – dotenvSafe already handled absence
   }
 }
 
