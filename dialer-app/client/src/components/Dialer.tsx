@@ -267,6 +267,15 @@ const DialerWrapper = () => {
 
   const { incrementCount } = useLifetimeCounts();
 
+  // FORCE VISIBILITY FOR DEBUGGING
+  useEffect(() => {
+    console.log('Dialer states:', { isExited, isMinimized, isMinimizedToIcon });
+    // Force visibility
+    setIsExited(false);
+    setIsMinimized(false);
+    setIsMinimizedToIcon(false);
+  }, []);
+
   // Create a unified scaling function that synchronizes the window and dialer
   const syncScaling = (newScale: number) => {
     console.log(`Syncing scale to: ${newScale}`);
@@ -3253,7 +3262,24 @@ const DialerWrapper = () => {
       isMinimizedToIcon={isMinimizedToIcon}
       isExited={isExited}
       className="dialer-container"
+      style={{
+        border: '3px solid red', // DEBUG: Add red border to see if component is rendering
+        zIndex: 9999, // DEBUG: Force high z-index
+      }}
     >
+      {/* DEBUG: Show current states */}
+      <div style={{ 
+        position: 'absolute', 
+        top: 0, 
+        left: 0, 
+        background: 'yellow', 
+        color: 'black', 
+        padding: '2px', 
+        fontSize: '10px',
+        zIndex: 10000 
+      }}>
+        Debug: isExited={isExited.toString()}, isMinimized={isMinimized.toString()}, isMinimizedToIcon={isMinimizedToIcon.toString()}
+      </div>
       {/* Resize handles */}
       {!isMinimized && !isDetached && (
         <>
