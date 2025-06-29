@@ -1655,3 +1655,59 @@ The infinite loading issue should now be completely resolved across all Mac vers
 7. **Other**: Specify any other tasks or improvements needed
 
 **Please let me know what you'd like me to focus on next!**
+
+## 🎯 **EXECUTOR MODE - NAVIGATION DEBUGGING DEPLOYED**
+
+### **✅ DEBUGGING CHANGES DEPLOYED**
+
+**CURRENT STATUS**: 🔍 **INVESTIGATING LOGIN NAVIGATION ISSUE**
+
+**ISSUE IDENTIFIED**: 
+- User reports that after entering pre-login passcode and logging in with admin@crokodial.com/admin123, they are not redirected to /leads page
+- API login is working correctly (returns valid token)
+- Issue appears to be in client-side navigation logic
+
+**DEBUGGING CHANGES DEPLOYED (June 29, 2025):**
+- ✅ **Login Component**: Added detailed console logging for navigation steps
+- ✅ **PrivateRoute**: Added debugging to track token recognition and route access
+- ✅ **Navigation Timing**: Added 100ms delay to ensure token is set before navigation
+- ✅ **Console Logging**: Added comprehensive logging to track the entire flow
+
+**DEPLOYMENT STATUS**:
+- ✅ **Code Committed**: e89469a (Add debugging to login navigation and PrivateRoute)
+- ✅ **Deployed to Heroku**: Changes pushed to production-plan branch
+- ✅ **Ready for Testing**: Debugging logs will show exactly what's happening
+
+### **🔍 DEBUGGING FLOW TO TEST**
+
+**Expected Console Logs During Login**:
+1. `"Attempting login for: admin@crokodial.com"`
+2. `"Login successful, token received"`
+3. `"About to navigate to /leads"`
+4. `"Executing navigation to /leads"`
+5. `"PrivateRoute check: { pathname: '/leads', hasToken: true, ... }"`
+6. `"PrivateRoute: Token exists, rendering children"`
+
+**To Test the Flow**:
+1. Go to https://crokodial.com
+2. Enter passcode: `AH7D6U2H`
+3. Login with admin@crokodial.com / admin123
+4. Open browser console (F12) to see debug logs
+5. Check if navigation to /leads happens and what logs appear
+
+### **🎯 NEXT STEPS**
+
+**Immediate Actions**:
+1. **User Testing**: Test the login flow and check console logs
+2. **Log Analysis**: Review debug output to identify exact issue
+3. **Fix Implementation**: Apply fix based on debug findings
+4. **Verification**: Confirm navigation works correctly
+
+**Potential Issues to Look For**:
+- Token not being set in localStorage
+- PrivateRoute not recognizing token
+- React Router navigation failing
+- Timing issues with state updates
+- Route configuration problems
+
+**Please test the login flow now and let me know what console logs you see!** 🔍
