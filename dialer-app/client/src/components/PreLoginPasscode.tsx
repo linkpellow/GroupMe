@@ -15,14 +15,28 @@ const PreLoginPasscode: React.FC<PreLoginPasscodeProps> = ({ onPasscodeValid }) 
     setIsLoading(true);
     setError('');
     try {
+      console.log('PreLoginPasscode: Validating passcode:', passcode.trim());
+      
       // First validate the passcode
       const validateResponse = await axios.post('/api/auth/validate-passcode', { code: passcode.trim() });
+      console.log('PreLoginPasscode: Validation response:', validateResponse.data);
+      
       if (validateResponse.data.success) {
+        console.log('PreLoginPasscode: Passcode valid, consuming...');
+        
         // Then consume the passcode
         const consumeResponse = await axios.post('/api/auth/consume-passcode', { code: passcode.trim() });
+        console.log('PreLoginPasscode: Consumption response:', consumeResponse.data);
+        
         if (consumeResponse.data.success) {
+          console.log('PreLoginPasscode: Passcode consumed successfully, setting localStorage and redirecting');
           localStorage.setItem('prelogin_passcode_valid', 'true');
+          
+          // Call the callback to update parent state
+          onPasscodeValid();
+          
           // Force a page reload to ensure the state is properly set
+          console.log('PreLoginPasscode: Redirecting to /login');
           window.location.href = '/login';
         } else {
           setError(consumeResponse.data.message || 'Failed to use passcode');
@@ -31,6 +45,7 @@ const PreLoginPasscode: React.FC<PreLoginPasscodeProps> = ({ onPasscodeValid }) 
         setError(validateResponse.data.message || 'Invalid passcode');
       }
     } catch (err: any) {
+      console.error('PreLoginPasscode: Error during passcode validation:', err);
       setError(err.response?.data?.message || 'Invalid passcode');
     } finally {
       setIsLoading(false);

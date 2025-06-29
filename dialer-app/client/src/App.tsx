@@ -231,14 +231,22 @@ function App() {
   const [passcodeValidated, setPasscodeValidated] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem('prelogin_passcode_valid') === 'true') {
-      setPasscodeValidated(true);
-    }
+    // Check for passcode validation on mount
+    const isPasscodeValid = localStorage.getItem('prelogin_passcode_valid') === 'true';
+    console.log('App: Checking passcode validation state:', isPasscodeValid);
+    setPasscodeValidated(isPasscodeValid);
   }, []);
 
   const handlePasscodeValid = () => {
+    console.log('App: Passcode validated, setting state to true');
+    localStorage.setItem('prelogin_passcode_valid', 'true');
     setPasscodeValidated(true);
   };
+
+  // Debug logging
+  useEffect(() => {
+    console.log('App: passcodeValidated state changed to:', passcodeValidated);
+  }, [passcodeValidated]);
 
   return (
     <ErrorBoundary>
