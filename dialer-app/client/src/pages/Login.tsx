@@ -115,6 +115,7 @@ export default function Login() {
             localStorage.setItem('user_data', JSON.stringify(response.data.user));
           }
 
+          console.log('Navigating to /leads after registration');
           navigate('/leads');
         } else {
           throw new Error('No token received after registration');
@@ -131,7 +132,7 @@ export default function Login() {
           });
 
           if (response.data && response.data.token) {
-            console.log('Login successful');
+            console.log('Login successful, token received');
             localStorage.setItem('token', response.data.token);
 
             // Also store user data for better state persistence
@@ -144,8 +145,13 @@ export default function Login() {
               console.warn('Context login had an issue, but token is saved:', err);
             });
 
-            // Immediately navigate to leads without waiting for context
-            navigate('/leads');
+            console.log('About to navigate to /leads');
+            
+            // Force a small delay to ensure token is set
+            setTimeout(() => {
+              console.log('Executing navigation to /leads');
+              navigate('/leads');
+            }, 100);
           } else {
             throw new Error('No token received after login');
           }

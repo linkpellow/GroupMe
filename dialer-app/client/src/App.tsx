@@ -144,6 +144,15 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   // Direct check for token - the most reliable way to determine login state
   const token = localStorage.getItem('token');
 
+  // Debug logging
+  console.log('PrivateRoute check:', {
+    pathname: location.pathname,
+    hasToken: !!token,
+    hasUser: !!user,
+    isLoading,
+    loadingState
+  });
+
   // Check if this is a detached dialer window - if so, skip auth check
   const params = new URLSearchParams(location.search);
   const isDetached = params.get('detached') === 'true';
@@ -173,6 +182,7 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   // IMPORTANT: Always render content if token exists
   // This prevents white screens during auth checks
   if (token) {
+    console.log('PrivateRoute: Token exists, rendering children');
     // If we have a token, immediately render children
     // Don't wait for context to be ready - it will catch up
     return <>{children}</>;
@@ -180,11 +190,13 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   // Handle special cases
   if (isDetached || (isDirect && bypassAuth)) {
+    console.log('PrivateRoute: Special case, rendering children');
     return <>{children}</>;
   }
 
   // Show loading only if explicitly loading
   if (isLoading && loadingState === 'pending') {
+    console.log('PrivateRoute: Showing loading state');
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-yellow-50">
         <div className="p-8 bg-white rounded-lg shadow-lg text-center">
@@ -198,10 +210,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   // Final check - if user context is loaded, use it
   if (user) {
+    console.log('PrivateRoute: User exists, rendering children');
     return <>{children}</>;
   }
 
   // If no token and no user, redirect to login
+  console.log('PrivateRoute: No token or user, redirecting to login');
   return <Navigate to="/login" replace />;
 }
 
