@@ -43,7 +43,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </div>
       {/* Add Dialer component to all pages */}
-      <Dialer />
+      {/* <Dialer /> */}
     </div>
   );
 }
