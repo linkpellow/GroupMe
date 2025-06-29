@@ -246,7 +246,7 @@ function App() {
                             ) : (
                               <>
                                 <Route path="/login" element={<Login />} />
-                                <Route path="/" element={<Navigate to="/leads" />} />
+                                <Route path="/" element={<Navigate to="/login" />} />
                                 <Route path="/groupme/callback" element={<GroupMeOAuthCallback />} />
                                 <Route
                                   path="/leads"

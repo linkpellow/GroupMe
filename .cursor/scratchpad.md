@@ -1363,9 +1363,11 @@ All steps completed. Please review and confirm if further action is needed.
 - Stash .cursor directory if switching branches to avoid conflicts
 
 ## Background and Motivation
-User reported that on some Mac machines/versions, the Crokodial app gets stuck on the refresh/loading animation, making the website inconsistent across computers. Need to fix the infinite loading issue.
+User reported that on some Mac machines/versions, the Crokodial app gets stuck on the refresh/loading animation, making the website inconsistent across computers. **ROOT CAUSE IDENTIFIED**: The app was redirecting from crokodial.com to /leads instead of /login, causing authentication issues and infinite loading states.
 
 ## Key Challenges and Analysis
+- **PRIMARY ISSUE**: Root path `/` was redirecting to `/leads` instead of `/login`
+- This caused unauthenticated users to get stuck in loading states
 - Loading animation uses a video file `/ANIMATION/(NEW) CROC LOADING.mp4` that may fail to load on some Macs
 - Loading state is managed in AuthContext with `isLoading` state
 - Multiple places where `setIsLoading(true)` is called but may not always reach `setIsLoading(false)`
