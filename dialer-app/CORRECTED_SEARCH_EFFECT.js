@@ -3,6 +3,13 @@ useEffect(() => {
   // Abort controller for cancelling in-flight requests
   const abortController = new AbortController();
 
+  // Safety timeout to prevent infinite loading
+  const safetyTimeout = setTimeout(() => {
+    console.warn('Search effect safety timeout reached, forcing loading to false');
+    setIsLoading(false);
+    setIsSearching(false);
+  }, 15000); // 15 second safety timeout
+
   // Debounce the search to avoid rapid API calls
   const debounceTimeout = setTimeout(() => {
     // If search is empty, return to normal pagination
@@ -136,6 +143,7 @@ useEffect(() => {
   // Cleanup function
   return () => {
     clearTimeout(debounceTimeout);
+    clearTimeout(safetyTimeout);
     abortController.abort();
   };
 }, [
