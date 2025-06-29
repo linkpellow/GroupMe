@@ -1,0 +1,450 @@
+/* RESET — keeps things consistent */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --brand: #ff8e23;          /* tweak to match logo highlight */
+  --bg: #000000;             /* black background */
+  --card: #ffffff;
+  --input: #f1f5ff;
+  --border: #d0d7e2;
+  --text: #121212;
+  --subtle: #6b7280;
+  font-family: "Inter", sans-serif;
+}
+
+/* Override any global background for login page */
+body,
+html,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #000000 !important;
+}
+
+.login__outer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  height: 100vh;
+}
+
+.login__card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem 3rem;
+  background: var(--card);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.07);
+  text-align: center;
+}
+
+.login__logo {
+  width: 160px;
+  margin-bottom: 1.5rem;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.login__title {
+  margin: 0 0 2rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.login__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.login__label {
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.login__input {
+  margin-top: 0.35rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.login__input:focus {
+  border-color: var(--brand);
+}
+
+.login__btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--brand);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.login__btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.login__btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.login__footer {
+  margin-top: 2rem;
+  font-size: 0.75rem;
+  color: var(--subtle);
+}
+
+.login__toggle {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.login__toggle-text {
+  font-size: 0.875rem;
+  color: var(--subtle);
+  margin: 0;
+}
+
+.login__toggle-btn {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.login__toggle-btn:hover {
+  color: #e67e00;
+}
+
+.login__passcode-success {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.login__passcode-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #166534;
+  font-weight: 500;
+}
+
+/* Small screens */
+@media (max-width: 480px) {
+  .login__card {
+    border-radius: 0;
+    height: 100%;
+    max-width: none;
+    box-shadow: none;
+  }
+}
+
+/* Passcode Entry Styles */
+.passcode-entry {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem 3rem;
+  background: var(--card);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.07);
+  text-align: center;
+}
+
+.passcode-header {
+  margin-bottom: 2rem;
+}
+
+.passcode-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.passcode-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--subtle);
+  line-height: 1.5;
+}
+
+.passcode-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.passcode-input-group {
+  text-align: left;
+}
+
+.passcode-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.passcode-input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input);
+  font-size: 0.95rem;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  outline: none;
+  transition: border-color 0.2s ease;
+  text-transform: uppercase;
+}
+
+.passcode-input:focus {
+  border-color: var(--brand);
+}
+
+.passcode-input-error {
+  border-color: #dc2626;
+}
+
+.passcode-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.passcode-error {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #dc2626;
+  text-align: left;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+}
+
+.passcode-error-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.passcode-attempts {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--subtle);
+  text-align: left;
+}
+
+.passcode-troubleshoot {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--subtle);
+  line-height: 1.4;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.passcode-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.passcode-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.passcode-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.passcode-btn-primary {
+  color: #fff;
+  background: var(--brand);
+}
+
+.passcode-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.passcode-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.passcode-btn-secondary {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.passcode-btn-secondary:hover:not(:disabled) {
+  background: var(--input);
+  transform: translateY(-1px);
+}
+
+.passcode-btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.passcode-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.passcode-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.passcode-footer {
+  margin-top: 2rem;
+}
+
+.passcode-help {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--subtle);
+  line-height: 1.4;
+}
+
+/* Small screens for passcode entry */
+@media (max-width: 480px) {
+  .passcode-entry {
+    border-radius: 0;
+    height: 100%;
+    max-width: none;
+    box-shadow: none;
+    padding: 2rem 1.5rem;
+  }
+  
+  .passcode-actions {
+    flex-direction: column;
+  }
+}
+
+.prelogin-outer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.prelogin-card {
+  background: #fff;
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 320px;
+}
+
+.prelogin-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #121212;
+}
+
+.prelogin-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  outline: none;
+}
+
+.prelogin-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--brand, #ff8e23);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.prelogin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.prelogin-error {
+  color: #dc2626;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  text-align: center;
+} 

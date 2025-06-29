@@ -68,38 +68,28 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   const pre = document.getElementById('croc-preloader');
   if (!pre) return;
   
-  const MIN_SHOW = 1000; // ms - reduced to 1 second
-  const gif = pre.querySelector('img[src="/ANIMATION/HEADER LOGO REFRESH.gif"]') as HTMLImageElement;
-  
+  const MIN_SHOW = 1000; // 1 second minimum display
+  const HARD_STOP = 4000; // absolute max 4 seconds
+  // Grab the first GIF inside the preloader (no dependency on exact filename)
+  const gif = pre.querySelector('img') as HTMLImageElement | null;
+
   let hasFadedOut = false;
-  
   const fadeOut = () => {
     if (hasFadedOut) return;
     hasFadedOut = true;
     pre.classList.add('fade-out');
     setTimeout(() => pre.remove(), 400); // match CSS transition
   };
-  
-  // Wait for GIF to load
-  if (gif) {
-    if (gif.complete) {
-      // GIF already loaded
-      setTimeout(fadeOut, MIN_SHOW);
-    } else {
-      // Wait for GIF to load
-      gif.onload = () => {
-        setTimeout(fadeOut, MIN_SHOW);
-      };
-      gif.onerror = () => {
-        // Fallback if GIF fails to load
-        setTimeout(fadeOut, MIN_SHOW);
-      };
-    }
-  } else {
-    // Fallback if GIF element not found
-    setTimeout(fadeOut, MIN_SHOW);
+
+  // Always fade out after MIN_SHOW
+  setTimeout(fadeOut, MIN_SHOW);
+
+  // Fade out as soon as GIF finishes loading (or errors)
+  if (gif && !gif.complete) {
+    gif.onload = fadeOut;
+    gif.onerror = fadeOut;
   }
-  
-  // Safety timeout - always fade out after 10 seconds max
-  setTimeout(fadeOut, 10000);
+
+  // Hard-stop to prevent being stuck even if everything else fails
+  setTimeout(fadeOut, HARD_STOP);
 })();

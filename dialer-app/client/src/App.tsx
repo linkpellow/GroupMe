@@ -27,6 +27,8 @@ import GroupMeOAuthCallback from './pages/GroupMeOAuthCallback';
 import NotesSyncer from './components/NotesSyncer';
 import { FollowUpProvider } from './context/FollowUpContext';
 import { FollowUpUIProvider } from './context/FollowUpUIContext';
+import TestLogin from './pages/TestLogin';
+import PreLoginPasscode from './components/PreLoginPasscode';
 // Fix linter errors for error type guard and missing module
 // import { restoreDialerLayout } from './restore-dialer'; // Import the restore function
 
@@ -212,6 +214,18 @@ const AuthenticatedRoute: React.FC<{ children: React.ReactNode }> = ({ children 
 };
 
 function App() {
+  const [passcodeValidated, setPasscodeValidated] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem('prelogin_passcode_valid') === 'true') {
+      setPasscodeValidated(true);
+    }
+  }, []);
+
+  const handlePasscodeValid = () => {
+    setPasscodeValidated(true);
+  };
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -227,115 +241,122 @@ function App() {
                           <NotesSyncer />
                           <DialerRestorer />
                           <Routes>
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/" element={<Navigate to="/leads" />} />
-                            <Route path="/groupme/callback" element={<GroupMeOAuthCallback />} />
-                            <Route
-                              path="/leads"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <Leads />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/clients"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <DailyGoals />
-                                    <Clients />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/dialer"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <DailyGoals />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/gmail"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <DailyGoals />
-                                    <Gmail />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/groupme"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <DailyGoals />
-                                    <GroupMePage />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/mass-text"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <DailyGoals />
-                                    <MassText />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/spreadsheet"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <DailyGoals />
-                                    <Spreadsheet />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/csv-upload"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <DailyGoals />
-                                    <CsvUpload />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/integrations"
-                              element={
-                                <AuthenticatedRoute>
-                                  <Layout>
-                                    <DailyGoals />
-                                    <Integrations />
-                                  </Layout>
-                                </AuthenticatedRoute>
-                              }
-                            />
-                            <Route
-                              path="/settings"
-                              element={
-                                <AuthenticatedRoute>
-                                  <DailyGoals />
-                                  <Settings />
-                                </AuthenticatedRoute>
-                              }
-                            />
+                            {!passcodeValidated ? (
+                              <Route path="*" element={<PreLoginPasscode onPasscodeValid={handlePasscodeValid} />} />
+                            ) : (
+                              <>
+                                <Route path="/login" element={<Login />} />
+                                <Route path="/" element={<Navigate to="/leads" />} />
+                                <Route path="/groupme/callback" element={<GroupMeOAuthCallback />} />
+                                <Route
+                                  path="/leads"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <Leads />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/clients"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <DailyGoals />
+                                        <Clients />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/dialer"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <DailyGoals />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/gmail"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <DailyGoals />
+                                        <Gmail />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/groupme"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <DailyGoals />
+                                        <GroupMePage />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/mass-text"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <DailyGoals />
+                                        <MassText />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/spreadsheet"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <DailyGoals />
+                                        <Spreadsheet />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/csv-upload"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <DailyGoals />
+                                        <CsvUpload />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/integrations"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <Layout>
+                                        <DailyGoals />
+                                        <Integrations />
+                                      </Layout>
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route
+                                  path="/settings"
+                                  element={
+                                    <AuthenticatedRoute>
+                                      <DailyGoals />
+                                      <Settings />
+                                    </AuthenticatedRoute>
+                                  }
+                                />
+                                <Route path="/test-login" element={<TestLogin />} />
+                              </>
+                            )}
                           </Routes>
                         </FollowUpUIProvider>
                       </FollowUpProvider>
