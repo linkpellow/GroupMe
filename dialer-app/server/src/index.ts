@@ -248,6 +248,8 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   `http://localhost:${port}`,
   `http://127.0.0.1:${port}`,
+  'https://crokodial.com',
+  'https://www.crokodial.com',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 const corsOptions = {
