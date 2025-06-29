@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import axiosInstance from '../api/axiosInstance';
-import { HiEye, HiEyeSlash } from 'react-icons/hi2';
+import { HiEye, HiEyeSlash, HiCheck, HiX } from 'react-icons/hi2';
 import {
   Input,
   InputGroup,
@@ -17,6 +17,10 @@ import {
   AlertIcon,
   Spinner,
   VisuallyHidden,
+  Text,
+  Box,
+  HStack,
+  VStack,
 } from '@chakra-ui/react';
 
 // Brand gradient background (green → yellow)
@@ -27,21 +31,53 @@ const lightOffwhiteStyle = {
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+  });
+  const [passwordsMatch, setPasswordsMatch] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
   const togglePassword = () => setShowPassword((p) => !p);
+  const toggleConfirmPassword = () => setShowConfirmPassword((p) => !p);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const { backgroundColor } = useTheme();
 
-  // Login page always uses its own background color, ignoring the theme context
-  // const loginBgStyle = {
-  //   ...lightOffwhiteStyle,
-  //   // Force the login page to use the default background, regardless of theme settings
-  // };
+  // Password validation function
+  const validatePassword = (password: string) => {
+    setPasswordValidation({
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+    });
+  };
+
+  // Check if passwords match
+  useEffect(() => {
+    if (confirmPassword && password) {
+      setPasswordsMatch(password === confirmPassword);
+    } else {
+      setPasswordsMatch(false);
+    }
+  }, [password, confirmPassword]);
+
+  // Validate password when it changes
+  useEffect(() => {
+    if (password) {
+      validatePassword(password);
+    }
+  }, [password]);
 
   // Simple token check on mount - if token exists, try to go to leads
   useEffect(() => {
@@ -88,66 +124,67 @@ export default function Login() {
     }
 
     setError('');
+    setSuccessMessage('');
+
+    // Validate registration form
+    if (isRegister) {
+      if (!name || name.trim().length < 2) {
+        setError('Name must be at least 2 characters long');
+        return;
+      }
+
+      if (!email || !email.includes('@')) {
+        setError('Please enter a valid email address');
+        return;
+      }
+
+      // Check password strength
+      const isPasswordStrong = Object.values(passwordValidation).every(Boolean);
+      if (!isPasswordStrong) {
+        setError('Password must be at least 8 characters with uppercase, lowercase, and number');
+        return;
+      }
+
+      // Check password confirmation
+      if (!passwordsMatch) {
+        setError('Passwords do not match');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
       if (isRegister) {
-        if (!name) {
-          setError('Name is required');
-          setLoading(false);
-          return;
-        }
-
         console.log('Attempting registration for:', email);
 
-        const response = await axiosInstance.post('/api/auth/register', {
-          name,
-          email,
-          password,
-        });
+        // Show success message before redirecting
+        setSuccessMessage('Account created successfully! Redirecting to dashboard...');
 
-        if (response.data && response.data.token) {
-          console.log('Registration successful');
-          localStorage.setItem('token', response.data.token);
-
-          // Also store user data for better state persistence
-          if (response.data.user) {
-            localStorage.setItem('user_data', JSON.stringify(response.data.user));
-          }
-
+        // Use AuthContext register function for automatic login
+        await register(name, email, password);
+        
+        console.log('Registration successful - user automatically logged in');
+        
+        // Small delay to show success message
+        setTimeout(() => {
+          // Navigate to leads after successful registration and auto-login
           navigate('/leads');
-        } else {
-          throw new Error('No token received after registration');
-        }
+        }, 1500);
       } else {
         // Login flow
         console.log('Attempting login for:', email);
 
         try {
-          // Direct API request
-          const response = await axiosInstance.post('/api/auth/login', {
-            email,
-            password,
-          });
-
-          if (response.data && response.data.token) {
+          // Use AuthContext login function
+          const result = await login(email, password);
+          
+          if (result.success) {
             console.log('Login successful');
-            localStorage.setItem('token', response.data.token);
-
-            // Also store user data for better state persistence
-            if (response.data.user) {
-              localStorage.setItem('user_data', JSON.stringify(response.data.user));
-            }
-
-            // Use the context login method (which might be async)
-            login(email, password).catch((err) => {
-              console.warn('Context login had an issue, but token is saved:', err);
-            });
-
-            // Immediately navigate to leads without waiting for context
+            // Navigate to leads after successful login
             navigate('/leads');
           } else {
-            throw new Error('No token received after login');
+            throw new Error('Login failed');
           }
         } catch (loginErr: any) {
           console.error('Login failed:', loginErr);
@@ -165,6 +202,20 @@ export default function Login() {
   const toggleMode = () => {
     setIsRegister(!isRegister);
     setError('');
+    setSuccessMessage('');
+    // Clear form when switching modes
+    if (!isRegister) {
+      setPassword('');
+      setConfirmPassword('');
+      setName('');
+      setPasswordValidation({
+        length: false,
+        uppercase: false,
+        lowercase: false,
+        number: false,
+      });
+      setPasswordsMatch(false);
+    }
   };
 
   return (
@@ -191,27 +242,35 @@ export default function Login() {
               <span>{error}</span>
             </Alert>
           )}
-          <div className="rounded-md shadow-sm -space-y-px">
+          {successMessage && (
+            <Alert status="success" borderRadius="md">
+              <AlertIcon />
+              <span>{successMessage}</span>
+            </Alert>
+          )}
+          <VStack spacing={4}>
             {isRegister && (
               <FormControl id="name" isRequired>
                 <FormLabel><VisuallyHidden>Name</VisuallyHidden></FormLabel>
                 <Input
-                  placeholder="Username"
+                  placeholder="Full Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  isDisabled={loading}
                 />
               </FormControl>
             )}
-            <FormControl id="email" isRequired mt={isRegister ? 2 : 0}>
+            <FormControl id="email" isRequired>
               <FormLabel><VisuallyHidden>Email address</VisuallyHidden></FormLabel>
               <Input
                 type="email"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                isDisabled={loading}
               />
             </FormControl>
-            <FormControl id="password" isRequired mt={2}>
+            <FormControl id="password" isRequired>
               <FormLabel><VisuallyHidden>Password</VisuallyHidden></FormLabel>
               <InputGroup>
                 <Input
@@ -220,6 +279,7 @@ export default function Login() {
                   autoComplete={isRegister ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  isDisabled={loading}
                 />
                 <InputRightElement pr={1}>
                   <IconButton
@@ -228,22 +288,97 @@ export default function Login() {
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     icon={showPassword ? <HiEyeSlash /> : <HiEye />}
                     onClick={togglePassword}
+                    isDisabled={loading}
                   />
                 </InputRightElement>
               </InputGroup>
             </FormControl>
-          </div>
+
+            {/* Password confirmation field for registration */}
+            {isRegister && (
+              <FormControl id="confirmPassword" isRequired>
+                <FormLabel><VisuallyHidden>Confirm Password</VisuallyHidden></FormLabel>
+                <InputGroup>
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder="Confirm Password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    borderColor={confirmPassword ? (passwordsMatch ? 'green.500' : 'red.500') : undefined}
+                    isDisabled={loading}
+                  />
+                  <InputRightElement pr={1}>
+                    <HStack spacing={1}>
+                      {confirmPassword && (
+                        <IconButton
+                          size="sm"
+                          variant="ghost"
+                          aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                          icon={showConfirmPassword ? <HiEyeSlash /> : <HiEye />}
+                          onClick={toggleConfirmPassword}
+                          isDisabled={loading}
+                        />
+                      )}
+                      {confirmPassword && (
+                        <Box color={passwordsMatch ? 'green.500' : 'red.500'}>
+                          {passwordsMatch ? <HiCheck /> : <HiX />}
+                        </Box>
+                      )}
+                    </HStack>
+                  </InputRightElement>
+                </InputGroup>
+                {confirmPassword && !passwordsMatch && (
+                  <FormErrorMessage>Passwords do not match</FormErrorMessage>
+                )}
+              </FormControl>
+            )}
+
+            {/* Password strength indicator for registration */}
+            {isRegister && password && (
+              <Box w="100%" p={3} bg="gray.50" borderRadius="md">
+                <Text fontSize="sm" fontWeight="medium" mb={2}>Password Requirements:</Text>
+                <VStack align="start" spacing={1}>
+                  <HStack spacing={2}>
+                    <Box color={passwordValidation.length ? 'green.500' : 'red.500'}>
+                      {passwordValidation.length ? <HiCheck /> : <HiX />}
+                    </Box>
+                    <Text fontSize="xs">At least 8 characters</Text>
+                  </HStack>
+                  <HStack spacing={2}>
+                    <Box color={passwordValidation.uppercase ? 'green.500' : 'red.500'}>
+                      {passwordValidation.uppercase ? <HiCheck /> : <HiX />}
+                    </Box>
+                    <Text fontSize="xs">One uppercase letter</Text>
+                  </HStack>
+                  <HStack spacing={2}>
+                    <Box color={passwordValidation.lowercase ? 'green.500' : 'red.500'}>
+                      {passwordValidation.lowercase ? <HiCheck /> : <HiX />}
+                    </Box>
+                    <Text fontSize="xs">One lowercase letter</Text>
+                  </HStack>
+                  <HStack spacing={2}>
+                    <Box color={passwordValidation.number ? 'green.500' : 'red.500'}>
+                      {passwordValidation.number ? <HiCheck /> : <HiX />}
+                    </Box>
+                    <Text fontSize="xs">One number</Text>
+                  </HStack>
+                </VStack>
+              </Box>
+            )}
+          </VStack>
 
           <div>
             <CButton
               type="submit"
               isLoading={loading}
-              loadingText={isRegister ? 'Creating account' : 'Signing in'}
+              loadingText={isRegister ? 'Creating account...' : 'Signing in...'}
               width="100%"
               bgGradient="linear(to-r, green.500, lime.400, yellow.400)"
               _hover={{ bgGradient: 'linear(to-r, green.600, lime.500, yellow.500)' }}
               color="white"
               mt={2}
+              isDisabled={isRegister && (!passwordsMatch || !Object.values(passwordValidation).every(Boolean))}
             >
               {isRegister ? 'Create Account' : 'Sign in'}
             </CButton>
@@ -254,6 +389,7 @@ export default function Login() {
               type="button"
               onClick={toggleMode}
               className="text-black hover:text-white hover:bg-black px-3 py-1 rounded transition-colors duration-200 text-xs"
+              disabled={loading}
             >
               {isRegister
                 ? 'Already have an account? Sign in'

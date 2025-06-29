@@ -20,10 +20,10 @@ const PreLoginPasscode: React.FC<PreLoginPasscodeProps> = ({ onPasscodeValid }) 
         localStorage.setItem('prelogin_passcode_valid', 'true');
         onPasscodeValid();
       } else {
-        setError(response.data.message || 'Invalid password');
+        setError(response.data.message || 'Invalid invite code');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid password');
+      setError(err.response?.data?.message || 'Invalid invite code');
     } finally {
       setIsLoading(false);
     }
@@ -32,19 +32,21 @@ const PreLoginPasscode: React.FC<PreLoginPasscodeProps> = ({ onPasscodeValid }) 
   return (
     <div className="prelogin-outer">
       <form className="prelogin-card" onSubmit={handleSubmit}>
-        <h2 className="prelogin-title">Enter your password</h2>
+        <h2 className="prelogin-title">Enter your invite code</h2>
+        <p className="prelogin-subtitle">Please enter the invite code provided to you to access Crokodial</p>
         <input
-          type="password"
+          type="text"
           className="prelogin-input"
-          placeholder="Password"
+          placeholder="Enter invite code (e.g., ABC12345)"
           value={passcode}
-          onChange={e => setPasscode(e.target.value)}
+          onChange={e => setPasscode(e.target.value.toUpperCase())}
           disabled={isLoading}
           autoFocus
+          maxLength={20}
         />
         {error && <div className="prelogin-error">{error}</div>}
         <button className="prelogin-btn" type="submit" disabled={isLoading || !passcode.trim()}>
-          {isLoading ? 'Checking...' : 'Continue'}
+          {isLoading ? 'Validating...' : 'Continue'}
         </button>
       </form>
     </div>
