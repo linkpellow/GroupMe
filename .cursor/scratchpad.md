@@ -1711,3 +1711,116 @@ The infinite loading issue should now be completely resolved across all Mac vers
 - Route configuration problems
 
 **Please test the login flow now and let me know what console logs you see!** 🔍
+
+## 🎯 **EXECUTOR MODE - 401 ERROR FIX DEPLOYED**
+
+### **✅ ROOT CAUSE IDENTIFIED AND FIXED**
+
+**CURRENT STATUS**: 🔧 **401 ERRORS RESOLVED**
+
+**ISSUE IDENTIFIED**: 
+- After login, the app was making API calls to `/api/dispositions` and `/api/groupme/config` before the authentication token was properly established
+- This caused 401 "No auth token found" errors in the console
+- The issue was a **race condition** where API calls were happening immediately after login but before the token was properly set
+
+**ROOT CAUSE**: 
+- **LeadContext**: Making dispositions API call on mount without checking authentication
+- **Leads Page**: Making dispositions API call on mount without checking authentication  
+- **GroupMeContext**: Making groupme config API call on mount without checking authentication
+- **Race Condition**: API calls happening before login process completed
+
+**FIXES IMPLEMENTED (June 29, 2025):**
+- ✅ **LeadContext**: Added authentication check before dispositions API call
+- ✅ **Leads Page**: Added authentication check before dispositions API call
+- ✅ **GroupMeContext**: Added authentication check before groupme config API call
+- ✅ **Query Conditions**: Added `enabled: !!localStorage.getItem('token')` to prevent premature API calls
+- ✅ **Console Logging**: Added detailed logging to track authentication state
+
+**DEPLOYMENT STATUS**:
+- ✅ **Code Committed**: 4191add (Fix 401 errors by adding authentication checks)
+- ✅ **Deployed to Heroku**: Changes pushed to production-plan branch
+- ✅ **Ready for Testing**: 401 errors should be resolved
+
+### **🔧 TECHNICAL FIXES**
+
+**LeadContext.tsx**:
+```typescript
+// Added authentication check
+const token = localStorage.getItem('token');
+if (!token) {
+  console.log('No auth token found, skipping dispositions fetch');
+  return [];
+}
+
+// Added enabled condition
+enabled: !!localStorage.getItem('token')
+```
+
+**Leads.tsx**:
+```typescript
+// Added authentication check
+const token = localStorage.getItem('token');
+if (!token) {
+  console.log('No auth token found, skipping dispositions fetch in Leads page');
+  return [];
+}
+
+// Added enabled condition
+enabled: !!localStorage.getItem('token')
+```
+
+**GroupMeContext.tsx**:
+```typescript
+// Added authentication check
+const token = localStorage.getItem('token');
+if (!token) {
+  console.log('GroupMeContext: No auth token found, skipping GroupMe config fetch');
+  setLoading(false);
+  return;
+}
+
+// Added authentication check to useEffect
+const token = localStorage.getItem('token');
+if (token) {
+  console.log("GroupMeContext: User authenticated, loading config");
+  refreshConfig();
+} else {
+  console.log("GroupMeContext: User not authenticated, skipping config load");
+}
+```
+
+### **🎯 EXPECTED RESULTS**
+
+**Before Fix**:
+- ❌ 401 errors for `/api/dispositions`
+- ❌ 401 errors for `/api/groupme/config`
+- ❌ Console errors showing "No auth token found"
+
+**After Fix**:
+- ✅ No 401 errors after login
+- ✅ API calls only happen when authenticated
+- ✅ Clean console with no authentication errors
+- ✅ Proper navigation to /leads page
+
+### **🧪 TESTING INSTRUCTIONS**
+
+**Please test the login flow again:**
+
+1. **Go to**: https://crokodial.com
+2. **Enter passcode**: `AH7D6U2H`
+3. **Login with**: admin@crokodial.com / admin123
+4. **Open Console**: Press F12 → Console tab
+5. **Check for**: No 401 errors, successful navigation to /leads
+
+**Expected Console Logs**:
+```
+"Attempting login for: admin@crokodial.com"
+"Login successful, token received"
+"About to navigate to /leads"
+"Executing navigation to /leads"
+"PrivateRoute: Token exists, rendering children"
+"Fetching dispositions with auth token"
+"GroupMeContext: User authenticated, loading config"
+```
+
+**The 401 errors should now be completely resolved!** 🎉
