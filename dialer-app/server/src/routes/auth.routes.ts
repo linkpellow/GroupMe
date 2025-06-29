@@ -7,8 +7,18 @@ import {
   verifyToken,
   updateProfile,
 } from '../controllers/auth.controller';
+import {
+  validatePasscode,
+  consumePasscode,
+  createPasscode,
+  getPasscodes,
+  deactivatePasscode,
+  deletePasscode,
+  generatePasscode,
+} from '../controllers/passcode.controller';
 import { auth } from '../middleware/auth';
 import UserModel from '../models/User';
+import { passcodeValidationLimiter, passcodeConsumptionLimiter, adminPasscodeLimiter } from '../middleware/rateLimit';
 
 const router = express.Router();
 
@@ -29,6 +39,17 @@ const updateProfileValidation = [
   check('email', 'Please include a valid email').optional().isEmail(),
   check('password', 'Password must be at least 6 characters').optional().isLength({ min: 6 }),
   check('name', 'Name is required').optional().not().isEmpty(),
+];
+
+// Passcode validation
+const passcodeValidation = [
+  check('code', 'Passcode is required').not().isEmpty().trim(),
+];
+
+// Create passcode validation
+const createPasscodeValidation = [
+  check('code', 'Passcode is required').not().isEmpty().trim().isLength({ min: 6, max: 20 }),
+  check('maxUses', 'Max uses must be a positive number').optional().isInt({ min: 1 }),
 ];
 
 // Routes
@@ -58,6 +79,72 @@ router.put(
   updateProfileValidation,
   (req: Request, res: Response, next: NextFunction): void => {
     updateProfile(req, res, next).catch(next);
+  }
+);
+
+// Passcode routes
+router.post(
+  '/validate-passcode',
+  passcodeValidation,
+  passcodeValidationLimiter,
+  (req: Request, res: Response, next: NextFunction): void => {
+    validatePasscode(req, res, next).catch(next);
+  }
+);
+
+router.post(
+  '/consume-passcode',
+  passcodeValidation,
+  passcodeConsumptionLimiter,
+  (req: Request, res: Response, next: NextFunction): void => {
+    consumePasscode(req, res, next).catch(next);
+  }
+);
+
+// Admin passcode management routes
+router.post(
+  '/passcodes',
+  auth,
+  createPasscodeValidation,
+  adminPasscodeLimiter,
+  (req: Request, res: Response, next: NextFunction): void => {
+    createPasscode(req, res, next).catch(next);
+  }
+);
+
+router.get(
+  '/passcodes',
+  auth,
+  adminPasscodeLimiter,
+  (req: Request, res: Response, next: NextFunction): void => {
+    getPasscodes(req, res, next).catch(next);
+  }
+);
+
+router.post(
+  '/passcodes/generate',
+  auth,
+  adminPasscodeLimiter,
+  (req: Request, res: Response, next: NextFunction): void => {
+    generatePasscode(req, res, next).catch(next);
+  }
+);
+
+router.put(
+  '/passcodes/:id/deactivate',
+  auth,
+  adminPasscodeLimiter,
+  (req: Request, res: Response, next: NextFunction): void => {
+    deactivatePasscode(req, res, next).catch(next);
+  }
+);
+
+router.delete(
+  '/passcodes/:id',
+  auth,
+  adminPasscodeLimiter,
+  (req: Request, res: Response, next: NextFunction): void => {
+    deletePasscode(req, res, next).catch(next);
   }
 );
 

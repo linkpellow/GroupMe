@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const dotenv_safe_1 = __importDefault(require("dotenv-safe"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
@@ -18,38 +19,39 @@ const fs_1 = __importDefault(require("fs"));
 function locateEnvLocal() {
     // 1) When executed via ts-node-dev, __dirname => dialer-app/server/src/config
     //    -> ../../.env.local  => dialer-app/server/.env.local (desired)
-    const candidateFromSrc = path_1.default.resolve(__dirname, '../../.env.local');
-    // 2) When executed from the compiled JS, __dirname => dialer-app/server/dist/server/src/config
-    //    -> ../../../.env.local => dialer-app/server/.env.local (desired)
-    const candidateFromDist = path_1.default.resolve(__dirname, '../../../.env.local');
-    // 3) Fallback: look relative to the process cwd (repo root) – works for
-    //    "node dist/..." if cwd is the project root.
-    const candidateFromCwd = path_1.default.resolve(process.cwd(), 'dialer-app/server/.env.local');
-    const candidates = [candidateFromSrc, candidateFromDist, candidateFromCwd];
-    for (const p of candidates) {
-        if (fs_1.default.existsSync(p)) {
-            return p;
-        }
+    const candidateFiles = [
+        path_1.default.resolve(__dirname, '../../.env.local'),
+        path_1.default.resolve(__dirname, '../../../.env.local'),
+    ];
+    for (const file of candidateFiles) {
+        if (fs_1.default.existsSync(file))
+            return file;
     }
-    return undefined; // Not found – caller will handle
+    return undefined;
 }
-const envPath = locateEnvLocal();
-// Load variables if we found the file
-if (envPath) {
-    dotenv_1.default.config({ path: envPath });
+// ------------------- Load env vars with dotenv-safe -------------------
+const envLocalPath = locateEnvLocal();
+if (envLocalPath) {
+    // Use dotenv.parse to read the file
+    const parsedLocal = dotenv_1.default.parse(fs_1.default.readFileSync(envLocalPath));
+    // Set process.env for any keys not already set
+    for (const [key, value] of Object.entries(parsedLocal)) {
+        if (!process.env[key])
+            process.env[key] = value;
+    }
 }
-else {
-    // Still call dotenv without path so it respects generic .env if present
-    dotenv_1.default.config();
-}
+dotenv_safe_1.default.config({
+    allowEmptyValues: false,
+    example: path_1.default.resolve(__dirname, '../../.env.example'),
+});
 // ----------------------------------------------------------------------
 // If an existing environment variable has a weak JWT_SECRET (e.g. inherited
 // from the shell), but the .env.local contains a strong one, prefer the strong
 // secret to avoid fallback behaviour.
 //-----------------------------------------------------------------------
-if (envPath && fs_1.default.existsSync(envPath)) {
+if (envLocalPath && fs_1.default.existsSync(envLocalPath)) {
     try {
-        const parsedLocal = dotenv_1.default.parse(fs_1.default.readFileSync(envPath));
+        const parsedLocal = dotenv_1.default.parse(fs_1.default.readFileSync(envLocalPath));
         const localSecret = parsedLocal.JWT_SECRET;
         if (localSecret && localSecret.length >= 32) {
             if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -71,7 +73,7 @@ if (envPath && fs_1.default.existsSync(envPath)) {
         }
     }
     catch {
-        // ignore parse errors – dotenv already handled absence
+        // ignore parse errors – dotenvSafe already handled absence
     }
 }
 // ------------------- SECURITY HARDENING: JWT SECRET CHECK -------------------

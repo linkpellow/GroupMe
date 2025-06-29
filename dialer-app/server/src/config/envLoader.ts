@@ -39,7 +39,7 @@ if (envLocalPath) {
 
 dotenvSafe.config({
   allowEmptyValues: false,
-  example: path.resolve(process.cwd(), 'dialer-app/server/.env.example'),
+  example: path.resolve(__dirname, '../../.env.example'),
 });
 
 // ----------------------------------------------------------------------
