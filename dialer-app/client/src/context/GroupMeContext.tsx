@@ -103,19 +103,9 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
 
   const refreshConfig = useCallback(async () => {
     console.log("GroupMeContext: refreshConfig called");
-    
-    // Check if user is authenticated before making API call
-    const token = localStorage.getItem('token');
-    if (!token) {
-      console.log("GroupMeContext: No auth token found, skipping GroupMe config fetch");
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     setError(null);
     try {
-      console.log("GroupMeContext: Fetching GroupMe config with auth token");
       const response = await axiosInstance.get("/api/groupme/config");
       if (response.data && response.data.accessToken) {
         setConfig(response.data);
@@ -476,14 +466,7 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
 
   // Initial config load
   useEffect(() => {
-    // Only load config if user is authenticated
-    const token = localStorage.getItem('token');
-    if (token) {
-      console.log("GroupMeContext: User authenticated, loading config");
-      refreshConfig();
-    } else {
-      console.log("GroupMeContext: User not authenticated, skipping config load");
-    }
+    refreshConfig();
   }, [refreshConfig]);
 
   // Effect to refresh groups when config (especially accessToken) changes

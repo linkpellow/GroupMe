@@ -43,14 +43,6 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryKey: ['dispositions'],
     queryFn: async () => {
       try {
-        // Check if user is authenticated before making API call
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.log('No auth token found, skipping dispositions fetch');
-          return [];
-        }
-
-        console.log('Fetching dispositions with auth token');
         const response = await axiosInstance.get('/api/dispositions');
         // Ensure we are returning the array of dispositions,
         // and handle cases where the structure might be different or an error occurs.
@@ -78,8 +70,6 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
     staleTime: 60 * 1000, // 1 minute
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    // Only run the query if we have a token
-    enabled: !!localStorage.getItem('token'),
   });
 
   // Use the fetched data, defaulting to an empty array if it's still loading or errored.

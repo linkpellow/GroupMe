@@ -15,38 +15,15 @@ const PreLoginPasscode: React.FC<PreLoginPasscodeProps> = ({ onPasscodeValid }) 
     setIsLoading(true);
     setError('');
     try {
-      console.log('PreLoginPasscode: Validating passcode:', passcode.trim());
-      
-      // First validate the passcode
-      const validateResponse = await axios.post('/api/auth/validate-passcode', { code: passcode.trim() });
-      console.log('PreLoginPasscode: Validation response:', validateResponse.data);
-      
-      if (validateResponse.data.success) {
-        console.log('PreLoginPasscode: Passcode valid, consuming...');
-        
-        // Then consume the passcode
-        const consumeResponse = await axios.post('/api/auth/consume-passcode', { code: passcode.trim() });
-        console.log('PreLoginPasscode: Consumption response:', consumeResponse.data);
-        
-        if (consumeResponse.data.success) {
-          console.log('PreLoginPasscode: Passcode consumed successfully, setting localStorage and redirecting');
-          localStorage.setItem('prelogin_passcode_valid', 'true');
-          
-          // Call the callback to update parent state
-          onPasscodeValid();
-          
-          // Force a page reload to ensure the state is properly set
-          console.log('PreLoginPasscode: Redirecting to /login');
-          window.location.href = '/login';
-        } else {
-          setError(consumeResponse.data.message || 'Failed to use passcode');
-        }
+      const response = await axios.post('/api/auth/validate-passcode', { code: passcode.trim() });
+      if (response.data.success) {
+        localStorage.setItem('prelogin_passcode_valid', 'true');
+        onPasscodeValid();
       } else {
-        setError(validateResponse.data.message || 'Invalid passcode');
+        setError(response.data.message || 'Invalid password');
       }
     } catch (err: any) {
-      console.error('PreLoginPasscode: Error during passcode validation:', err);
-      setError(err.response?.data?.message || 'Invalid passcode');
+      setError(err.response?.data?.message || 'Invalid password');
     } finally {
       setIsLoading(false);
     }
@@ -55,16 +32,15 @@ const PreLoginPasscode: React.FC<PreLoginPasscodeProps> = ({ onPasscodeValid }) 
   return (
     <div className="prelogin-outer">
       <form className="prelogin-card" onSubmit={handleSubmit}>
-        <h2 className="prelogin-title">Enter your invite code</h2>
+        <h2 className="prelogin-title">Enter your password</h2>
         <input
-          type="text"
+          type="password"
           className="prelogin-input"
-          placeholder="e.g., AH7D6U2H"
+          placeholder="Password"
           value={passcode}
-          onChange={e => setPasscode(e.target.value.toUpperCase())}
+          onChange={e => setPasscode(e.target.value)}
           disabled={isLoading}
           autoFocus
-          style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}
         />
         {error && <div className="prelogin-error">{error}</div>}
         <button className="prelogin-btn" type="submit" disabled={isLoading || !passcode.trim()}>

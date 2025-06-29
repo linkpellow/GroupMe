@@ -935,14 +935,6 @@ export default function Leads() {
     queryKey: ['dispositions'],
     queryFn: async () => {
       try {
-        // Check if user is authenticated before making API call
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.log('No auth token found, skipping dispositions fetch in Leads page');
-          return [];
-        }
-
-        console.log('Fetching dispositions in Leads page with auth token');
         const res = await axiosInstance.get('/api/dispositions');
         // API may return array directly or under .dispositions
         if (Array.isArray(res.data)) return res.data;
@@ -953,8 +945,6 @@ export default function Leads() {
       }
     },
     staleTime: 60 * 1000,
-    // Only run the query if we have a token
-    enabled: !!localStorage.getItem('token'),
   });
 
   // Ensure special sentinel option always exists
