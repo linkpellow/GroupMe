@@ -4,6 +4,20 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import axiosInstance from '../api/axiosInstance';
 import { HiEye, HiEyeSlash } from 'react-icons/hi2';
+import {
+  Input,
+  InputGroup,
+  InputRightElement,
+  Button as CButton,
+  FormControl,
+  FormLabel,
+  FormErrorMessage,
+  IconButton,
+  Alert,
+  AlertIcon,
+  Spinner,
+  VisuallyHidden,
+} from '@chakra-ui/react';
 
 // Brand gradient background (green → yellow)
 const lightOffwhiteStyle = {
@@ -11,8 +25,8 @@ const lightOffwhiteStyle = {
 };
 
 export default function Login() {
-  const [email, setEmail] = useState('admin@crokodial.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,10 +38,10 @@ export default function Login() {
   const { backgroundColor } = useTheme();
 
   // Login page always uses its own background color, ignoring the theme context
-  const loginBgStyle = {
-    ...lightOffwhiteStyle,
-    // Force the login page to use the default background, regardless of theme settings
-  };
+  // const loginBgStyle = {
+  //   ...lightOffwhiteStyle,
+  //   // Force the login page to use the default background, regardless of theme settings
+  // };
 
   // Simple token check on mount - if token exists, try to go to leads
   useEffect(() => {
@@ -154,17 +168,16 @@ export default function Login() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={loginBgStyle}
-    >
-      <div className="w-full max-w-sm space-y-8 bg-white p-8 rounded-lg shadow-xl border border-gray-200">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-600 via-lime-400 to-yellow-300">
+      <div className="w-full max-w-md sm:max-w-lg space-y-8 bg-white/95 backdrop-blur-md p-8 rounded-xl shadow-2xl">
         <div>
           <div className="flex justify-center items-center">
             <img
-              src="/images/HEADER LOGO.png"
+              src="/images/CROKODIAL-TITLE-LOGO.png"
+              srcSet="/images/CROKODIAL-TITLE-LOGO.png 1x, /images/CROKODIAL-TITLE-LOGO.png 2x"
               alt="Crokodial Logo"
-              className="h-14 w-auto object-contain"
+              className="h-16 w-auto object-contain drop-shadow-lg"
+              style={{ maxWidth: '320px' }}
             />
           </div>
           <h2 className="mt-6 text-center text-2xl font-bold text-black">
@@ -173,90 +186,67 @@ export default function Login() {
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-red-900/50 border border-red-500 p-4">
-              <div className="text-sm text-red-200">{error}</div>
-            </div>
+            <Alert status="error" borderRadius="md">
+              <AlertIcon />
+              <span>{error}</span>
+            </Alert>
           )}
           <div className="rounded-md shadow-sm -space-y-px">
             {isRegister && (
-              <div>
-                <label htmlFor="name" className="sr-only">
-                  Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  className="appearance-none rounded-t-md relative block w-full px-3 py-2 bg-white border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent focus:z-10 sm:text-sm"
+              <FormControl id="name" isRequired>
+                <FormLabel><VisuallyHidden>Name</VisuallyHidden></FormLabel>
+                <Input
                   placeholder="Username"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
-              </div>
+              </FormControl>
             )}
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
+            <FormControl id="email" isRequired mt={isRegister ? 2 : 0}>
+              <FormLabel><VisuallyHidden>Email address</VisuallyHidden></FormLabel>
+              <Input
                 type="email"
-                autoComplete="email"
-                required
-                className={`appearance-none ${isRegister ? (name ? 'rounded-none' : 'rounded-t-md') : 'rounded-t-md'} relative block w-full px-3 py-2 bg-white border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent focus:z-10 sm:text-sm`}
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
+            </FormControl>
+            <FormControl id="password" isRequired mt={2}>
+              <FormLabel><VisuallyHidden>Password</VisuallyHidden></FormLabel>
+              <InputGroup>
+                <Input
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete={isRegister ? 'new-password' : 'current-password'}
-                  required
-                  className="appearance-none rounded-b-md relative block w-full px-3 py-2 bg-white border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent focus:z-10 sm:text-sm"
                   placeholder="Password"
+                  autoComplete={isRegister ? 'new-password' : 'current-password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <button
-                  type="button"
-                  onClick={togglePassword}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none"
-                >
-                  {showPassword ? (
-                    <HiEyeSlash className="h-4 w-4" />
-                  ) : (
-                    <HiEye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
+                <InputRightElement pr={1}>
+                  <IconButton
+                    size="sm"
+                    variant="ghost"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    icon={showPassword ? <HiEyeSlash /> : <HiEye />}
+                    onClick={togglePassword}
+                  />
+                </InputRightElement>
+              </InputGroup>
+            </FormControl>
           </div>
 
           <div>
-            <button
+            <CButton
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-green-500 via-lime-500 to-yellow-400 hover:from-green-600 hover:via-lime-600 hover:to-yellow-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-in-out"
+              isLoading={loading}
+              loadingText={isRegister ? 'Creating account' : 'Signing in'}
+              width="100%"
+              bgGradient="linear(to-r, green.500, lime.400, yellow.400)"
+              _hover={{ bgGradient: 'linear(to-r, green.600, lime.500, yellow.500)' }}
+              color="white"
+              mt={2}
             >
-              {loading
-                ? isRegister
-                  ? 'Creating account...'
-                  : 'Signing in...'
-                : isRegister
-                  ? 'Create Account'
-                  : 'Sign in'}
-            </button>
+              {isRegister ? 'Create Account' : 'Sign in'}
+            </CButton>
           </div>
 
           <div className="text-center mt-4">
@@ -275,7 +265,7 @@ export default function Login() {
 
       {/* Footer positioned at the bottom */}
       <div className="fixed bottom-0 left-0 right-0 text-left py-3 z-10">
-        <p className="text-xs text-green-950 font-medium pl-4">
+        <p className="text-xs text-green-900/90 font-medium pl-4">
           &copy; 2025 Crokodial. All rights reserved.
         </p>
       </div>
