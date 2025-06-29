@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import axiosInstance from '../api/axiosInstance';
-import { HiEye, HiEyeSlash, HiCheck, HiX } from 'react-icons/hi2';
+import { HiEye, HiEyeSlash, HiCheck, HiXMark } from 'react-icons/hi2';
 import {
   Input,
   InputGroup,
@@ -322,7 +322,7 @@ export default function Login() {
                       )}
                       {confirmPassword && (
                         <Box color={passwordsMatch ? 'green.500' : 'red.500'}>
-                          {passwordsMatch ? <HiCheck /> : <HiX />}
+                          {passwordsMatch ? <HiCheck /> : <HiXMark />}
                         </Box>
                       )}
                     </HStack>
@@ -341,25 +341,25 @@ export default function Login() {
                 <VStack align="start" spacing={1}>
                   <HStack spacing={2}>
                     <Box color={passwordValidation.length ? 'green.500' : 'red.500'}>
-                      {passwordValidation.length ? <HiCheck /> : <HiX />}
+                      {passwordValidation.length ? <HiCheck /> : <HiXMark />}
                     </Box>
                     <Text fontSize="xs">At least 8 characters</Text>
                   </HStack>
                   <HStack spacing={2}>
                     <Box color={passwordValidation.uppercase ? 'green.500' : 'red.500'}>
-                      {passwordValidation.uppercase ? <HiCheck /> : <HiX />}
+                      {passwordValidation.uppercase ? <HiCheck /> : <HiXMark />}
                     </Box>
                     <Text fontSize="xs">One uppercase letter</Text>
                   </HStack>
                   <HStack spacing={2}>
                     <Box color={passwordValidation.lowercase ? 'green.500' : 'red.500'}>
-                      {passwordValidation.lowercase ? <HiCheck /> : <HiX />}
+                      {passwordValidation.lowercase ? <HiCheck /> : <HiXMark />}
                     </Box>
                     <Text fontSize="xs">One lowercase letter</Text>
                   </HStack>
                   <HStack spacing={2}>
                     <Box color={passwordValidation.number ? 'green.500' : 'red.500'}>
-                      {passwordValidation.number ? <HiCheck /> : <HiX />}
+                      {passwordValidation.number ? <HiCheck /> : <HiXMark />}
                     </Box>
                     <Text fontSize="xs">One number</Text>
                   </HStack>
