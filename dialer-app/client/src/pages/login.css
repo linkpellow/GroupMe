@@ -447,4 +447,88 @@ html,
   font-size: 0.95rem;
   margin-bottom: 1rem;
   text-align: center;
+}
+
+/* PreLoginPasscode Styles */
+.prelogin-outer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  height: 100vh;
+  background: #000000;
+}
+
+.prelogin-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem 3rem;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.07);
+  text-align: center;
+}
+
+.prelogin-title {
+  margin: 0 0 2rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #121212;
+}
+
+.prelogin-input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1px solid #d0d7e2;
+  border-radius: 8px;
+  background: #f1f5ff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+  margin-bottom: 1rem;
+}
+
+.prelogin-input:focus {
+  border-color: #ff8e23;
+}
+
+.prelogin-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: #ff8e23;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.prelogin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.prelogin-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.prelogin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.prelogin-error {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+  text-align: left;
 } 
