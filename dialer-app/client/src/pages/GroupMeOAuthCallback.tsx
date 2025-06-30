@@ -35,9 +35,6 @@ const GroupMeOAuthCallback: React.FC = () => {
         console.error('OAuth error from GroupMe:', error, errorDescription);
         setError(`GroupMe authorization failed: ${errorDescription || error}`);
         setIsProcessing(false);
-        setTimeout(() => {
-          navigate('/settings');
-        }, 3000);
         return;
       }
 
@@ -45,9 +42,6 @@ const GroupMeOAuthCallback: React.FC = () => {
         console.error('No access token in URL');
         setError('No access token received from GroupMe');
         setIsProcessing(false);
-        setTimeout(() => {
-          navigate('/settings');
-        }, 3000);
         return;
       }
 
@@ -55,9 +49,6 @@ const GroupMeOAuthCallback: React.FC = () => {
         console.error('No state parameter in URL');
         setError('Invalid OAuth response - missing state parameter');
         setIsProcessing(false);
-        setTimeout(() => {
-          navigate('/settings');
-        }, 3000);
         return;
       }
 
@@ -65,17 +56,14 @@ const GroupMeOAuthCallback: React.FC = () => {
       // Send the token to the backend
       await groupMeOAuthService.handleOAuthCallback(accessToken, state);
       
-      console.log('OAuth callback successful, redirecting to integrations...');
-      // Persist sidebar to Page 2 (index 1) so chat is visible
+      console.log('OAuth callback successful, token saved.');
+      // Persist sidebar to Page 2 (index 1) so chat panel is visible when the user returns
       localStorage.setItem('sidebarPage', '1');
 
-      // Redirect to integrations page
-      navigate('/integrations', {
-        state: {
-          groupMeConnected: true,
-        },
-        replace: true,
-      });
+      // Stop processing so UI can show success state
+      setIsProcessing(false);
+      setError(null);
+      // Note: No automatic redirect – user stays here and can navigate manually
     } catch (err: any) {
       console.error('Error in OAuth callback:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to connect GroupMe';
@@ -115,7 +103,17 @@ const GroupMeOAuthCallback: React.FC = () => {
               Back to Integrations
             </Button>
           </>
-        ) : null}
+        ) : (
+          <>
+            <Alert status="success" borderRadius="md">
+              <AlertIcon />
+              GroupMe successfully connected! You can close this tab and open the chat from the CRM sidebar.
+            </Alert>
+            <Button mt={4} colorScheme="green" onClick={() => navigate('/leads')}>
+              Go to Leads
+            </Button>
+          </>
+        )}
       </VStack>
     </Box>
   );
