@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Spinner, Text, Alert, AlertIcon, VStack, Button, Code } from '@chakra-ui/react';
+import { groupMeOAuthService } from '../services/groupMeOAuthService';
 
 const GroupMeOAuthCallback: React.FC = () => {
   const navigate = useNavigate();
@@ -28,26 +29,21 @@ const GroupMeOAuthCallback: React.FC = () => {
     setDebugInfo(JSON.stringify(debugData, null, 2));
     
     try {
-      // Extract access_token from hash
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const searchParams = new URLSearchParams(window.location.search);
+
       const accessToken = hashParams.get('access_token');
-      if (!accessToken) {
-        setError('No access token received from GroupMe. Please check that you authorized the application.');
-        setIsProcessing(false);
-        return;
+      const code = searchParams.get('code');
+      const state = searchParams.get('state') || hashParams.get('state') || '';
+
+      if (accessToken) {
+        await groupMeOAuthService.handleOAuthCallback(accessToken, state);
+      } else if (code) {
+        await groupMeOAuthService.handleOAuthCode(code, state);
+      } else {
+        throw new Error('No access token or code provided');
       }
-      // POST to backend
-      const response = await fetch('/api/groupme/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ access_token: accessToken })
-      });
-      if (!response.ok) {
-        setError('Failed to save GroupMe token. Please try again.');
-        setIsProcessing(false);
-        return;
-      }
+
       setSuccess(true);
       setIsProcessing(false);
       // Optionally, reload or refetch connection status/groups here

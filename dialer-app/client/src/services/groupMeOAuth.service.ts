@@ -190,6 +190,16 @@ class GroupMeOAuthService {
     // Use authenticated API for this endpoint
     await authApi.post('/groupme/oauth/disconnect');
   }
+
+  /**
+   * Handle OAuth callback when only a code is provided (authorization-code flow)
+   */
+  async handleOAuthCode(code: string, state: string): Promise<void> {
+    console.log('groupMeOAuthService.handleOAuthCode', { codeLen: code?.length, state });
+    if (!code || !state) throw new Error('Missing code or state');
+
+    await oauthAxios.post('/api/groupme/oauth/callback', { code, state });
+  }
 }
 
 // Export singleton instance
