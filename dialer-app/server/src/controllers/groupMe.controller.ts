@@ -554,8 +554,48 @@ export const getGroups = asyncHandler(
       return;
     }
 
-    const groups = await service.getGroups();
-    sendSuccess(res, groups);
+    try {
+      console.log('Fetching groups for user:', userId);
+      const groups = await service.getGroups();
+      console.log(`Retrieved ${groups.length} groups from GroupMe API`);
+      
+      // If we got groups from the API, save them to the user's GroupMe config
+      if (groups.length > 0) {
+        const user = await User.findById(userId);
+        if (user && user.groupMe && user.groupMe.accessToken) {
+          // Store the groups in the user's config for future use
+          const groupsMap: Record<string, string> = {};
+          groups.forEach(group => {
+            if (group.id && group.name) {
+              groupsMap[group.id] = group.name;
+            }
+          });
+          
+          // Update or create GroupMe config
+          await GroupMeConfig.findOneAndUpdate(
+            { userId },
+            { userId, groups: groupsMap },
+            { upsert: true, new: true }
+          );
+          
+          console.log(`Saved ${Object.keys(groupsMap).length} groups to user's config`);
+        }
+      }
+      
+      // Format the groups to match the expected structure
+      const formattedGroups = groups.map(group => ({
+        groupId: group.id || group.group_id,
+        groupName: group.name,
+        image_url: group.image_url,
+        last_message: group.messages?.preview,
+        messages_count: group.messages?.count
+      }));
+      
+      sendSuccess(res, formattedGroups);
+    } catch (error) {
+      console.error('Error fetching groups from GroupMe API:', error);
+      sendError(res, 500, 'Failed to fetch groups', null, 'API_ERROR');
+    }
   }
 );
 

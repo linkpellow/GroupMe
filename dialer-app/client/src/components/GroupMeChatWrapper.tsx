@@ -43,9 +43,25 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
   useEffect(() => {
     if (isConnected && config?.accessToken && refreshGroups) {
       console.log('GroupMeChatWrapper: Auto-fetching groups on mount');
-      refreshGroups().catch(err => {
-        console.error('Error auto-fetching groups:', err);
-      });
+      setIsInitialized(false); // Reset initialization while fetching
+      refreshGroups()
+        .then(() => {
+          console.log('GroupMeChatWrapper: Groups fetched successfully');
+          // Set a small delay to ensure context is updated
+          setTimeout(() => {
+            setIsInitialized(true);
+          }, 500);
+        })
+        .catch(err => {
+          console.error('Error auto-fetching groups:', err);
+          setIsInitialized(true); // Still mark as initialized even on error
+        });
+    } else {
+      console.log('GroupMeChatWrapper: Not auto-fetching groups because:',
+        isConnected ? 'connected' : 'not connected',
+        config?.accessToken ? 'has token' : 'no token',
+        refreshGroups ? 'has refreshGroups' : 'no refreshGroups'
+      );
     }
   }, [isConnected, config, refreshGroups]);
 
