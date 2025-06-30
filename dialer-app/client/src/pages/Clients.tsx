@@ -323,6 +323,31 @@ const Clients: React.FC = () => {
     setFilteredClients(results);
   }, [searchQuery, clients]);
 
+  // Listen for disposition changes to keep SOLD list in sync
+  useEffect(() => {
+    const handleDispositionChanged = (e: CustomEvent) => {
+      const { leadId, disposition } = e.detail || {};
+      if (!leadId) return;
+      if (disposition === 'SOLD') {
+        // If lead already in list ignore, else refresh to include
+        if (!clients.find((c) => c._id === leadId)) {
+          refreshClients();
+        }
+      } else {
+        // Remove lead from list if present
+        setClients((prev) => prev.filter((c) => c._id !== leadId));
+        setFilteredClients((prev) => prev.filter((c) => c._id !== leadId));
+        if (selectedClient && selectedClient._id === leadId) {
+          setSelectedClient(null);
+        }
+      }
+    };
+    window.addEventListener('dispositionChanged', handleDispositionChanged as EventListener);
+    return () => {
+      window.removeEventListener('dispositionChanged', handleDispositionChanged as EventListener);
+    };
+  }, [clients, refreshClients, selectedClient]);
+
   // Initial fetch on component mount
   useEffect(() => {
     refreshClients();
@@ -979,15 +1004,39 @@ const Clients: React.FC = () => {
                     </CardBody>
 
                     <CardFooter pt={0}>
-                      <Button
-                        onClick={() => handleViewDetails(client)}
-                        colorScheme="orange"
-                        color="white"
-                        size="sm"
-                        width="full"
-                      >
-                        View Details
-                      </Button>
+                      <HStack width="full" spacing={2}>
+                        <Button
+                          onClick={() => handleViewDetails(client)}
+                          colorScheme="orange"
+                          color="white"
+                          size="sm"
+                          width="full"
+                        >
+                          View Details
+                        </Button>
+                        <IconButton
+                          aria-label="Remove client"
+                          icon={<FaTrash />}
+                          size="sm"
+                          colorScheme="red"
+                          variant="outline"
+                          onClick={async () => {
+                            if (!window.confirm('Remove this client from the list?')) return;
+                            try {
+                              await axiosInstance.put(`/api/leads/${client._id}`, { disposition: '' });
+                              // Broadcast change
+                              window.dispatchEvent(
+                                new CustomEvent('dispositionChanged', {
+                                  detail: { leadId: client._id, disposition: '' },
+                                })
+                              );
+                              toast({ title: 'Client removed', status: 'success', duration: 1500 });
+                            } catch (err) {
+                              toast({ title: 'Failed to remove', status: 'error' });
+                            }
+                          }}
+                        />
+                      </HStack>
                     </CardFooter>
                   </Card>
                 ))}

@@ -2368,3 +2368,63 @@ The scratchpad reflects the updated plan; Status Boards include new IDs; Executo
 +**[2025-07-?? Executor]** Completed BUILD-A: Removed `postinstall` hook from root `package.json`. Verified no `postinstall`, `prepare`, or `heroku-postbuild` scripts remain in any `package.json` (root, client, server). JSON integrity confirmed. Ready to proceed to BUILD-B.
 
 ---
+
+### �� FINAL-TWEAK EFFICIENCY RULESET (added 30 Jun 2025)
+For the remainder of launch hardening we want maximum speed while safeguarding prod.
+
+1. LOCAL-FIRST: Always prototype & hot-reload locally (npm run dev:client & dev:server).
+2. STAGING GATE: Push to `dev` → auto-deploy staging Heroku. Manual QA there before touching prod.
+3. SINGLE-FILE COMMITS: For cosmetic tweaks (CSS/Copy) commit only the changed file; skip lockfile churn.
+4. NO LOCKFILE TOUCH unless dependency changes; keeps diffs tiny & builds fast.
+5. PROD DEPLOY WINDOW: Deploy to prod (main branch) only after 2 ✅ checks: staging smoke-test + green build.
+6. CI SHORTCUT: For typo-level edits skip `npm test` by using `[skip ci]` in commit message.
+7. COMMENT TAGS: Prefix scratchpad notes with `🛠️ [TWEAK]` so Executor knows they're micro-tasks.
+8. "DONE ⏱️" Check-off: When tweak verified in browser, mark task as done immediately (no waiting for deploy).
+
+> These rules apply until we tag `PROJECT COMPLETE` in scratchpad.
+
+---
+
+## 🚦 FINAL TWEAK MODE (active)
+For any tasks logged after 30 Jun 2025 consider the codebase **feature-frozen**.  Only cosmetic/UI polish, copy changes, and minor bug fixes are allowed.
+
+**Golden Rule:**
+Work locally → push to `dev` (staging) → QA → promote to `main` (production) only when staging is green.
+
+All subsidiary rules live in "FINAL-TWEAK EFFICIENCY RULESET" section below.
+
+---
+
+### 🛠️ [TWEAK] Clients Page – Keep SOLD list in sync
+Problem: Leads remain on Clients page when disposition changed away from "SOLD".
+
+Goal: Automatically remove a lead from Clients list if its disposition is not "SOLD" anymore, and add if changed to "SOLD".
+
+Planned Approach (small scope):
+1. Investigate existing live-update mechanism.
+   • Check if `LeadsContext` or WebSocket emits `leadUpdated` events.
+2. In `Clients.tsx` subscribe to that event (or reuse React Query invalidation):
+   • On update, if `newDisposition === 'SOLD'` add/update in state.
+   • Else remove lead from `clients` and `filteredClients` arrays.
+3. Fallback: if no event, add a periodic refetch every 30 s (cheap) while on page.
+4. Update UI instantly (optimistic) when local user changes disposition via Leads page; rely on existing context.
+5. Unit test: simulate disposition toggle and expect list length changes.
+
+Task Breakdown
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| CP-1 | Locate lead update event / context API | Can listen to disposition changes | ✅ Implemented CustomEvent strategy |
+| CP-2 | Implement add/remove logic in Clients.tsx | Changing disposition away removes lead in <1 s | ✅ useEffect listener added |
+| CP-3 | Optional: periodic refetch safeguard | List consistent after manual DB edit |
+| CP-4 | Test locally, commit small PR | Manual test passes, staging green |
+| CP-5 | Add trash-bin icon per client row | Icon visible, click triggers removal call | ✅ Icon added |
+| CP-6 | On trash click: PATCH /leads/:id { disposition: '' } | Client disappears & disposition cleared | ✅ Implemented |
+
+**[2025-07-?? Executor]** Implemented disposition sync and trash removal: 
+• Leads page dispatches `dispositionChanged` event after successful update.
+• Clients page listens and adds/removes clients accordingly.
+• Added red trash icon in card footer; prompts confirm, clears disposition via API and dispatches event.
+Local build passes; ready for staging push.
+
+Notes:
+• Use react-icons `FiTrash2`

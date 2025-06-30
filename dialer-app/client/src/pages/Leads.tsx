@@ -2161,6 +2161,12 @@ export default function Leads() {
                     });
                     toast({ title: 'Disposition updated', status: 'success' });
                     refetch();
+                    // Broadcast disposition change so Clients page stays in sync
+                    window.dispatchEvent(
+                      new CustomEvent('dispositionChanged', {
+                        detail: { leadId: lead._id, disposition: newDisposition },
+                      })
+                    );
                   } catch (err) {
                     toast({ title: 'Failed to update disposition', status: 'error' });
                   }
