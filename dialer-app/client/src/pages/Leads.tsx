@@ -2155,32 +2155,44 @@ export default function Leads() {
                 onChange={async (e) => {
                   e.stopPropagation();
                   const newDisposition = e.target.value;
+                  // Optimistic event so Clients list updates instantly
+                  if (newDisposition === 'SOLD') {
+                    window.dispatchEvent(
+                      new CustomEvent('dispositionChanged', {
+                        detail: {
+                          lead: { ...lead, disposition: 'SOLD' },
+                          leadId: lead._id,
+                          disposition: 'SOLD',
+                          optimistic: true,
+                        },
+                      })
+                    );
+                  }
+
                   try {
                     await axiosInstance.put(`/api/leads/${lead._id}`, {
                       disposition: newDisposition,
                     });
                     toast({ title: 'Disposition updated', status: 'success' });
                     refetch();
-                    // Broadcast disposition change so Clients page stays in sync
+                    // Final confirmation event (not optimistic)
                     window.dispatchEvent(
                       new CustomEvent('dispositionChanged', {
-                        detail: { leadId: lead._id, disposition: newDisposition },
+                        detail: {
+                          leadId: lead._id,
+                          disposition: newDisposition,
+                          optimistic: false,
+                        },
                       })
                     );
-                    // Cross-tab broadcast for Clients page in other tabs/windows
-                    try {
-                      localStorage.setItem('dispSync', JSON.stringify({ id: lead._id, disposition: newDisposition, ts: Date.now() }));
-                    } catch (_) {}
-                    // Optional: navigate user to Clients page so they can view sold client
-                    if (newDisposition === 'SOLD') {
-                      setTimeout(() => {
-                        if (window.location.pathname !== '/clients') {
-                          window.location.href = '/clients';
-                        }
-                      }, 300);
-                    }
                   } catch (err) {
                     toast({ title: 'Failed to update disposition', status: 'error' });
+                    // Rollback optimistic add if failed
+                    window.dispatchEvent(
+                      new CustomEvent('dispositionChanged', {
+                        detail: { leadId: lead._id, disposition: '', rollback: true },
+                      })
+                    );
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}

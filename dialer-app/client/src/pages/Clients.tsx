@@ -323,48 +323,49 @@ const Clients: React.FC = () => {
     setFilteredClients(results);
   }, [searchQuery, clients]);
 
-  // Modify existing useEffect for disposition changes
+  // Listen for disposition changes to keep SOLD list in sync
   useEffect(() => {
-    let refreshTimer: NodeJS.Timeout | null = null;
-
-    const scheduleRefresh = () => {
-      if (refreshTimer) clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => refreshClients(), 400); // 400 ms debounce
-    };
-
-    const handleDispositionChanged = (leadId: string, disposition: string) => {
+    const handleDispositionChanged = (e: CustomEvent) => {
+      const { leadId, disposition, lead: fullLead, optimistic, rollback } = e.detail || {};
       if (!leadId) return;
-      if (disposition === 'SOLD') {
-        scheduleRefresh();
-      } else {
+
+      if (rollback) {
+        // Remove any optimistic entry
         setClients((prev) => prev.filter((c) => c._id !== leadId));
         setFilteredClients((prev) => prev.filter((c) => c._id !== leadId));
-        if (selectedClient && selectedClient._id === leadId) setSelectedClient(null);
+        return;
+      }
+
+      if (disposition === 'SOLD') {
+        // Add or update
+        setClients((prev) => {
+          const exists = prev.find((c) => c._id === leadId);
+          if (exists) return prev;
+          if (fullLead) return [fullLead as Client, ...prev];
+          // fallback fetch once to ensure list
+          refreshClients();
+          return prev;
+        });
+        setFilteredClients((prev) => {
+          const exists = prev.find((c) => c._id === leadId);
+          if (exists) return prev;
+          if (fullLead) return [fullLead as Client, ...prev];
+          return prev;
+        });
+      } else {
+        // Remove lead from list if present
+        setClients((prev) => prev.filter((c) => c._id !== leadId));
+        setFilteredClients((prev) => prev.filter((c) => c._id !== leadId));
+        if (selectedClient && selectedClient._id === leadId) {
+          setSelectedClient(null);
+        }
       }
     };
-
-    const eventListener = (e: CustomEvent) => {
-      const { leadId, disposition } = e.detail || {};
-      handleDispositionChanged(leadId, disposition);
-    };
-
-    const storageListener = (e: StorageEvent) => {
-      if (e.key === 'dispSync' && e.newValue) {
-        try {
-          const { id, disposition } = JSON.parse(e.newValue);
-          handleDispositionChanged(id, disposition);
-        } catch {}
-      }
-    };
-
-    window.addEventListener('dispositionChanged', eventListener as EventListener);
-    window.addEventListener('storage', storageListener);
+    window.addEventListener('dispositionChanged', handleDispositionChanged as EventListener);
     return () => {
-      if (refreshTimer) clearTimeout(refreshTimer);
-      window.removeEventListener('dispositionChanged', eventListener as EventListener);
-      window.removeEventListener('storage', storageListener);
+      window.removeEventListener('dispositionChanged', handleDispositionChanged as EventListener);
     };
-  }, [refreshClients, selectedClient]);
+  }, [clients, refreshClients, selectedClient]);
 
   // Initial fetch on component mount
   useEffect(() => {
