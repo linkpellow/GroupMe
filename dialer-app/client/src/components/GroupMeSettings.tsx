@@ -143,10 +143,10 @@ const GroupMeSettings = () => {
         throw new Error('Invalid authorization URL received from server');
       }
 
-      // Ensure the URL has the required parameters
+      // Ensure the URL has the required parameters (client_id is mandatory)
       const authUrlObj = new URL(authUrl);
-      if (!authUrlObj.searchParams.get('client_id') || !authUrlObj.searchParams.get('response_type')) {
-        throw new Error('Authorization URL is missing required parameters');
+      if (!authUrlObj.searchParams.get('client_id')) {
+        throw new Error('Authorization URL is missing the client_id parameter');
       }
 
       // Redirect to GroupMe OAuth page
