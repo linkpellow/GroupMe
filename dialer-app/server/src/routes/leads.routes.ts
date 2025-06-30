@@ -94,7 +94,7 @@ const leadValidation = [
 router.get('/test-db', auth, leadsController.testDb);
 
 // Main GET route for fetching leads with query parameters
-router.get('/', auth, validateQueryMiddleware, rateLimitMiddleware, (req, res, next) =>
+router.get('/', auth, validateQueryMiddleware, rateLimitMiddleware, (req: Request, res: Response, next: NextFunction) =>
   leadsController.getLeads(req as any, res)
 );
 
@@ -253,7 +253,7 @@ const normaliseRow = (raw: Record<string, any>) => {
 };
 
 // CSV Upload endpoint
-router.post('/upload', auth, upload.single('file'), async (req, res) => {
+router.post('/upload', auth, upload.single('file'), async (req: Request, res: Response) => {
   try {
     console.log('Starting CSV upload...');
     console.log('Request headers:', req.headers);
@@ -939,7 +939,7 @@ router.get('/sync-nextgen', auth, isAdmin, async (req: Request, res: Response) =
 });
 
 // CSV export route – placed before parameterised routes to avoid shadowing
-router.get('/export', auth, validateQueryMiddleware, rateLimitMiddleware, (req, res) =>
+router.get('/export', auth, validateQueryMiddleware, rateLimitMiddleware, (req: Request, res: Response) =>
   leadsController.exportLeadsCsv(req as any, res)
 );
 
@@ -985,7 +985,7 @@ router.delete('/:id', auth, async (req: Request, res: Response) => {
 });
 
 // Delete placeholder leads
-router.delete('/delete-placeholders', auth, async (req, res) => {
+router.delete('/delete-placeholders', auth, async (req: Request, res: Response) => {
   try {
     // Delete leads where name is "Unknown Name" or empty
     const result = await LeadModel.deleteMany({
@@ -1297,7 +1297,7 @@ router.post('/record-call', auth, async (req: Request, res: Response) => {
 });
 
 // Add a new endpoint to fix existing leads
-router.post('/fix-all-leads', auth, async (req, res) => {
+router.post('/fix-all-leads', auth, async (req: Request, res: Response) => {
   try {
     console.log('Starting to fix all leads in the database...');
 
