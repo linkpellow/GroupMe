@@ -2174,17 +2174,7 @@ export default function Leads() {
                       disposition: newDisposition,
                     });
                     toast({ title: 'Disposition updated', status: 'success' });
-                    refetch();
-                    // Final confirmation event (not optimistic)
-                    window.dispatchEvent(
-                      new CustomEvent('dispositionChanged', {
-                        detail: {
-                          leadId: lead._id,
-                          disposition: newDisposition,
-                          optimistic: false,
-                        },
-                      })
-                    );
+                    // refetch removed to avoid full-page spinner; UI already updated optimistically
                   } catch (err) {
                     toast({ title: 'Failed to update disposition', status: 'error' });
                     // Rollback optimistic add if failed
