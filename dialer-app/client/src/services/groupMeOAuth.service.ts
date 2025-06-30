@@ -70,7 +70,7 @@ class GroupMeOAuthService {
    */
   async checkConnectionStatus(): Promise<GroupMeOAuthStatus> {
     try {
-      const response = await oauthAxios.get('/api/groupme/oauth/status');
+      const response = await authApi.get('/groupme/oauth/status');
       return {
         connected: response.data.connected,
         connectedAt: response.data.connectedAt ? new Date(response.data.connectedAt) : undefined,

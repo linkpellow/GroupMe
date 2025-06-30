@@ -66,12 +66,15 @@ const GroupMeOAuthCallback: React.FC = () => {
       await groupMeOAuthService.handleOAuthCallback(accessToken, state);
       
       console.log('OAuth callback successful, redirecting to settings...');
-      // Success - redirect to settings page
-      navigate('/settings', { 
-        state: { 
+      // Persist sidebar to Page 2 (index 1) so chat is visible
+      localStorage.setItem('sidebarPage', '1');
+
+      // Redirect to main Leads view where chat will appear
+      navigate('/leads', {
+        state: {
           groupMeConnected: true,
-          message: 'GroupMe connected successfully!' 
-        } 
+        },
+        replace: true,
       });
     } catch (err: any) {
       console.error('Error in OAuth callback:', err);

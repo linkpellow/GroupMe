@@ -8,7 +8,7 @@ const router = express.Router();
 
 // OAuth routes that DO NOT require authentication
 router.post('/oauth/callback', groupMeController.handleOAuthCallback);
-router.get('/oauth/status', groupMeController.getConnectionStatus);
+router.get('/oauth/status', auth, groupMeController.getConnectionStatus);
 router.post('/oauth/initiate', groupMeController.initiateOAuth);
 
 // Apply auth middleware for all other routes
