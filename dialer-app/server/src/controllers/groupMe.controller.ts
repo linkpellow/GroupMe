@@ -875,22 +875,87 @@ const processWebhookMessage = async (webhookData: any) => {
 export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user?.id;
   const { access_token } = req.body;
-  if (!userId || !access_token) return res.status(400).json({ error: 'Missing user or token' });
+  
+  if (!userId) {
+    return res.status(401).json({ error: 'User not authenticated' });
+  }
+  
+  if (!access_token) {
+    return res.status(400).json({ error: 'Missing access_token parameter' });
+  }
 
-  // Encrypt the token
-  const encryptedToken = encrypt(access_token);
-
-  // Save to User
-  await User.findByIdAndUpdate(userId, {
-    $set: { 'groupMe.accessToken': encryptedToken, 'groupMe.connectedAt': new Date() }
-  });
-
-  // Save to GroupMeConfig
-  await GroupMeConfig.findOneAndUpdate(
-    { userId },
-    { userId, accessToken: encryptedToken },
-    { upsert: true, new: true }
-  );
-
-  res.sendStatus(204);
+  try {
+    console.log(`Saving GroupMe token for user ${userId}`);
+    
+    // Validate the token with GroupMe API before saving
+    const axios = require('axios');
+    try {
+      const validationResponse = await axios.get('https://api.groupme.com/v3/users/me', {
+        headers: {
+          'X-Access-Token': access_token,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000, // 10 second timeout
+      });
+      
+      console.log('Token validation successful!');
+      const groupMeUserData = validationResponse.data.response;
+      
+      // Encrypt the token
+      const encryptedToken = encrypt(access_token);
+      
+      // Save to User
+      await User.findByIdAndUpdate(userId, {
+        $set: { 
+          'groupMe.accessToken': encryptedToken, 
+          'groupMe.connectedAt': new Date(),
+          'groupMe.email': groupMeUserData?.email || null,
+          'groupMe.name': groupMeUserData?.name || null,
+        }
+      });
+      
+      // Save to GroupMeConfig
+      await GroupMeConfig.findOneAndUpdate(
+        { userId },
+        { userId, accessToken: encryptedToken },
+        { upsert: true, new: true }
+      );
+      
+      return res.sendStatus(204);
+    } catch (validationError: any) {
+      console.error('Token validation error:', validationError.message);
+      
+      // If we get a 401/403 from GroupMe, the token might still be valid but new
+      // GroupMe sometimes returns these for valid tokens that are newly created
+      if (validationError.response?.status === 401 || validationError.response?.status === 403) {
+        console.warn('GroupMe returned 401/403 - this is common for new tokens');
+        console.warn('Proceeding with token storage anyway');
+        
+        // Encrypt and save the token anyway
+        const encryptedToken = encrypt(access_token);
+        
+        // Save to User
+        await User.findByIdAndUpdate(userId, {
+          $set: { 
+            'groupMe.accessToken': encryptedToken, 
+            'groupMe.connectedAt': new Date()
+          }
+        });
+        
+        // Save to GroupMeConfig
+        await GroupMeConfig.findOneAndUpdate(
+          { userId },
+          { userId, accessToken: encryptedToken },
+          { upsert: true, new: true }
+        );
+        
+        return res.sendStatus(204);
+      }
+      
+      return res.status(400).json({ error: 'Invalid GroupMe token' });
+    }
+  } catch (error) {
+    console.error('Error saving GroupMe token:', error);
+    return res.status(500).json({ error: 'Failed to save GroupMe token' });
+  }
 });

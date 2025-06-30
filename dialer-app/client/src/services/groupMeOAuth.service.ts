@@ -206,7 +206,19 @@ class GroupMeOAuthService {
    */
   async saveAccessToken(token: string): Promise<void> {
     if (!token) throw new Error('Missing GroupMe access token');
-    await authApi.post('/groupme/token', { access_token: token });
+    
+    try {
+      console.log('Saving GroupMe access token via /groupme/token endpoint');
+      await authApi.post('/groupme/token', { access_token: token });
+      console.log('Token saved successfully');
+    } catch (error: any) {
+      console.error('Error saving access token:', error);
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'Failed to save GroupMe token';
+      throw new Error(errorMessage);
+    }
   }
 }
 
