@@ -2167,6 +2167,18 @@ export default function Leads() {
                         detail: { leadId: lead._id, disposition: newDisposition },
                       })
                     );
+                    // Cross-tab broadcast for Clients page in other tabs/windows
+                    try {
+                      localStorage.setItem('dispSync', JSON.stringify({ id: lead._id, disposition: newDisposition, ts: Date.now() }));
+                    } catch (_) {}
+                    // Optional: navigate user to Clients page so they can view sold client
+                    if (newDisposition === 'SOLD') {
+                      setTimeout(() => {
+                        if (window.location.pathname !== '/clients') {
+                          window.location.href = '/clients';
+                        }
+                      }, 300);
+                    }
                   } catch (err) {
                     toast({ title: 'Failed to update disposition', status: 'error' });
                   }

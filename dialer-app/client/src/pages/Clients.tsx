@@ -323,30 +323,48 @@ const Clients: React.FC = () => {
     setFilteredClients(results);
   }, [searchQuery, clients]);
 
-  // Listen for disposition changes to keep SOLD list in sync
+  // Modify existing useEffect for disposition changes
   useEffect(() => {
-    const handleDispositionChanged = (e: CustomEvent) => {
-      const { leadId, disposition } = e.detail || {};
+    let refreshTimer: NodeJS.Timeout | null = null;
+
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => refreshClients(), 400); // 400 ms debounce
+    };
+
+    const handleDispositionChanged = (leadId: string, disposition: string) => {
       if (!leadId) return;
       if (disposition === 'SOLD') {
-        // If lead already in list ignore, else refresh to include
-        if (!clients.find((c) => c._id === leadId)) {
-          refreshClients();
-        }
+        scheduleRefresh();
       } else {
-        // Remove lead from list if present
         setClients((prev) => prev.filter((c) => c._id !== leadId));
         setFilteredClients((prev) => prev.filter((c) => c._id !== leadId));
-        if (selectedClient && selectedClient._id === leadId) {
-          setSelectedClient(null);
-        }
+        if (selectedClient && selectedClient._id === leadId) setSelectedClient(null);
       }
     };
-    window.addEventListener('dispositionChanged', handleDispositionChanged as EventListener);
-    return () => {
-      window.removeEventListener('dispositionChanged', handleDispositionChanged as EventListener);
+
+    const eventListener = (e: CustomEvent) => {
+      const { leadId, disposition } = e.detail || {};
+      handleDispositionChanged(leadId, disposition);
     };
-  }, [clients, refreshClients, selectedClient]);
+
+    const storageListener = (e: StorageEvent) => {
+      if (e.key === 'dispSync' && e.newValue) {
+        try {
+          const { id, disposition } = JSON.parse(e.newValue);
+          handleDispositionChanged(id, disposition);
+        } catch {}
+      }
+    };
+
+    window.addEventListener('dispositionChanged', eventListener as EventListener);
+    window.addEventListener('storage', storageListener);
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      window.removeEventListener('dispositionChanged', eventListener as EventListener);
+      window.removeEventListener('storage', storageListener);
+    };
+  }, [refreshClients, selectedClient]);
 
   // Initial fetch on component mount
   useEffect(() => {
