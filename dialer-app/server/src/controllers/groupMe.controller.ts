@@ -114,10 +114,10 @@ export const initiateOAuth = asyncHandler(async (req: Request, res: Response): P
     maxAge: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Use the recommended implicit-flow OAuth endpoint for GroupMe
-  const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
+  // Use authorization-code flow. GroupMe uses /oauth/login_dialog endpoint which returns ?code=…
+  const authUrl = `https://oauth.groupme.com/oauth/login_dialog?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
     REDIRECT_URI
-  )}&response_type=token&state=${state}`;
+  )}&state=${state}`;
 
   sendSuccess(res, { authUrl, state });
 });
@@ -168,18 +168,36 @@ export const handleOAuthCallback = asyncHandler(
 
     console.log('UserId from state:', userId);
 
-    // Exchange code for access token
+    // Exchange code for access token via undocumented endpoint
     console.log('=== EXCHANGING CODE FOR ACCESS TOKEN ===');
     let accessToken = '';
-    
+
     try {
       const axios = require('axios');
-      console.log('Making request to GroupMe token endpoint...');
-      
-      // GroupMe doesn't have a standard token endpoint, we need to use the code directly
-      // This is a simplified approach - in reality we would need to exchange the code
-      // But for GroupMe, we'll use the code as the token for now
-      accessToken = code; // For GroupMe, the code might actually be the access token
+      const CLIENT_ID = process.env.GROUPME_CLIENT_ID;
+      const CLIENT_SECRET = process.env.GROUPME_CLIENT_SECRET;
+
+      if (!CLIENT_SECRET) {
+        console.error('GROUPME_CLIENT_SECRET env var is missing');
+        sendError(res, 500, 'GroupMe client secret not configured', null, 'CONFIG_ERROR');
+        return;
+      }
+
+      console.log('Posting to https://api.groupme.com/oauth/access_token');
+      const tokenResp = await axios.post('https://api.groupme.com/oauth/access_token', {
+        grant_type: 'authorization_code',
+        code,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+      });
+
+      if (!tokenResp.data || !tokenResp.data.access_token) {
+        console.error('No access_token in GroupMe response', tokenResp.data);
+        sendError(res, 500, 'Failed to obtain GroupMe token', null, 'TOKEN_EXCHANGE_ERROR');
+        return;
+      }
+
+      accessToken = tokenResp.data.access_token as string;
       
       // Validate the token with GroupMe API
       console.log('Validating token with GroupMe API...');
@@ -223,6 +241,12 @@ export const handleOAuthCallback = asyncHandler(
 
       console.log('User updated successfully');
       console.log('=== OAUTH CALLBACK COMPLETE ===');
+      // Also persist token in GroupMeConfig so front-end can pick it up via /config API
+      await GroupMeConfig.findOneAndUpdate(
+        { userId },
+        { userId, accessToken: encryptedToken },
+        { upsert: true, new: true }
+      );
       sendSuccess(res, {
         message: 'GroupMe connected successfully',
         user: {
