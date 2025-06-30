@@ -32,6 +32,8 @@ const GroupMeSettings = () => {
   const [connectedAt, setConnectedAt] = useState<Date | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [groups, setGroups] = useState<{ id: string; name: string }[]>([{ id: '', name: '' }]);
+  const [manualToken, setManualToken] = useState('');
+  const [isSavingToken, setIsSavingToken] = useState(false);
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -267,6 +269,34 @@ const GroupMeSettings = () => {
     }
   };
 
+  const handleSaveToken = async () => {
+    setIsSavingToken(true);
+    try {
+      await groupMeOAuthService.handleManualToken(manualToken);
+
+      toast({
+        title: 'Token Saved',
+        description: 'Your GroupMe token has been saved',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setManualToken('');
+    } catch (error) {
+      console.error('Error saving token:', error);
+      toast({
+        title: 'Save Failed',
+        description: 'Failed to save GroupMe token',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsSavingToken(false);
+    }
+  };
+
   if (isConnecting) {
     return (
       <Box p={4} textAlign="center">
@@ -330,6 +360,35 @@ const GroupMeSettings = () => {
               </Text>
             </VStack>
           )}
+
+          <Divider my={6} />
+
+          <Box>
+            <Heading size="sm" mb={2}>Manual Token Entry</Heading>
+            <Text fontSize="sm" color="gray.600" mb={3}>
+              If the automatic connection fails, you can manually enter your GroupMe Access Token here.
+              You can get your token from the {' '}
+              <Link href="https://dev.groupme.com/applications" isExternal color="blue.500">
+                GroupMe Developer site <ExternalLinkIcon mx="2px" />
+              </Link>.
+            </Text>
+            <HStack>
+              <Input
+                placeholder="Enter your GroupMe Access Token"
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+                type="password"
+              />
+              <Button
+                colorScheme="teal"
+                onClick={handleSaveToken}
+                isLoading={isSavingToken}
+                minW="120px"
+              >
+                Save Token
+              </Button>
+            </HStack>
+          </Box>
         </Box>
 
         {isConnected && (

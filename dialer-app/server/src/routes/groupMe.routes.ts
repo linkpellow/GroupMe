@@ -17,6 +17,9 @@ router.use(auth);
 // OAuth disconnect requires authentication
 router.post('/oauth/disconnect', groupMeController.disconnectGroupMe);
 
+// Manual token submission
+router.post('/save-manual-token', groupMeController.saveManualToken);
+
 // Configuration routes
 router.get('/config', groupMeController.getConfig);
 router.post('/config', groupMeController.saveConfig);

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Spinner, Text, Alert, AlertIcon, VStack } from '@chakra-ui/react';
+import { Box, Spinner, Text, Alert, AlertIcon, VStack, Button } from '@chakra-ui/react';
 import { groupMeOAuthService } from '../services/groupMeOAuth.service';
 
 const GroupMeOAuthCallback: React.FC = () => {
@@ -65,12 +65,12 @@ const GroupMeOAuthCallback: React.FC = () => {
       // Send the token to the backend
       await groupMeOAuthService.handleOAuthCallback(accessToken, state);
       
-      console.log('OAuth callback successful, redirecting to settings...');
+      console.log('OAuth callback successful, redirecting to integrations...');
       // Persist sidebar to Page 2 (index 1) so chat is visible
       localStorage.setItem('sidebarPage', '1');
 
-      // Redirect to main Leads view where chat will appear
-      navigate('/leads', {
+      // Redirect to integrations page
+      navigate('/integrations', {
         state: {
           groupMeConnected: true,
         },
@@ -82,10 +82,7 @@ const GroupMeOAuthCallback: React.FC = () => {
       setError(errorMessage);
       setIsProcessing(false);
       
-      // Redirect back to settings after a delay
-      setTimeout(() => {
-        navigate('/settings');
-      }, 3000);
+      // No automatic redirect on error, let user see the message
     }
   };
 
@@ -114,9 +111,9 @@ const GroupMeOAuthCallback: React.FC = () => {
               <AlertIcon />
               {error}
             </Alert>
-            <Text fontSize="sm" color="gray.600">
-              Redirecting back to settings...
-            </Text>
+            <Button mt={4} onClick={() => navigate('/integrations')}>
+              Back to Integrations
+            </Button>
           </>
         ) : null}
       </VStack>

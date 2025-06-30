@@ -165,6 +165,13 @@ class GroupMeOAuthService {
   }
 
   /**
+   * Handle Manual Token Submission
+   */
+  async handleManualToken(token: string): Promise<void> {
+    await authApi.post('/groupme/save-manual-token', { token });
+  }
+
+  /**
    * Disconnect GroupMe (requires authentication)
    */
   async disconnect(): Promise<void> {

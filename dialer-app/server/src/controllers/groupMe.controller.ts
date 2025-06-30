@@ -274,6 +274,37 @@ export const handleOAuthCallback = asyncHandler(
 );
 
 /**
+ * Save manually entered GroupMe token
+ */
+export const saveManualToken = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const { token } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      sendError(res, 401, 'Unauthorized', null, 'AUTH_ERROR');
+      return;
+    }
+
+    if (!token) {
+      sendError(res, 400, 'Token is required', null, 'INVALID_REQUEST');
+      return;
+    }
+
+    // Encrypt and save the token
+    const encryptedToken = encrypt(token);
+    await User.findByIdAndUpdate(userId, {
+      $set: {
+        'groupMe.accessToken': encryptedToken,
+        'groupMe.connectedAt': new Date(),
+      },
+    });
+
+    sendSuccess(res, { message: 'Token saved successfully' });
+  }
+);
+
+/**
  * Disconnect GroupMe (remove token)
  */
 export const disconnectGroupMe = asyncHandler(
