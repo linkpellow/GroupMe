@@ -843,3 +843,29 @@ const processWebhookMessage = async (webhookData: any) => {
     console.error('Error processing GroupMe message:', error);
   }
 };
+
+/**
+ * Save GroupMe access token from OAuth callback
+ */
+export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user?.id;
+  const { access_token } = req.body;
+  if (!userId || !access_token) return res.status(400).json({ error: 'Missing user or token' });
+
+  // Encrypt the token
+  const encryptedToken = encrypt(access_token);
+
+  // Save to User
+  await User.findByIdAndUpdate(userId, {
+    $set: { 'groupMe.accessToken': encryptedToken, 'groupMe.connectedAt': new Date() }
+  });
+
+  // Save to GroupMeConfig
+  await GroupMeConfig.findOneAndUpdate(
+    { userId },
+    { userId, accessToken: encryptedToken },
+    { upsert: true, new: true }
+  );
+
+  res.sendStatus(204);
+});

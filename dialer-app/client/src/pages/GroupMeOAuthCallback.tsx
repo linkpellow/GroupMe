@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Spinner, Text, Alert, AlertIcon, VStack, Button, Code } from '@chakra-ui/react';
-import { groupMeOAuthService } from '../services/groupMeOAuth.service';
 
 const GroupMeOAuthCallback: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     handleCallback();
@@ -17,72 +17,43 @@ const GroupMeOAuthCallback: React.FC = () => {
     console.log('=== GroupMe OAuth Callback Page ===');
     console.log('Full URL:', window.location.href);
     console.log('Hash:', window.location.hash);
-    console.log('Search:', window.location.search);
     
     // Enhanced debug info
     const debugData = {
       url: window.location.href,
       hash: window.location.hash,
-      search: window.location.search,
       hostname: window.location.hostname,
       pathname: window.location.pathname
     };
     setDebugInfo(JSON.stringify(debugData, null, 2));
     
     try {
-      // GroupMe returns the code in the query string (after ?)
-      const searchParams = new URLSearchParams(window.location.search);
-      const code = searchParams.get('code');
-      const state = searchParams.get('state');
-      const error = searchParams.get('error');
-      const errorDescription = searchParams.get('error_description');
-
-      console.log('Parsed parameters:');
-      console.log('- code:', code ? 'Present' : 'Missing');
-      console.log('- state:', state);
-      console.log('- error:', error);
-      console.log('- error_description:', errorDescription);
-
-      if (error) {
-        console.error('OAuth error from GroupMe:', error, errorDescription);
-        setError(`GroupMe authorization failed: ${errorDescription || error}`);
+      // Extract access_token from hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      if (!accessToken) {
+        setError('No access token received from GroupMe. Please check that you authorized the application.');
         setIsProcessing(false);
         return;
       }
-
-      if (!code) {
-        console.error('No code in URL');
-        setError('No authorization code received from GroupMe. Please check that you authorized the application.');
+      // POST to backend
+      const response = await fetch('/api/groupme/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ access_token: accessToken })
+      });
+      if (!response.ok) {
+        setError('Failed to save GroupMe token. Please try again.');
         setIsProcessing(false);
         return;
       }
-
-      if (!state) {
-        console.error('No state parameter in URL');
-        setError('Invalid OAuth response - missing state parameter');
-        setIsProcessing(false);
-        return;
-      }
-
-      console.log('Sending code to backend...');
-      // Send the code to the backend
-      await groupMeOAuthService.handleOAuthCallback(code, state);
-      
-      console.log('OAuth callback successful, token saved.');
-      // Persist sidebar to Page 2 (index 1) so chat panel is visible when the user returns
-      localStorage.setItem('sidebarPage', '1');
-
-      // Stop processing so UI can show success state
+      setSuccess(true);
       setIsProcessing(false);
-      setError(null);
-      // Note: No automatic redirect – user stays here and can navigate manually
+      // Optionally, reload or refetch connection status/groups here
     } catch (err: any) {
-      console.error('Error in OAuth callback:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to connect GroupMe';
-      setError(errorMessage);
+      setError(err.message || 'Failed to connect GroupMe');
       setIsProcessing(false);
-      
-      // No automatic redirect on error, let user see the message
     }
   };
 
@@ -123,7 +94,7 @@ const GroupMeOAuthCallback: React.FC = () => {
               Back to Integrations
             </Button>
           </>
-        ) : (
+        ) : success ? (
           <>
             <Alert status="success" borderRadius="md">
               <AlertIcon />
@@ -133,7 +104,7 @@ const GroupMeOAuthCallback: React.FC = () => {
               Go to Leads
             </Button>
           </>
-        )}
+        ) : null}
       </VStack>
     </Box>
   );

@@ -11,6 +11,9 @@ router.post('/oauth/callback', groupMeController.handleOAuthCallback);
 router.get('/oauth/status', auth, groupMeController.getConnectionStatus);
 router.post('/oauth/initiate', groupMeController.initiateOAuth);
 
+// Add token save endpoint (requires authentication)
+router.post('/token', auth, groupMeController.saveGroupMeToken);
+
 // Apply auth middleware for all other routes
 router.use(auth);
 
