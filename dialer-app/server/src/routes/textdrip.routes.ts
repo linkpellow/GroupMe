@@ -1,10 +1,11 @@
-import { Router, Router, Request, Response } from 'express';
+import { Router } from 'express';
 import { createTextdripService } from '../services/textdripService';
 import LeadModel from '../models/Lead';
-import { auth } from '../middleware/auth';
+import { authenticate as auth } from '../middleware/auth';
 import axios from 'axios';
 import UserModel from '../models/User';
 import { loginToTextDrip, getCampaigns } from '../services/textdripService';
+import * as textdripController from '../controllers/textdrip.controller';
 
 const router: Router = Router();
 

@@ -1,9 +1,11 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, Router } from 'express';
 import Lead from '../models/Lead';
 import winston from 'winston';
-import { Router, z } from 'zod';
+import { z } from 'zod';
 import * as Sentry from '@sentry/node';
 import { broadcastNewLeadNotification } from '../index';
+import { authenticate as auth } from '../middleware/auth';
+import { validateRequest } from '../middleware/validateRequest';
 
 const router: Router = express.Router();
 
