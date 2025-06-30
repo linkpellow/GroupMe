@@ -114,10 +114,10 @@ export const initiateOAuth = asyncHandler(async (req: Request, res: Response): P
     maxAge: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Use the correct OAuth endpoint for GroupMe - login_dialog instead of authorize
-  const authUrl = `https://oauth.groupme.com/oauth/login_dialog?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
+  // Use the recommended implicit-flow OAuth endpoint for GroupMe
+  const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
     REDIRECT_URI
-  )}`;
+  )}&response_type=token&state=${state}`;
 
   sendSuccess(res, { authUrl, state });
 });
