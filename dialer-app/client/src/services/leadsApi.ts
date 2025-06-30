@@ -17,7 +17,7 @@ import {
   US_STATES,
   ALLOWED_DISPOSITIONS,
   PIPELINE_SOURCES,
-} from '@shared/config/queryConfig';
+} from '../constants/queryConfigClient';
 
 // Request tracking for cancellation
 const requestMap = new Map<string, CancelTokenSource>();
