@@ -2219,3 +2219,152 @@ The user reports that after the latest deployment (v299):
 3. **Performance Monitoring**: Monitor site performance and stability
 
 // ... existing code ...
+
+## 🎯 EXECUTOR MODE - DIALER FUNCTIONALITY FOCUS
+
+### **CURRENT STATUS (EXECUTOR)**
+- ✅ **Build Process Working**: Heroku builds successfully with all files
+- ✅ **Source Files Deployed**: Server src files and .env.example now included
+- ✅ **Compilation Working**: TypeScript compiles to correct paths
+- ✅ **Environment Variables Set**: All required variables configured in Heroku
+- ✅ **Server Running**: App starts successfully and responds to health checks
+- ✅ **Site Live**: https://crokodial.com is now accessible and serving the React app
+- ✅ **Images Fixed**: Static assets (images, animations, sounds) now loading correctly
+- ✅ **LOGIN ISSUES RESOLVED**: Both admin and new users can login successfully
+- 🔄 **CURRENT FOCUS**: Dialer Functionality Improvements
+
+### **DIALER CURRENT STATE ANALYSIS:**
+
+#### **✅ WORKING FEATURES:**
+- **Basic Dialing**: Phone number input and call initiation via `tel:` protocol
+- **Number Pad**: Functional 0-9, *, # buttons with visual feedback
+- **Call/End Call Buttons**: Basic call initiation and call ending
+- **Draggable Interface**: Dialer can be moved around the screen
+- **Detached Window**: Can open dialer in separate window
+- **Scaling**: Dialer can be resized with proportional scaling
+- **Lifetime Counts**: Tracks call counts per phone number
+- **Visual Design**: Proper styling with background images and button states
+
+#### **❌ MISSING/INCOMPLETE FEATURES:**
+1. **Navigation Arrows**: Previous/Next caller buttons only log to console
+2. **Lead Integration**: No connection between dialer and lead management
+3. **Call History**: No integration with backend call tracking
+4. **Call Status**: No real-time call status updates
+5. **Backspace Functionality**: No way to delete digits from phone number
+6. **Call Recording**: No integration with Twilio call recording
+7. **Call Analytics**: No detailed call metrics or reporting
+8. **Keyboard Support**: No keyboard shortcuts for dialing
+
+### **HIGH-LEVEL TASK BREAKDOWN - DIALER IMPROVEMENTS:**
+
+#### **PHASE 1: CORE DIALER FUNCTIONALITY (Priority 1)**
+1. **Implement Backspace Functionality**
+   - Add backspace button to number display
+   - Support keyboard backspace key
+   - Clear all functionality
+
+2. **Connect Navigation Arrows to Lead System**
+   - Integrate with Leads page data
+   - Implement previous/next lead navigation
+   - Display lead information in dialer
+
+3. **Enhance Call Integration**
+   - Connect to backend call tracking
+   - Implement call status updates
+   - Add call duration tracking
+
+#### **PHASE 2: ADVANCED DIALER FEATURES (Priority 2)**
+4. **Call Recording Integration**
+   - Connect to Twilio call recording
+   - Add recording playback functionality
+   - Store call recordings in database
+
+5. **Call Analytics Dashboard**
+   - Create call metrics page
+   - Display call statistics
+   - Export call data
+
+6. **Keyboard Shortcuts**
+   - Add keyboard support for dialing
+   - Implement hotkeys for common actions
+   - Accessibility improvements
+
+#### **PHASE 3: INTEGRATION & OPTIMIZATION (Priority 3)**
+7. **Real-time Updates**
+   - WebSocket integration for live call status
+   - Real-time lead updates
+   - Live call count synchronization
+
+8. **Mobile Optimization**
+   - Touch-friendly interface improvements
+   - Mobile-specific dialer features
+   - Responsive design enhancements
+
+### **PROJECT STATUS BOARD:**
+- [ ] **Task 1**: Implement backspace functionality for phone number input
+- [ ] **Task 2**: Connect navigation arrows to lead management system
+- [ ] **Task 3**: Integrate dialer with backend call tracking
+- [ ] **Task 4**: Add call status and duration tracking
+- [ ] **Task 5**: Implement call recording integration
+- [ ] **Task 6**: Create call analytics dashboard
+- [ ] **Task 7**: Add keyboard shortcuts and accessibility
+- [ ] **Task 8**: Implement real-time updates via WebSocket
+- [ ] **Task 9**: Optimize for mobile devices
+- [ ] **Task 10**: Performance optimization and testing
+
+### **EXECUTOR'S FEEDBACK OR ASSISTANCE REQUESTS:**
+- **Ready to start Phase 1**: Core dialer functionality improvements
+- **Need clarification**: Should we prioritize lead integration or backspace functionality first?
+- **Technical questions**: Should we implement WebSocket for real-time updates or use polling initially?
+
+### **LESSONS LEARNED:**
+- **Dialer Architecture**: Current dialer is well-structured but missing key integrations
+- **Call Tracking**: Backend has Twilio integration but frontend dialer doesn't use it
+- **Lead Management**: Navigation arrows exist but aren't connected to lead data
+- **User Experience**: Missing basic features like backspace that users expect
+- **Integration Points**: Need to connect dialer with existing lead and call management systems
+
+## 📌 PLANNER UPDATE – 29 Jun 2025
+
+### 🎯 Current Focus
+After recent fixes, both local development and the production site are operational. The remaining high-impact work streams are:
+1. Finalise deterministic, cross-platform production build (Heroku) so that deployments are fully automated & repeatable.
+2. Integrate per-rep Textdrip API tokens (backend + UI) behind a feature flag.
+3. Establish a staging pipeline to protect `main`/`production`.
+4. Reduce slug size and build noise (nice-to-have once build is green).
+
+### 🗂️ High-level Task Breakdown (NEW)
+| ID | Stream | Task | Success Criteria |
+|----|--------|------|------------------|
+| BUILD-A | Build-Stabilisation | CLEAN-SCRIPTS: purge `postinstall`, `prepare`, `heroku-postbuild` from **all** package.jsons | `git grep -i "postinstall"` returns 0 in repo |
+| BUILD-B | Build-Stabilisation | ROLLUP-WASM: pin `rollup@4.45.1` & `@rollup/wasm-node@4.44.1`, remove **all** platform-native rollup addons from lock-file | `npm ls @rollup/rollup-*` shows **none**; `npm run build` passes locally |
+| BUILD-C | Build-Stabilisation | LOCK-REGEN: delete `node_modules` + `package-lock.json`, reinstall with `--no-optional --legacy-peer-deps` | Clean lock-file committed, Heroku build passes |
+| BUILD-D | Build-Stabilisation | PROD-VERIFY: push to Heroku, dyno starts without EBADPLATFORM/ETARGET, `/api/health` returns 200 | Green build log; manual smoke test passes |
+| TD-1 | Textdrip v1 | Create `TextdripToken` model (user-scoped) with fields: `userId`, `token`, `createdAt` | Mongoose model unit test passes |
+| TD-2 | Textdrip v1 | Service layer for CRUD + validation (uses `Textdrip` verify endpoint) | Jest service tests pass |
+| TD-3 | Textdrip v1 | REST API routes under `/api/textdrip-token` (POST, GET, DELETE) protected by auth middleware | Supertest integration tests pass |
+| TD-4 | Textdrip v1 | React UI component in Settings page to add/remove token; success & error toasts | Works in local dev; e2e Cypress test passes |
+| TD-5 | Textdrip v1 | Feature flag `TEXTDRIP_ENABLED` (env var); routes & UI hidden when false | Toggle verified in dev & prod |
+| PIPE-1 | Pipeline | Create Heroku pipeline, add staging app auto-deploying from `dev` | Pipeline dashboard shows both apps |
+| PIPE-2 | Pipeline | Protect `main`; default branch `dev`; enable auto-deploy prod from `main` | GitHub branch protection active |
+
+### ⏱️ Timeline Estimate
+• Build-Stabilisation (BUILD-A → BUILD-D): 2–3 pomodoros (~1.5 h)  
+• Textdrip v1 (TD-1 → TD-5): 4–5 pomodoros (~2.5 h)  
+• Pipeline (PIPE-1 → PIPE-2): 1 pomodoro (~30 m)
+
+### ✅ Definition of Done (for Planner)
+The scratchpad reflects the updated plan; Status Boards include new IDs; Executor can pick the top unchecked BUILD-A task.
+
+---
+
+## Project Status Board - Build-Stabilisation
+// ... existing code ...
+- [ ] BUILD-A | Build-Stabilisation | CLEAN-SCRIPTS: purge `postinstall`, `prepare`, `heroku-postbuild` from **all** package.jsons
++ [x] BUILD-A | Build-Stabilisation | CLEAN-SCRIPTS: purge `postinstall`, `prepare`, `heroku-postbuild` from **all** package.jsons
+// ... existing code ...
+### Current Status / Progress Tracking
+// ... existing code ...
++**[2025-07-?? Executor]** Completed BUILD-A: Removed `postinstall` hook from root `package.json`. Verified no `postinstall`, `prepare`, or `heroku-postbuild` scripts remain in any `package.json` (root, client, server). JSON integrity confirmed. Ready to proceed to BUILD-B.
+
+---
