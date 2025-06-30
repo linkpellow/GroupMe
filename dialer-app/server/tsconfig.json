@@ -2,33 +2,18 @@
   "compilerOptions": {
     "target": "es2020",
     "module": "commonjs",
-    "lib": ["es2020"],
-    "declaration": true,
-    "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "noImplicitThis": false,
-    "alwaysStrict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": false,
-    "noFallthroughCasesInSwitch": false,
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "noEmitOnError": false,
+    "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
-    },
-    "typeRoots": ["./src/types", "./node_modules/@types"]
+    }
   },
-  "include": ["src/**/*", "../shared/**/*"],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "../shared/**/*"]
 }
