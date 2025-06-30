@@ -41,13 +41,12 @@ const GroupMeOAuthCallback: React.FC = () => {
       if (accessToken) {
         await groupMeOAuthService.saveAccessToken(accessToken);
       } else {
-        // Fallback: Legacy code flow (rare)
-        const code = searchParams.get('code');
-        if (code) {
-          await groupMeOAuthService.handleOAuthCode(code, state);
-        } else {
-          throw new Error('No access token or code provided');
-        }
+        // Implicit flow failed – GroupMe returned a code but no token.
+        // Surface helpful message and stop.
+        throw new Error(
+          'GroupMe did not return an access token (only an authorization code). ' +
+          'This app currently supports the token-based flow only. Please try the "Enter Access Token Manually" option.'
+        );
       }
 
       setSuccess(true);
