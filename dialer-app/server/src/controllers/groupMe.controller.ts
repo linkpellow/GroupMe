@@ -556,7 +556,8 @@ export const getGroups = asyncHandler(
 
     try {
       console.log('Fetching groups for user:', userId);
-      const apiGroups = await service.getGroups();
+      // Use any type for the raw API response since it doesn't match our interface
+      const apiGroups = await service.getGroups() as any[];
       console.log(`Retrieved ${apiGroups.length} groups from GroupMe API`);
       
       // If we got groups from the API, save them to the user's GroupMe config
@@ -566,12 +567,9 @@ export const getGroups = asyncHandler(
           // Store the groups in the user's config for future use
           const groupsMap: Record<string, string> = {};
           apiGroups.forEach(group => {
-            // Handle both possible property name formats
-            const groupId = group.id || group.group_id || group.groupId;
-            const groupName = group.name || group.groupName;
-            
-            if (groupId && groupName) {
-              groupsMap[groupId] = groupName;
+            // The raw API response has id and name properties
+            if (group.id && group.name) {
+              groupsMap[group.id] = group.name;
             }
           });
           
@@ -586,23 +584,14 @@ export const getGroups = asyncHandler(
         }
       }
       
-      // Format the groups to match the expected structure
-      const formattedGroups = apiGroups.map(group => {
-        // Handle both possible property name formats
-        const groupId = group.id || group.group_id || group.groupId;
-        const groupName = group.name || group.groupName;
-        const imageUrl = group.image_url;
-        const lastMessage = group.last_message;
-        const messagesCount = group.messages_count;
-        
-        return {
-          groupId,
-          groupName,
-          image_url: imageUrl,
-          last_message: lastMessage,
-          messages_count: messagesCount
-        };
-      });
+      // Format the groups to match the expected structure in the frontend
+      const formattedGroups = apiGroups.map(group => ({
+        groupId: group.id,
+        groupName: group.name,
+        image_url: group.image_url,
+        last_message: group.messages?.preview,
+        messages_count: group.messages?.count
+      }));
       
       sendSuccess(res, formattedGroups);
     } catch (error) {
