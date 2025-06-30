@@ -16,7 +16,7 @@ export const developmentConfig = {
 
   // GroupMe settings
   groupMe: {
-    clientId: process.env.GROUPME_CLIENT_ID || 'm30BXQSEw03mzZK0ZfzDGQqqp8LXHRT2MiZNWWCeC7jmBSAx',
+    clientId: process.env.GROUPME_CLIENT_ID || '6sdc8GOrrAhoOmTAkdVjArldmIfHfnJh5FivtUulrGEgXw66',
     redirectUri:
       process.env.GROUPME_REDIRECT_URI ||
       (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/groupme/callback` : 'http://localhost:5173/groupme/callback'),

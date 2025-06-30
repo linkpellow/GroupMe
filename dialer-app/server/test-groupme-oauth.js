@@ -22,9 +22,11 @@ let open;
 
 // Configuration
 const CONFIG = {
-  clientId: process.env.GROUPME_CLIENT_ID || 'm30BXQSEw03mzZK0ZfzDGQqqp8LXHRT2MiZNWWCeC7jmBSAx',
-  redirectUri: process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback',
-  apiUrl: 'https://api.groupme.com/v3',
+  groupMe: {
+    clientId: process.env.GROUPME_CLIENT_ID || '6sdc8GOrrAhoOmTAkdVjArldmIfHfnJh5FivtUulrGEgXw66',
+    redirectUri: process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback',
+    apiUrl: 'https://api.groupme.com/v3',
+  },
 };
 
 // Test results storage
@@ -60,11 +62,11 @@ async function testOAuthUrl() {
   log('Testing OAuth URL generation...', 'info');
   
   const state = crypto.randomBytes(16).toString('hex');
-  const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CONFIG.clientId}&redirect_uri=${encodeURIComponent(CONFIG.redirectUri)}&response_type=token&state=${state}`;
+  const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CONFIG.groupMe.clientId}&redirect_uri=${encodeURIComponent(CONFIG.groupMe.redirectUri)}&response_type=token&state=${state}`;
   
   addResult(
     'OAuth URL',
-    authUrl.includes(CONFIG.clientId) && authUrl.includes(encodeURIComponent(CONFIG.redirectUri)),
+    authUrl.includes(CONFIG.groupMe.clientId) && authUrl.includes(encodeURIComponent(CONFIG.groupMe.redirectUri)),
     `Generated URL: ${authUrl}`
   );
   
@@ -76,14 +78,14 @@ async function testGroupMeAPI(accessToken) {
   
   try {
     // Test 1: Get user info
-    const userResponse = await axios.get(`${CONFIG.apiUrl}/users/me`, {
+    const userResponse = await axios.get(`${CONFIG.groupMe.apiUrl}/users/me`, {
       headers: { 'X-Access-Token': accessToken }
     });
     
     addResult('Get User Info', true, `User: ${userResponse.data.response.name}`);
     
     // Test 2: Get groups
-    const groupsResponse = await axios.get(`${CONFIG.apiUrl}/groups`, {
+    const groupsResponse = await axios.get(`${CONFIG.groupMe.apiUrl}/groups`, {
       headers: { 'X-Access-Token': accessToken }
     });
     
@@ -94,7 +96,7 @@ async function testGroupMeAPI(accessToken) {
     if (groupCount > 0) {
       const firstGroup = groupsResponse.data.response[0];
       const messagesResponse = await axios.get(
-        `${CONFIG.apiUrl}/groups/${firstGroup.id}/messages`,
+        `${CONFIG.groupMe.apiUrl}/groups/${firstGroup.id}/messages`,
         {
           headers: { 'X-Access-Token': accessToken },
           params: { limit: 5 }

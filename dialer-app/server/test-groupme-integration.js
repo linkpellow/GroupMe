@@ -1,8 +1,9 @@
 const axios = require('axios');
+require('dotenv').config();
 
 // Set environment variables
 process.env.JWT_SECRET = 'lkj234lkjfdslkj234lkjadsflkjfdaslkjfdalskdfj';
-process.env.GROUPME_CLIENT_ID = 'm30BXQSEw03mzZK0ZfzDGQqqp8LXHRT2MiZNWWCeC7jmBSAx';
+process.env.GROUPME_CLIENT_ID = '6sdc8GOrrAhoOmTAkdVjArldmIfHfnJh5FivtUulrGEgXw66';
 process.env.GROUPME_REDIRECT_URI = 'http://localhost:5173/groupme/callback';
 process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/dialer';
