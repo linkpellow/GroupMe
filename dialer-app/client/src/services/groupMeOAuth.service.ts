@@ -122,15 +122,15 @@ class GroupMeOAuthService {
   /**
    * Handle OAuth callback
    */
-  async handleOAuthCallback(accessToken: string, state: string): Promise<void> {
+  async handleOAuthCallback(code: string, state: string): Promise<void> {
     console.log('=== groupMeOAuthService.handleOAuthCallback ===');
-    console.log('Access token received:', accessToken ? 'Yes' : 'No');
-    console.log('Access token length:', accessToken?.length);
+    console.log('Code received:', code ? 'Yes' : 'No');
+    console.log('Code length:', code?.length);
     console.log('State received:', state);
     
-    if (!accessToken) {
-      console.error('No access token provided to handleOAuthCallback');
-      throw new Error('No access token provided');
+    if (!code) {
+      console.error('No code provided to handleOAuthCallback');
+      throw new Error('No authorization code provided');
     }
     
     if (!state) {
@@ -142,12 +142,12 @@ class GroupMeOAuthService {
       // Use the non-authenticated API for the callback
       console.log('Making POST request to /groupme/oauth/callback');
       console.log('Request payload:', { 
-        access_token: accessToken ? `${accessToken.substring(0, 10)}...` : null,
+        code: code ? `${code.substring(0, 10)}...` : null,
         state 
       });
       
       const response = await oauthAxios.post('/api/groupme/oauth/callback', {
-        access_token: accessToken,
+        code: code,
         state: state,
       });
       

@@ -17,6 +17,7 @@ const GroupMeOAuthCallback: React.FC = () => {
     console.log('=== GroupMe OAuth Callback Page ===');
     console.log('Full URL:', window.location.href);
     console.log('Hash:', window.location.hash);
+    console.log('Search:', window.location.search);
     
     // Enhanced debug info
     const debugData = {
@@ -29,15 +30,15 @@ const GroupMeOAuthCallback: React.FC = () => {
     setDebugInfo(JSON.stringify(debugData, null, 2));
     
     try {
-      // GroupMe returns the token in the URL fragment (after #)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const state = hashParams.get('state');
-      const error = hashParams.get('error');
-      const errorDescription = hashParams.get('error_description');
+      // GroupMe returns the code in the query string (after ?)
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get('code');
+      const state = searchParams.get('state');
+      const error = searchParams.get('error');
+      const errorDescription = searchParams.get('error_description');
 
       console.log('Parsed parameters:');
-      console.log('- access_token:', accessToken ? 'Present' : 'Missing');
+      console.log('- code:', code ? 'Present' : 'Missing');
       console.log('- state:', state);
       console.log('- error:', error);
       console.log('- error_description:', errorDescription);
@@ -49,9 +50,9 @@ const GroupMeOAuthCallback: React.FC = () => {
         return;
       }
 
-      if (!accessToken) {
-        console.error('No access token in URL');
-        setError('No access token received from GroupMe. Please check that you authorized the application.');
+      if (!code) {
+        console.error('No code in URL');
+        setError('No authorization code received from GroupMe. Please check that you authorized the application.');
         setIsProcessing(false);
         return;
       }
@@ -63,9 +64,9 @@ const GroupMeOAuthCallback: React.FC = () => {
         return;
       }
 
-      console.log('Sending token to backend...');
-      // Send the token to the backend
-      await groupMeOAuthService.handleOAuthCallback(accessToken, state);
+      console.log('Sending code to backend...');
+      // Send the code to the backend
+      await groupMeOAuthService.handleOAuthCallback(code, state);
       
       console.log('OAuth callback successful, token saved.');
       // Persist sidebar to Page 2 (index 1) so chat panel is visible when the user returns
