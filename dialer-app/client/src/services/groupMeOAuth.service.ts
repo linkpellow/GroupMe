@@ -4,7 +4,7 @@ import axios from 'axios';
 // This is used only for endpoints that don't require authentication (callback, status)
 const oauthAxios = axios.create({
   baseURL: '',
-  withCredentials: false,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
