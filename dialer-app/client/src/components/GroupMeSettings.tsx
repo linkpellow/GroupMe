@@ -42,13 +42,14 @@ const GroupMeSettings = () => {
   useEffect(() => {
     checkConnectionStatus();
 
-    // Handle OAuth callback
-    const urlParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = urlParams.get('access_token');
-    const state = urlParams.get('state');
+    // GroupMe may return access_token in query or hash.
+    const urlHash = new URLSearchParams(window.location.hash.substring(1));
+    const urlQuery = new URLSearchParams(window.location.search);
 
-    if (accessToken && state) {
-      handleOAuthCallback(accessToken, state);
+    const accessToken = urlQuery.get('access_token') || urlHash.get('access_token');
+
+    if (accessToken) {
+      handleImplicitCallback(accessToken);
     }
   }, []);
 
@@ -64,13 +65,20 @@ const GroupMeSettings = () => {
     }
   };
 
-  const handleOAuthCallback = async (accessToken: string, state: string) => {
+  // Handle implicit callback (token directly)
+  const handleImplicitCallback = async (accessToken: string) => {
     setIsConnecting(true);
     try {
-      await groupMeOAuthService.handleOAuthCallback(accessToken, state);
+      await groupMeOAuthService.saveAccessToken(accessToken);
 
-      // Clear the URL hash
-      window.location.hash = '';
+      // Remove sensitive token from URL (both hash and query)
+      if (window.history.replaceState) {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState(null, '', cleanUrl);
+      } else {
+        // Fallback: clear hash if replaceState not available
+        window.location.hash = '';
+      }
 
       toast({
         title: 'Connected Successfully',

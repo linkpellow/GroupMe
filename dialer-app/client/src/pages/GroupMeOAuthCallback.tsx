@@ -32,16 +32,22 @@ const GroupMeOAuthCallback: React.FC = () => {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const searchParams = new URLSearchParams(window.location.search);
 
-      const accessToken = hashParams.get('access_token');
-      const code = searchParams.get('code');
+      // GroupMe implicit flow may deliver the token in either query or hash.
+      const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
+
+      // Keep reading state for optional CSRF verification / logging
       const state = searchParams.get('state') || hashParams.get('state') || '';
 
       if (accessToken) {
-        await groupMeOAuthService.handleOAuthCallback(accessToken, state);
-      } else if (code) {
-        await groupMeOAuthService.handleOAuthCode(code, state);
+        await groupMeOAuthService.saveAccessToken(accessToken);
       } else {
-        throw new Error('No access token or code provided');
+        // Fallback: Legacy code flow (rare)
+        const code = searchParams.get('code');
+        if (code) {
+          await groupMeOAuthService.handleOAuthCode(code, state);
+        } else {
+          throw new Error('No access token or code provided');
+        }
       }
 
       setSuccess(true);
