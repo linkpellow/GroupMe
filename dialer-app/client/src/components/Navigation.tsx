@@ -300,7 +300,6 @@ const Navigation: React.FC = () => {
 
   const menuPages = [
     [
-      { title: 'Leads', path: '/leads', icon: FaClipboard },
       { title: 'Clients', path: '/clients', icon: FaUserTie },
       { title: 'GMAIL', path: '/gmail', icon: FaEnvelope },
       { title: 'Spreadsheet', path: '/spreadsheet', icon: FaTable },
