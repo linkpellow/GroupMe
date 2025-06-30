@@ -140,7 +140,7 @@ export default function Login() {
         await register(name, email, password);
         
         console.log('Registration successful - user automatically logged in');
-        
+
         // Small delay to show success message
         setTimeout(() => {
           // Navigate to leads after successful registration and auto-login
@@ -153,7 +153,7 @@ export default function Login() {
         try {
           // Use AuthContext login function
           const result = await login(email, password);
-          
+
           if (result.success) {
             console.log('Login successful');
             // Navigate to leads after successful login
@@ -219,8 +219,8 @@ export default function Login() {
           className="login__logo"
           style={{ marginBottom: '0.5rem', width: '120px' }}
         />
-        <img
-          src="/images/CROKODIAL-TITLE-LOGO.png"
+            <img
+              src="/images/CROKODIAL-TITLE-LOGO.png"
           alt="Crokodial logo"
           className="login__logo"
         />
@@ -246,7 +246,7 @@ export default function Login() {
         {successMessage && (
           <div className="login__success">
             <p className="login__success-message">{successMessage}</p>
-          </div>
+        </div>
         )}
 
         <form onSubmit={handleSubmit} className="login__form">
@@ -257,22 +257,22 @@ export default function Login() {
                 type="text"
                 autoComplete="name"
                 required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 className="login__input"
                 disabled={loading}
-              />
+                />
             </label>
-          )}
+            )}
 
           <label className="login__label">
             Email
             <input
-              type="email"
+                type="email"
               autoComplete={isSignUp ? "email" : "email"}
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               className="login__input"
               disabled={loading}
             />
@@ -284,8 +284,8 @@ export default function Login() {
               type="password"
               autoComplete={isSignUp ? "new-password" : "current-password"}
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
               className="login__input"
               disabled={loading}
             />
@@ -319,8 +319,8 @@ export default function Login() {
               </div>
               <div className={`login__strength-item ${passwordValidation.number ? 'login__strength-valid' : ''}`}>
                 {passwordValidation.number ? '✓' : '○'} One number
-              </div>
-            </div>
+          </div>
+          </div>
           )}
 
           <button type="submit" className="login__btn" disabled={loading}>
@@ -347,7 +347,7 @@ export default function Login() {
               {isSignUp ? "Sign in" : "Sign up"}
             </button>
           </p>
-        </div>
+      </div>
 
         <p className="login__footer">
           © {new Date().getFullYear()} Crokodial. All rights reserved.

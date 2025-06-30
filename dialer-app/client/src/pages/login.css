@@ -474,7 +474,7 @@ html,
     max-width: none;
     box-shadow: none;
   }
-
+  
   .passcode-actions {
     flex-direction: column;
   }

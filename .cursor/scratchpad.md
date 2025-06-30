@@ -2490,3 +2490,77 @@ Status: ☐ pending – ready for executor once approved.
 ---
 
 **[2025-07-?? Executor]** Implemented GM-AUTO: Chat now auto-selects first group once groups list loads (GroupMeChat effect). Removed manual "Fetch Groups" button and updated help text in settings; groups are already auto-fetched via context. Spinner remains during init. Ready for verification.
+
+## 🔍 PLANNER TRIPLE-CHECK AUDIT — 30 Jun 2025
+
+### Scope of Review
+1. GroupMe OAuth end-to-end flow (frontend + backend)
+2. Server start path & build output alignment
+3. CORS & cookie settings for OAuth callback
+4. Remaining deploy warnings (slug size, dev-only diag script)
+
+### Findings ─ ✅ Verified
+• **Frontend**: `dialer-app/client/src/services/groupMeOAuth.service.ts` now instantiates `oauthAxios` with `withCredentials: true` which ensures the `groupme_state` HttpOnly cookie is forwarded during the `/api/groupme/oauth/callback` POST.
+• **Callback Page**: Route `/groupme/callback` loads `GroupMeOAuthCallback` component which parses `access_token` & `state`, then calls `groupMeOAuthService.handleOAuthCallback()`.
+• **Backend**:
+  – `/api/groupme/oauth/initiate` sets `groupme_state` cookie with `SameSite=Lax`, `secure=true` (prod) ✓.
+  – `/api/groupme/oauth/callback` successfully decodes `state`, validates token, encrypts & stores it on the user document ✓.
+  – `corsOptions.credentials=true` and allowed origins include `https://crokodial.com` ✓.
+• **Start Script**: Procfile → `npm run start:server` → `node dialer-app/server/dist/server/src/index.js`.  `tsconfig.json` outputs to `dialer-app/server/dist`, path exists with compiled `index.js` ✓.
+
+### Findings ─ ⚠️ Not Blocking but Worth Addressing Soon
+1. **Slug size** still ~377 MB ⇒ soft warning.  `BUILD-1b Shrink slug` remains open.
+2. `root package.json` `postbuild` diag script still checks for `dist/index.js` (legacy path). Harmless but noisy → consider removing after slug optimisation.
+3. Four moderate/high npm vulnerabilities remain.  Low risk today but schedule `npm audit fix` once deploy is stable.
+
+### Action Items Added
+| ID | Task | Priority | Success Criteria |
+|----|------|----------|------------------|
+| QA-GM-PROD | Smoke-test GroupMe OAuth in production (incognito) | High | Connect → approve → lands on Leads with chat panel visible, `/api/groupme/oauth/status` returns `connected:true` |
+| BUILD-SLUG | Optimise slug (<300 MB) & drop postbuild diag script | Med | Heroku release logs show slug ≤300 MB, no postbuild diag output |
+
+### Project Status Board – Updates
+- [x] GM-COOKIE Fix Axios `withCredentials`
+- [ ] QA-GM-PROD (smoke-test)
+- [ ] BUILD-SLUG (optimise slug & clean scripts)
+
+### Planner Notes
+The critical cookie issue is resolved and code paths compile.  Proceed to run QA-GM-PROD before closing the epic.  Slug optimisation can be tackled subsequently without risking current functionality.
+
+## 🐞 BUG REPORT – GroupMeChat ReferenceError (Bt before initialization)
+
+### Summary
+Production is throwing:
+```
+ReferenceError: Cannot access 'Bt' before initialization
+    at wF (GroupMeChat.tsx:983)
+```
+Root cause: within `GroupMeChatComponent` we reference `sortedGroups` inside a `useEffect` **before** the `sortedGroups` constant is defined. Because `const` bindings are in TDZ until evaluation, the call to `useEffect(..., [sortedGroups])` triggers the ReferenceError during the initial render.
+
+### Technical Details
+Order today:
+1. Hooks & callbacks…
+2. `useEffect` auto-selects first group and **reads** `sortedGroups` ➜ line ≈820.
+3. Only later (~930) we compute:
+```ts
+const filteredGroups = …
+const sortedGroups = …
+```
+Accessing a `const` earlier in the function body is illegal → TDZ ➜ crash.
+
+### Fix Strategy
+Move the computation of `displayableGroups`, `filteredGroups`, `sortedGroups` **above** any hook that references them (or relocate the offending `useEffect` below the definitions). Simplest: shift the auto-select effect to after the sort section.
+
+### Task Breakdown
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| GM-FIX1 | Refactor `GroupMeChat.tsx` order so that `sortedGroups` is declared before use | No ReferenceError on prod; chat list auto-select still works |
+| GM-FIX2 | Add ESLint rule `no-use-before-define` (TS/JS/extensions) to catch this in future | `npm run lint` fails if a value ref appears before declaration |
+| GM-TEST | Smoke-test OAuth + chat in staging/prod | Component loads without error; first chat auto-opens |
+
+### Project Status Board – Updates
+- [ ] GM-FIX1 reorder declarations in `GroupMeChat.tsx`
+- [ ] GM-FIX2 add lint rule
+- [ ] GM-TEST verify in staging
+
+---

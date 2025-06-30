@@ -47,7 +47,8 @@ const secret_1 = require("../utils/secret");
 let groupMeServiceInstance = null;
 // OAuth Configuration
 const GROUPME_CLIENT_ID = process.env.GROUPME_CLIENT_ID || 'YOUR_CLIENT_ID';
-const GROUPME_REDIRECT_URI = process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback';
+const GROUPME_REDIRECT_URI = process.env.GROUPME_REDIRECT_URI ||
+    (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/groupme/callback` : 'http://localhost:5173/groupme/callback');
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 // Encryption helpers
 const ENCRYPTION_KEY = (0, secret_1.getEncryptionKey)();

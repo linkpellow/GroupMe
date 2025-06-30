@@ -2155,34 +2155,14 @@ export default function Leads() {
                 onChange={async (e) => {
                   e.stopPropagation();
                   const newDisposition = e.target.value;
-                  // Optimistic event so Clients list updates instantly
-                  if (newDisposition === 'SOLD') {
-                    window.dispatchEvent(
-                      new CustomEvent('dispositionChanged', {
-                        detail: {
-                          lead: { ...lead, disposition: 'SOLD' },
-                          leadId: lead._id,
-                          disposition: 'SOLD',
-                          optimistic: true,
-                        },
-                      })
-                    );
-                  }
-
                   try {
                     await axiosInstance.put(`/api/leads/${lead._id}`, {
                       disposition: newDisposition,
                     });
                     toast({ title: 'Disposition updated', status: 'success' });
-                    // refetch removed to avoid full-page spinner; UI already updated optimistically
+                    refetch();
                   } catch (err) {
                     toast({ title: 'Failed to update disposition', status: 'error' });
-                    // Rollback optimistic add if failed
-                    window.dispatchEvent(
-                      new CustomEvent('dispositionChanged', {
-                        detail: { leadId: lead._id, disposition: '', rollback: true },
-                      })
-                    );
                   }
                 }}
                 onClick={(e) => e.stopPropagation()}

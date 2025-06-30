@@ -69,16 +69,16 @@ const CrocLoader: React.FC<CrocLoaderProps> = ({ size = 48 }) => {
 
   // Default: try GIF first
   return (
-    <img
-      src="/ANIMATION/CROCLOAD.gif"
-      width={size}
-      height={size}
-      style={{ display: 'block', margin: '0 auto', objectFit: 'contain', pointerEvents: 'none' }}
-      alt="Loading..."
+  <img
+    src="/ANIMATION/CROCLOAD.gif"
+    width={size}
+    height={size}
+    style={{ display: 'block', margin: '0 auto', objectFit: 'contain', pointerEvents: 'none' }}
+    alt="Loading..."
       onError={handleImageError}
       onLoad={() => console.log('GIF animation loaded successfully')}
-    />
-  );
+  />
+);
 };
 
 export default CrocLoader; 

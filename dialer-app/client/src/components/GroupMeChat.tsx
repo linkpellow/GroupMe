@@ -507,6 +507,33 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const handleGroupSelectRef = useRef<(groupId: string | null) => void>();
 
+  // Cast to our expected type and compute derived values EARLY
+  const displayableGroups: DisplayableGroupMeGroup[] = (contextGroupsFromAPI ||
+    []) as DisplayableGroupMeGroup[];
+
+  // Filter groups based on search term
+  const filteredGroups = displayableGroups.filter((group) =>
+    group.groupName?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Sort groups: pinned first, then alphabetically by name
+  const sortedGroups = [...filteredGroups].sort((a, b) => {
+    const aPinned = isPinnedSafe(a.groupId);
+    const bPinned = isPinnedSafe(b.groupId);
+
+    // First sort by pinned status
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+
+    // Then sort alphabetically
+    return a.groupName.localeCompare(b.groupName);
+  });
+
+  // Find the name of the currently selected group for the header
+  const currentSelectedGroupName = displayableGroups.find(
+    (g) => g.groupId === selectedGroup
+  )?.groupName;
+
   const handleConnectGroupMe = async () => {
     if (!user?.id) {
       toast({ title: 'Not logged in', description: 'Please log in again.', status: 'error', duration: 4000 });
@@ -994,10 +1021,6 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
     );
   }
 
-  // Cast to our expected type
-  const displayableGroups: DisplayableGroupMeGroup[] = (contextGroupsFromAPI ||
-    []) as DisplayableGroupMeGroup[];
-
   // Add an emergency direct selection function for testing
   const emergencySelectGroup = (index: number) => {
     console.log('EMERGENCY: Trying direct group selection by index', index);
@@ -1015,29 +1038,6 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
       );
     }
   };
-
-  // Filter groups based on search term
-  const filteredGroups = displayableGroups.filter((group) =>
-    group.groupName?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Find the name of the currently selected group for the header
-  const currentSelectedGroupName = displayableGroups.find(
-    (g) => g.groupId === selectedGroup
-  )?.groupName;
-
-  // Sort groups: pinned first, then alphabetically by name
-  const sortedGroups = [...filteredGroups].sort((a, b) => {
-    const aPinned = isPinnedSafe(a.groupId);
-    const bPinned = isPinnedSafe(b.groupId);
-
-    // First sort by pinned status
-    if (aPinned && !bPinned) return -1;
-    if (!aPinned && bPinned) return 1;
-
-    // Then sort alphabetically
-    return a.groupName.localeCompare(b.groupName);
-  });
 
   // Render the component
   return (
