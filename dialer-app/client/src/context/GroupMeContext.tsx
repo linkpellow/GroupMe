@@ -407,11 +407,12 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
               received.code,
             );
             
-            // Handle JWT token mismatch
             if (received.code === "TOKEN_MISMATCH" || received.code === "INVALID_TOKEN") {
-              console.error("JWT token mismatch detected, clearing auth data");
-              clearAllAuthData();
-              window.location.href = "/login";
+              console.warn("JWT token mismatch detected (dev mode safeguard)");
+              if (process.env.NODE_ENV === "production") {
+                clearAllAuthData();
+                window.location.href = "/login";
+              }
             }
             
             // Don't reconnect on auth failure
