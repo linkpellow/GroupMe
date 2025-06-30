@@ -118,7 +118,7 @@ export const initiateOAuth = asyncHandler(async (req: Request, res: Response): P
   // Use /oauth/authorize with response_type=token so the front-end receives access_token directly.
   const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
     REDIRECT_URI
-  )}&state=${state}`;
+  )}&response_type=token&state=${state}`;
 
   sendSuccess(res, { authUrl, state });
 });
