@@ -114,7 +114,9 @@ export const initiateOAuth = asyncHandler(async (req: Request, res: Response): P
     maxAge: 10 * 60 * 1000, // 10 minutes
   });
 
-  const authUrl = `https://oauth.groupme.com/oauth/login_dialog?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${state}`;
+  const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
+    REDIRECT_URI
+  )}&response_type=token&state=${state}`;
 
   sendSuccess(res, { authUrl, state });
 });
