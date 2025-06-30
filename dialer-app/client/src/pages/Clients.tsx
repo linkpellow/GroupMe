@@ -52,6 +52,7 @@ import {
   FaClipboardList,
   FaCheck,
   FaExclamationCircle,
+  FaTrashAlt,
 } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { useDropzone } from 'react-dropzone';
@@ -323,64 +324,9 @@ const Clients: React.FC = () => {
     setFilteredClients(results);
   }, [searchQuery, clients]);
 
-  // Listen for disposition changes to keep SOLD list in sync
-  useEffect(() => {
-    const handleDispositionChanged = (e: CustomEvent) => {
-      const { leadId, disposition, lead: fullLead, optimistic, rollback } = e.detail || {};
-      if (!leadId) return;
-
-      if (rollback) {
-        // Remove any optimistic entry
-        setClients((prev) => prev.filter((c) => c._id !== leadId));
-        setFilteredClients((prev) => prev.filter((c) => c._id !== leadId));
-        return;
-      }
-
-      if (disposition === 'SOLD') {
-        // Add or update
-        setClients((prev) => {
-          const exists = prev.find((c) => c._id === leadId);
-          if (exists) return prev;
-          if (fullLead) return [fullLead as Client, ...prev];
-          // fallback fetch once to ensure list
-          refreshClients();
-          return prev;
-        });
-        setFilteredClients((prev) => {
-          const exists = prev.find((c) => c._id === leadId);
-          if (exists) return prev;
-          if (fullLead) return [fullLead as Client, ...prev];
-          return prev;
-        });
-      } else {
-        // Remove lead from list if present
-        setClients((prev) => prev.filter((c) => c._id !== leadId));
-        setFilteredClients((prev) => prev.filter((c) => c._id !== leadId));
-        if (selectedClient && selectedClient._id === leadId) {
-          setSelectedClient(null);
-        }
-      }
-    };
-    window.addEventListener('dispositionChanged', handleDispositionChanged as EventListener);
-    return () => {
-      window.removeEventListener('dispositionChanged', handleDispositionChanged as EventListener);
-    };
-  }, [clients, refreshClients, selectedClient]);
-
   // Initial fetch on component mount
   useEffect(() => {
     refreshClients();
-  }, [refreshClients]);
-
-  // Temporary: poll for new SOLD leads for first 10 seconds after mount
-  useEffect(() => {
-    let elapsed = 0;
-    const interval = setInterval(() => {
-      elapsed += 2000;
-      refreshClients();
-      if (elapsed >= 10000) clearInterval(interval);
-    }, 2000);
-    return () => clearInterval(interval);
   }, [refreshClients]);
 
   const handleViewDetails = (client: Client) => {
@@ -648,6 +594,28 @@ const Clients: React.FC = () => {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
+
+  // Remove client by setting disposition to ""
+  const handleRemoveClient = async (clientId: string) => {
+    try {
+      // Optimistically remove from UI
+      setClients((prev) => prev.filter((c) => c._id !== clientId));
+      setFilteredClients((prev) => prev.filter((c) => c._id !== clientId));
+
+      await axiosInstance.patch(`/api/leads/${clientId}`, { disposition: '' });
+    } catch (err) {
+      console.error('Failed to remove client', err);
+      toast({ title: 'Error', description: 'Could not update disposition', status: 'error', duration: 3000 });
+      // Re-fetch to restore consistency
+      refreshClients();
+    }
+  };
+
+  // Periodic refresh every 30s to keep in sync with disposition changes
+  useEffect(() => {
+    const id = setInterval(refreshClients, 30000);
+    return () => clearInterval(id);
+  }, [refreshClients]);
 
   return (
     <Box bg={bgColor} minHeight="100vh">
@@ -1034,39 +1002,28 @@ const Clients: React.FC = () => {
                     </CardBody>
 
                     <CardFooter pt={0}>
-                      <HStack width="full" spacing={2}>
-                        <Button
-                          onClick={() => handleViewDetails(client)}
-                          colorScheme="orange"
-                          color="white"
-                          size="sm"
-                          width="full"
-                        >
-                          View Details
-                        </Button>
-                        <IconButton
-                          aria-label="Remove client"
-                          icon={<FaTrash />}
-                          size="sm"
-                          colorScheme="red"
-                          variant="outline"
-                          onClick={async () => {
-                            if (!window.confirm('Remove this client from the list?')) return;
-                            try {
-                              await axiosInstance.put(`/api/leads/${client._id}`, { disposition: '' });
-                              // Broadcast change
-                              window.dispatchEvent(
-                                new CustomEvent('dispositionChanged', {
-                                  detail: { leadId: client._id, disposition: '' },
-                                })
-                              );
-                              toast({ title: 'Client removed', status: 'success', duration: 1500 });
-                            } catch (err) {
-                              toast({ title: 'Failed to remove', status: 'error' });
-                            }
-                          }}
-                        />
-                      </HStack>
+                      <Button
+                        onClick={() => handleViewDetails(client)}
+                        colorScheme="orange"
+                        color="white"
+                        size="sm"
+                        width="full"
+                      >
+                        View Details
+                      </Button>
+                      <IconButton
+                        aria-label="Remove client"
+                        icon={<FaTrash />}
+                        size="sm"
+                        variant="ghost"
+                        position="absolute"
+                        bottom="2"
+                        right="2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveClient(client._id);
+                        }}
+                      />
                     </CardFooter>
                   </Card>
                 ))}

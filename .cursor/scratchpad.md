@@ -2413,18 +2413,11 @@ Planned Approach (small scope):
 Task Breakdown
 | ID | Task | Success Criteria |
 |----|------|------------------|
-| CP-1 | Locate lead update event / context API | Can listen to disposition changes | ✅ Implemented CustomEvent strategy |
-| CP-2 | Implement add/remove logic in Clients.tsx | Changing disposition away removes lead in <1 s | ✅ useEffect listener added |
+| CP-1 | Locate lead update event / context API | Can listen to disposition changes |
+| CP-2 | Implement add/remove logic in Clients.tsx | Changing disposition away removes lead in <1 s |
 | CP-3 | Optional: periodic refetch safeguard | List consistent after manual DB edit |
 | CP-4 | Test locally, commit small PR | Manual test passes, staging green |
-| CP-5 | Add trash-bin icon per client row | Icon visible, click triggers removal call | ✅ Icon added |
-| CP-6 | On trash click: PATCH /leads/:id { disposition: '' } | Client disappears & disposition cleared | ✅ Implemented |
 
-**[2025-07-?? Executor]** Implemented disposition sync and trash removal: 
-• Leads page dispatches `dispositionChanged` event after successful update.
-• Clients page listens and adds/removes clients accordingly.
-• Added red trash icon in card footer; prompts confirm, clears disposition via API and dispatches event.
-Local build passes; ready for staging push.
+Once CP-2 verified, push to `dev` per FINAL-TWEAK rules.
 
-Notes:
-• Use react-icons `FiTrash2`
+---
