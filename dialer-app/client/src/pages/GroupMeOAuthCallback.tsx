@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Spinner, Text, Alert, AlertIcon, VStack, Button, Code } from '@chakra-ui/react';
-import { groupMeOAuthService } from '../services/groupMeOAuthService';
+import { groupMeOAuthService } from '../services/groupMeOAuth.service';
 
 const GroupMeOAuthCallback: React.FC = () => {
   const navigate = useNavigate();

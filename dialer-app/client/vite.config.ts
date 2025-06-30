@@ -2,18 +2,19 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-// Force WASM-only mode for Rollup to avoid native binary issues
+// Force WASM-only mode for Rollup
 process.env.ROLLUP_NO_NATIVE = 'true';
 process.env.ROLLUP_WASM = 'true';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  plugins: [react()],
   server: {
     port: 5173,
     strictPort: true,
     host: '0.0.0.0',
     cors: true,
-    hmr: false, // Disable HMR completely to avoid babel issues
+    hmr: false, // Disable HMR to avoid potential issues
     proxy: {
       '/api': {
         target: 'http://localhost:3005',
@@ -26,15 +27,10 @@ export default defineConfig({
               console.log('vite proxy error:', err);
             }
           });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            // Optional: comment out for less noisy logs
-            // console.log(`[VITE PROXY] Forwarding: ${req.method} ${req.url}`);
-          });
         },
       },
     },
   },
-  plugins: [react()],
   define: {
     global: 'globalThis',
   },
