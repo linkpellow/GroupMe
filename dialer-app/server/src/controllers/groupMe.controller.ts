@@ -556,18 +556,22 @@ export const getGroups = asyncHandler(
 
     try {
       console.log('Fetching groups for user:', userId);
-      const groups = await service.getGroups();
-      console.log(`Retrieved ${groups.length} groups from GroupMe API`);
+      const apiGroups = await service.getGroups();
+      console.log(`Retrieved ${apiGroups.length} groups from GroupMe API`);
       
       // If we got groups from the API, save them to the user's GroupMe config
-      if (groups.length > 0) {
+      if (apiGroups.length > 0) {
         const user = await User.findById(userId);
         if (user && user.groupMe && user.groupMe.accessToken) {
           // Store the groups in the user's config for future use
           const groupsMap: Record<string, string> = {};
-          groups.forEach(group => {
-            if (group.id && group.name) {
-              groupsMap[group.id] = group.name;
+          apiGroups.forEach(group => {
+            // Handle both possible property name formats
+            const groupId = group.id || group.group_id || group.groupId;
+            const groupName = group.name || group.groupName;
+            
+            if (groupId && groupName) {
+              groupsMap[groupId] = groupName;
             }
           });
           
@@ -583,13 +587,22 @@ export const getGroups = asyncHandler(
       }
       
       // Format the groups to match the expected structure
-      const formattedGroups = groups.map(group => ({
-        groupId: group.id || group.group_id,
-        groupName: group.name,
-        image_url: group.image_url,
-        last_message: group.messages?.preview,
-        messages_count: group.messages?.count
-      }));
+      const formattedGroups = apiGroups.map(group => {
+        // Handle both possible property name formats
+        const groupId = group.id || group.group_id || group.groupId;
+        const groupName = group.name || group.groupName;
+        const imageUrl = group.image_url;
+        const lastMessage = group.last_message;
+        const messagesCount = group.messages_count;
+        
+        return {
+          groupId,
+          groupName,
+          image_url: imageUrl,
+          last_message: lastMessage,
+          messages_count: messagesCount
+        };
+      });
       
       sendSuccess(res, formattedGroups);
     } catch (error) {
