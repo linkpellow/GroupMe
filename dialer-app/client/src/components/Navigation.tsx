@@ -316,6 +316,10 @@ const Navigation: React.FC = () => {
     ],
   ] as const;
 
+  const fixedItems = [
+    { title: 'Leads', path: '/leads', icon: FaClipboard },
+  ];
+
   const [menuPage, setMenuPage] = useState<number>(() => {
     const saved = localStorage.getItem('nav_menu_page');
     return saved ? Number(saved) % menuPages.length : 0;
@@ -329,7 +333,7 @@ const Navigation: React.FC = () => {
     });
   };
 
-  const navItems = menuPages[menuPage];
+  const navItems = [...fixedItems, ...menuPages[menuPage]];
 
   // CRM counter
   const { uniqueCount } = useCallCountsContext();
