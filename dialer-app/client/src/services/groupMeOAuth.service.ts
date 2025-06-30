@@ -200,6 +200,14 @@ class GroupMeOAuthService {
 
     await oauthAxios.post('/api/groupme/oauth/callback', { code, state });
   }
+
+  /**
+   * Save access token obtained via implicit flow
+   */
+  async saveAccessToken(token: string): Promise<void> {
+    if (!token) throw new Error('Missing GroupMe access token');
+    await authApi.post('/groupme/token', { access_token: token });
+  }
 }
 
 // Export singleton instance
