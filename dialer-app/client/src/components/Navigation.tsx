@@ -308,7 +308,7 @@ const Navigation: React.FC = () => {
       { title: 'Settings', path: '/settings', icon: FaCog },
     ],
     [
-      { title: 'Page One', path: '/page-one', icon: FaFile },
+      // Page 2 is now empty - GroupMe chat will be the only content here
     ],
     [
       { title: 'Page Two', path: '/page-two', icon: FaFileAlt },
