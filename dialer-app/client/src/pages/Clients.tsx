@@ -372,6 +372,17 @@ const Clients: React.FC = () => {
     refreshClients();
   }, [refreshClients]);
 
+  // Temporary: poll for new SOLD leads for first 10 seconds after mount
+  useEffect(() => {
+    let elapsed = 0;
+    const interval = setInterval(() => {
+      elapsed += 2000;
+      refreshClients();
+      if (elapsed >= 10000) clearInterval(interval);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [refreshClients]);
+
   const handleViewDetails = (client: Client) => {
     setSelectedClient(client);
   };
