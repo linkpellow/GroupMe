@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { authenticate as auth } from '../middleware/auth';
 import User from '../models/User';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Apply auth middleware
 router.use(auth);

@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { check } from 'express-validator';
 import { initiateCall, handleCallStatus, getCallHistory } from '../controllers/calls.controller';
 import { auth } from '../middleware/auth';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Validation middleware
 const callValidation = [

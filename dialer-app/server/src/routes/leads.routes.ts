@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { check } from 'express-validator';
+import { Router, check } from 'express-validator';
 import { auth, isAdmin } from '../middleware/auth';
 import LeadModel, { ILeadInput } from '../models/Lead';
 import { fetchUshaLeads } from '../services/ushaService';
@@ -20,7 +20,7 @@ import { HEADER_ALIASES } from '../utils/headerAliases';
 import { parseVendorCSV, getVendorDisplayName } from '../utils/csvParser';
 import { fixDob } from '../utils/fixDob';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Middleware to validate ObjectId format
 const validateObjectId = (req: Request, res: Response, next: NextFunction) => {

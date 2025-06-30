@@ -19,6 +19,7 @@
     "strictPropertyInitialization": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "noEmitOnError": false,
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "outDir": "./dist",

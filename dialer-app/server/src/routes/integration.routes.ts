@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { API_SID } from '../services/apiConfig';
 import { Router, Request, Response } from 'express';
 import { auth } from '../middleware/auth';
@@ -9,7 +9,7 @@ import { importRingyLeads } from '../services/ringyService';
 import { importLeads } from '../scripts/import-nextgen-leads';
 import UserModel from '../models/User';
 
-const router = Router();
+const router: Router = Router();
 
 interface NextGenLead {
   name: string;

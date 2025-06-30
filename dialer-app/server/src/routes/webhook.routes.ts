@@ -1,11 +1,11 @@
 import express, { Request, Response, NextFunction } from 'express';
 import Lead from '../models/Lead';
 import winston from 'winston';
-import { z } from 'zod';
+import { Router, z } from 'zod';
 import * as Sentry from '@sentry/node';
 import { broadcastNewLeadNotification } from '../index';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Winston logger configuration
 const logger = winston.createLogger({

@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Router, Request, Response } from 'express';
 import { createTextdripService } from '../services/textdripService';
 import LeadModel from '../models/Lead';
 import { auth } from '../middleware/auth';
@@ -6,7 +6,7 @@ import axios from 'axios';
 import UserModel from '../models/User';
 import { loginToTextDrip, getCampaigns } from '../services/textdripService';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * GET /api/textdrip/campaigns

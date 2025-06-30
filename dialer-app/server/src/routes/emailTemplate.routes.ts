@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { auth } from '../middleware/auth';
 import * as emailTemplateController from '../controllers/emailTemplate.controller';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Template CRUD routes
 router.post('/', auth, emailTemplateController.createTemplate);

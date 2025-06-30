@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { check } from 'express-validator';
+import { Router, check } from 'express-validator';
 import {
   register,
   login,
@@ -20,7 +20,7 @@ import { auth } from '../middleware/auth';
 import UserModel from '../models/User';
 import { passcodeValidationLimiter, passcodeConsumptionLimiter, adminPasscodeLimiter } from '../middleware/rateLimit';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Validation middleware
 const registerValidation = [
