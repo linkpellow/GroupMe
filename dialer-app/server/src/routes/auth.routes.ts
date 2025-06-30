@@ -1,5 +1,5 @@
-import express, { Router } from 'express';
-import { body } from 'express-validator';
+import express, { Request, Response, NextFunction, Router } from 'express';
+import { check } from 'express-validator';
 import {
   register,
   login,
@@ -16,7 +16,7 @@ import {
   deletePasscode,
   generatePasscode,
 } from '../controllers/passcode.controller';
-import { authenticate as auth } from '../middleware/auth';
+import { auth } from '../middleware/auth';
 import UserModel from '../models/User';
 import { passcodeValidationLimiter, passcodeConsumptionLimiter, adminPasscodeLimiter } from '../middleware/rateLimit';
 

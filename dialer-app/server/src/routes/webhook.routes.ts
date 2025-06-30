@@ -4,8 +4,6 @@ import winston from 'winston';
 import { z } from 'zod';
 import * as Sentry from '@sentry/node';
 import { broadcastNewLeadNotification } from '../index';
-import { authenticate as auth } from '../middleware/auth';
-import { validateRequest } from '../middleware/validateRequest';
 
 const router: Router = express.Router();
 

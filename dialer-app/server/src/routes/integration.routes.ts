@@ -1,8 +1,6 @@
-import { Router } from 'express';
-import { authenticate as auth } from '../middleware/auth';
-import * as integrationController from '../controllers/integration.controller';
+import express, { Router, Request, Response } from 'express';
 import { API_SID } from '../services/apiConfig';
-import { Router, Request, Response } from 'express';
+import { auth } from '../middleware/auth';
 import Lead from '../models/Lead';
 import { validateApiKey } from '../config/apiKeys';
 import { fetchUshaLeads } from '../services/ushaService';

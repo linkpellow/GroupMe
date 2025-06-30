@@ -1,6 +1,6 @@
-import express, { Router } from 'express';
-import { body, param, query } from 'express-validator';
-import { authenticate as auth } from '../middleware/auth';
+import express, { Request, Response, NextFunction, Router } from 'express';
+import { check } from 'express-validator';
+import { auth, isAdmin } from '../middleware/auth';
 import LeadModel, { ILeadInput } from '../models/Lead';
 import { fetchUshaLeads } from '../services/ushaService';
 import { syncNextGenLeads } from '../services/nextgenService';

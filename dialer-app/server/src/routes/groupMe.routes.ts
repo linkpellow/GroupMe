@@ -1,10 +1,10 @@
-import express, { Router } from 'express';
+import express from 'express';
 import { authenticate as auth } from '../middleware/auth';
 import * as groupMeController from '../controllers/groupMe.controller';
 import User from '../models/User';
 import GroupMeConfigModel from '../models/GroupMeConfig';
 
-const router: Router = express.Router();
+const router = express.Router();
 
 // OAuth routes that DO NOT require authentication
 router.post('/oauth/callback', groupMeController.handleOAuthCallback);
