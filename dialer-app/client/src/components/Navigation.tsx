@@ -557,7 +557,7 @@ const Navigation: React.FC = () => {
         </Flex>
 
         {/* GroupMe Chat Area - always present at the bottom of expanded sidebar */}
-        {!isSidebarCollapsed && user && (
+        {!isSidebarCollapsed && user && menuPage === 1 && (
           <>
             <Divider borderColor="rgba(255,255,255,0.2)" my={2} />
             <Box flexGrow={1} w="100%" overflowY="auto" pl={2} pr={2} pb={2} position="relative">
