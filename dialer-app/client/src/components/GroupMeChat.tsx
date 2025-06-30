@@ -974,6 +974,14 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
     };
   }, []);
 
+  // Auto-select first group once groups are loaded
+  useEffect(() => {
+    if (!selectedGroup && sortedGroups.length > 0) {
+      console.log('GroupMeChat: auto-selecting first group', sortedGroups[0].groupId);
+      handleGroupSelect(sortedGroups[0].groupId);
+    }
+  }, [selectedGroup, sortedGroups, handleGroupSelect]);
+
   // Handle component in not-configured state
   if (!config || !config.accessToken) {
     return (

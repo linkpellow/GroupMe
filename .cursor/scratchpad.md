@@ -1946,7 +1946,7 @@ The user's priority is the ability to log in on the production site (https://cro
 - **L2. Verify Back-End Health**
   • `curl https://crokodial.com/api/health` → expect `{status:"ok"}`.  
   • Check logs: `heroku logs --tail --app crokodial` while attempting login.  
-  Success: No 5xx errors; Mongo connects; JWT issued.
+  Success: No 500 errors; Mongo connects; JWT issued.
 
 - **L3. Confirm Mongo Atlas Credentials**
   • In Heroku dashboard, review `MONGODB_URI`.  
@@ -2421,3 +2421,72 @@ Task Breakdown
 Once CP-2 verified, push to `dev` per FINAL-TWEAK rules.
 
 ---
+
+### 🛠️ [TWEAK] Right-Side Navigation / Sidebar Polish
+Current Observations
+• Sidebar lives on right edge (file likely `dialer-app/client/src/components/Navigation.tsx` or similar).
+• Static width, no collapse, crowded on 13-inch screens.
+• Icons/text don't highlight current page consistently.
+• No quick link back to Clients page.
+
+Goal
+Deliver a slick, responsive sidebar that:
+1. Collapses to icons-only on small widths (<1100 px) or when user clicks a burger.
+2. Highlights active route.
+3. Adds new "Clients" icon linking to /clients.
+4. Uses Chakra Tooltip on collapsed mode.
+5. Keeps call/dialer floating button unaffected.
+
+Task Breakdown
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| SB-1 | Locate Sidebar component & audit routes | Know exact file & current CSS |
+| SB-2 | Add React state for collapsed/expanded (persist in localStorage) | User collapse toggles survive reload |
+| SB-3 | Implement responsive auto-collapse via media query | Sidebar switches at 1100 px |
+| SB-4 | Add active-route highlighting via `useLocation()` | Current page menu item orange/highlight |
+| SB-5 | Add Clients link with `FaUserTie` icon | Clicking routes to /clients |
+| SB-6 | Tooltip for each icon when collapsed | Hover shows label |
+| SB-7 | Test in mobile emulation + desktop | No layout break |
+
+Once SB-5 passes local QA push to `dev` per Final-Tweak rules.
+
+---
+
+### 🛠️ [TWEAK] Sidebar – Remove duplicate "Leads" icon
+Problem: After pinning "Leads" in `fixedItems`, `menuPages[0]` still contains another Leads entry, so page 1 shows it twice.
+
+Tasks
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| SB-FIX1 | Prune duplicate item | Page-1 sidebar shows exactly one Leads icon; pages 2 & 3 still show pinned Leads at top. |
+
+Proposed implementation: simply remove the Leads entry from `menuPages[0]` array inside `Navigation.tsx` (or filter when building `navItems`). No functional impact elsewhere.
+
+Status: ☐ pending
+
+---
+
+### 🛠️ [TWEAK] GroupMe – Auto-fetch groups & show chat immediately
+Problem: After a user connects GroupMe, sidebar Page-2 still shows the "Fetch Groups" button and requires an extra click. We want the chat panel to automatically load the user's groups and open the first chat.
+
+Goal: Seamless experience — once OAuth finishes and the user is redirected back to /leads with Page-2 selected, their groups list should appear automatically and the most recent chat loads without additional clicks.
+
+Task Breakdown
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| GM-AUTO-1 | Extend GroupMeContext to expose `groups`, `selectedGroup`, `fetchGroups()` and auto-fetch logic on mount if `connected` | Context populates `groups[]` within <3 s after page load when connected |
+| GM-AUTO-2 | In `GroupMeChatWrapper`, call `fetchGroups()` on mount and display a spinner until `groups.length` > 0 | Spinner replaces "Fetch Groups" button; groups show automatically |
+| GM-AUTO-3 | Auto-select first group on fetch complete and invoke `loadMessages(groupId)` | First chat opens and messages render |
+| GM-AUTO-4 | Remove obsolete "Fetch Groups" manual button UI | No redundant button present |
+| GM-AUTO-5 | Unit test: mock successful `/groups` response and assert first group auto-selected | Jest/RTL test passes |
+
+Dependencies & Notes
+• `checkConnectionStatus()` already tells us `connected:true`; use that as trigger.
+• Use existing `GroupMeChat` component's `getGroups()` + `getMessages(groupId)` functions — just call them automatically.
+• Ensure errors fall back gracefully: if fetch fails show toast and keep 'Retry' button.
+
+Status: ☐ pending – ready for executor once approved.
+
+---
+
+**[2025-07-?? Executor]** Implemented GM-AUTO: Chat now auto-selects first group once groups list loads (GroupMeChat effect). Removed manual "Fetch Groups" button and updated help text in settings; groups are already auto-fetched via context. Spinner remains during init. Ready for verification.

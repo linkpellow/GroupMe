@@ -362,20 +362,11 @@ const GroupMeSettings = () => {
                   >
                     Add Group
                   </Button>
-                  <Button
-                    size="xs"
-                    onClick={fetchGroups}
-                    isDisabled={loading}
-                    leftIcon={<ExternalLinkIcon />}
-                  >
-                    Fetch Groups
-                  </Button>
                 </HStack>
               </HStack>
 
               <Text fontSize="xs" color="gray.500" mb={3}>
-                Click "Fetch Groups" to automatically load your GroupMe groups, or manually add
-                group IDs below.
+                Your GroupMe groups are loaded automatically after connecting. You can manually add or edit group IDs below if needed.
               </Text>
 
               <VStack spacing={3} align="stretch">
