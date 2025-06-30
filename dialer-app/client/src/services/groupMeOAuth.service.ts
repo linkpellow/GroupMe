@@ -128,6 +128,16 @@ class GroupMeOAuthService {
     console.log('Access token length:', accessToken?.length);
     console.log('State received:', state);
     
+    if (!accessToken) {
+      console.error('No access token provided to handleOAuthCallback');
+      throw new Error('No access token provided');
+    }
+    
+    if (!state) {
+      console.error('No state parameter provided to handleOAuthCallback');
+      throw new Error('No state parameter provided');
+    }
+    
     try {
       // Use the non-authenticated API for the callback
       console.log('Making POST request to /groupme/oauth/callback');
@@ -146,6 +156,7 @@ class GroupMeOAuthService {
       console.log('Response data:', response.data);
       
       console.log('OAuth callback successful');
+      return response.data;
     } catch (error: any) {
       console.error('=== OAuth Callback Error ===');
       console.error('Error object:', error);
@@ -158,6 +169,7 @@ class GroupMeOAuthService {
       // Check if it's a token expiration error
       if (error?.response?.data?.message?.includes('token is no longer valid')) {
         console.error('Token validation failed - token expired or invalid');
+        throw new Error('GroupMe token expired or invalid. Please try connecting again.');
       }
       
       throw error;

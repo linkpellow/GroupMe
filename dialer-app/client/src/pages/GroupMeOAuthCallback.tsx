@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Spinner, Text, Alert, AlertIcon, VStack, Button } from '@chakra-ui/react';
+import { Box, Spinner, Text, Alert, AlertIcon, VStack, Button, Code } from '@chakra-ui/react';
 import { groupMeOAuthService } from '../services/groupMeOAuth.service';
 
 const GroupMeOAuthCallback: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
     handleCallback();
@@ -16,6 +17,16 @@ const GroupMeOAuthCallback: React.FC = () => {
     console.log('=== GroupMe OAuth Callback Page ===');
     console.log('Full URL:', window.location.href);
     console.log('Hash:', window.location.hash);
+    
+    // Enhanced debug info
+    const debugData = {
+      url: window.location.href,
+      hash: window.location.hash,
+      search: window.location.search,
+      hostname: window.location.hostname,
+      pathname: window.location.pathname
+    };
+    setDebugInfo(JSON.stringify(debugData, null, 2));
     
     try {
       // GroupMe returns the token in the URL fragment (after #)
@@ -40,7 +51,7 @@ const GroupMeOAuthCallback: React.FC = () => {
 
       if (!accessToken) {
         console.error('No access token in URL');
-        setError('No access token received from GroupMe');
+        setError('No access token received from GroupMe. Please check that you authorized the application.');
         setIsProcessing(false);
         return;
       }
@@ -82,7 +93,7 @@ const GroupMeOAuthCallback: React.FC = () => {
       minHeight="100vh"
       bg="gray.50"
     >
-      <VStack spacing={4} p={8} bg="white" borderRadius="lg" boxShadow="md">
+      <VStack spacing={4} p={8} bg="white" borderRadius="lg" boxShadow="md" maxWidth="600px" width="100%">
         {isProcessing ? (
           <>
             <Spinner size="xl" color="blue.500" thickness="4px" />
@@ -99,6 +110,14 @@ const GroupMeOAuthCallback: React.FC = () => {
               <AlertIcon />
               {error}
             </Alert>
+            {debugInfo && (
+              <Box mt={4} p={3} bg="gray.50" borderRadius="md" width="100%" overflowX="auto">
+                <Text fontSize="sm" fontWeight="bold" mb={2}>Debug Information:</Text>
+                <Code display="block" whiteSpace="pre" p={2} borderRadius="md">
+                  {debugInfo}
+                </Code>
+              </Box>
+            )}
             <Button mt={4} onClick={() => navigate('/integrations')}>
               Back to Integrations
             </Button>
