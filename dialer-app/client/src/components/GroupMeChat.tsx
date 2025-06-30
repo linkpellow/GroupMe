@@ -35,6 +35,8 @@ import {
   FaEllipsisV,
   FaBellSlash,
 } from 'react-icons/fa';
+import { groupMeOAuthService } from '../services/groupMeOAuth.service';
+import { useAuth } from '../context/AuthContext';
 
 declare global {
   interface Window {
@@ -484,6 +486,10 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
     isWebSocketConnected, // New from context
   } = useGroupMeConfig();
 
+  const { user } = useAuth();
+  const toast = useToast();
+  const [isConnecting, setIsConnecting] = useState(false);
+
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [displayedMessages, setDisplayedMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -499,8 +505,24 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const toast = useToast();
   const handleGroupSelectRef = useRef<(groupId: string | null) => void>();
+
+  const handleConnectGroupMe = async () => {
+    if (!user?.id) {
+      toast({ title: 'Not logged in', description: 'Please log in again.', status: 'error', duration: 4000 });
+      return;
+    }
+    try {
+      setIsConnecting(true);
+      const { authUrl } = await groupMeOAuthService.initiateOAuth(user.id);
+      window.location.href = authUrl; // redirect to GroupMe OAuth
+    } catch (err: any) {
+      console.error('Failed to initiate GroupMe OAuth', err);
+      toast({ title: 'Error', description: err?.response?.data?.message || 'Could not start GroupMe connection', status: 'error', duration: 5000 });
+    } finally {
+      setIsConnecting(false);
+    }
+  };
 
   // Prevent click events from propagating to parent elements
   const handleContainerClick = useCallback(
@@ -955,10 +977,11 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
   // Handle component in not-configured state
   if (!config || !config.accessToken) {
     return (
-      <Box p={3} bg="#121212" color="gray.400" h="100%" textAlign="center">
-        <Text fontSize="sm">
-          GroupMe not configured. Please save your Access Token in Settings.
-        </Text>
+      <Box p={4} bg="#121212" color="gray.300" h="100%" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+        <Text mb={4}>Connect your GroupMe account to start chatting.</Text>
+        <Button colorScheme="blue" size="sm" onClick={handleConnectGroupMe} isLoading={isConnecting}>
+          Connect GroupMe
+        </Button>
       </Box>
     );
   }
