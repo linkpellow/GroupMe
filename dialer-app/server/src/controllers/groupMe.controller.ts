@@ -114,9 +114,8 @@ export const initiateOAuth = asyncHandler(async (req: Request, res: Response): P
     maxAge: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Updated: GroupMe no longer issues client_secret publicly – switch to implicit flow
-  // Use /oauth/authorize with response_type=token so the front-end receives access_token directly.
-  const authUrl = `https://oauth.groupme.com/oauth/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
+  // Use default implicit behavior (no response_type) so GroupMe returns access_token directly.
+  const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
     REDIRECT_URI
   )}&state=${state}`;
 
