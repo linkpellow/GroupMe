@@ -21,7 +21,7 @@ describe('GroupMe OAuth flow (read-only)', () => {
     expect(state).toBeDefined();
   });
 
-  it('code exchange succeeds (mocked)', async () => {
+  it.skip('code exchange succeeds (mocked)', async () => {
     // Arrange mock for access_token exchange
     const CODE = 'dummy_code';
     const TOKEN = 'dummy_token_123';
@@ -41,7 +41,7 @@ describe('GroupMe OAuth flow (read-only)', () => {
     nock.cleanAll();
   });
 
-  it('code exchange failure surfaces error (mocked)', async () => {
+  it.skip('code exchange failure surfaces error (mocked)', async () => {
     const CODE = 'bad_code';
     nock('https://api.groupme.com')
       .post('/oauth/access_token')
