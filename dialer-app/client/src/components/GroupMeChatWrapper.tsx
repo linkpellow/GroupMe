@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Spinner, Text, Button } from '@chakra-ui/react';
+import { Box, Spinner, Text, Button, useToast } from '@chakra-ui/react';
 import GroupMeChatErrorBoundary from './GroupMeChatErrorBoundary';
 import { useGroupMeConfig } from '../context/GroupMeContext';
 import { groupMeOAuthService } from '../services/groupMeOAuth.service';
@@ -24,6 +24,7 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const { user } = useAuth();
+  const toast = useToast();
 
   // Check connection status on mount
   useEffect(() => {
@@ -82,6 +83,13 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
   const handleConnectGroupMe = async () => {
     if (!user?.id) {
       console.error('No user ID found, cannot connect GroupMe');
+      toast({
+        title: 'Login required',
+        description: 'Please log in before connecting GroupMe.',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
       return;
     }
 
