@@ -178,36 +178,11 @@ export const handleOAuthCallback = asyncHandler(
       const CLIENT_SECRET = process.env.GROUPME_CLIENT_SECRET;
 
       console.log('Posting to https://api.groupme.com/oauth/access_token');
-      const tokenPayload: any = {
-        grant_type: 'authorization_code',
-        code,
+      // Per 2025 docs, only client_id and code are required (no secret, no grant_type)
+      const tokenResp = await axios.post('https://api.groupme.com/oauth/access_token', {
         client_id: CLIENT_ID,
-      };
-      // Newer GroupMe apps created after 2024 are not issued a client_secret.
-      // Attempt the exchange without the secret first. If it fails with 400
-      // and we *do* have a secret, fall back to the legacy payload that
-      // includes client_secret.
-
-      if (CLIENT_SECRET) {
-        tokenPayload.client_secret = CLIENT_SECRET;
-      }
-
-      let tokenResp;
-      try {
-        tokenResp = await axios.post('https://api.groupme.com/oauth/access_token', tokenPayload);
-      } catch (firstErr: any) {
-        // If first attempt without secret failed due to missing secret and we
-        // actually have a secret, retry with secret included (legacy apps).
-        const status = firstErr.response?.status;
-        if (!CLIENT_SECRET || status !== 400) {
-          throw firstErr; // propagate – handled by outer catch
-        }
-        console.warn('Retrying token exchange including client_secret');
-        tokenResp = await axios.post('https://api.groupme.com/oauth/access_token', {
-          ...tokenPayload,
-          client_secret: CLIENT_SECRET,
-        });
-      }
+        code,
+      });
 
       if (!tokenResp.data || !tokenResp.data.access_token) {
         console.error('No access_token in GroupMe response', tokenResp.data);
