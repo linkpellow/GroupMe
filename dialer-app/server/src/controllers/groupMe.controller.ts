@@ -178,11 +178,18 @@ export const handleOAuthCallback = asyncHandler(
       const CLIENT_SECRET = process.env.GROUPME_CLIENT_SECRET;
 
       console.log('Posting to https://api.groupme.com/oauth/access_token');
-      // Per 2025 docs, only client_id and code are required (no secret, no grant_type)
-      const tokenResp = await axios.post('https://api.groupme.com/oauth/access_token', {
-        client_id: CLIENT_ID,
-        code,
-      });
+      let tokenResp;
+      try {
+        // Per 2025 docs, only client_id and code are required (no secret, no grant_type)
+        tokenResp = await axios.post('https://api.groupme.com/oauth/access_token', {
+          client_id: CLIENT_ID,
+          code,
+        });
+      } catch (err: any) {
+        console.error('Token exchange failed', err.response?.status, err.response?.data || err.message);
+        sendError(res, 502, 'Token exchange failed', null, 'TOKEN_EXCHANGE_FAILED');
+        return;
+      }
 
       if (!tokenResp.data || !tokenResp.data.access_token) {
         console.error('No access_token in GroupMe response', tokenResp.data);
@@ -313,6 +320,15 @@ export const handleOAuthCallback = asyncHandler(
 
       console.error('Unexpected error from GroupMe:', validationError.message);
       sendError(res, 500, 'Failed to validate GroupMe token', null, 'VALIDATION_ERROR');
+    }
+
+    // Debug: log critical GroupMe env vars (non-production) so we can spot mis-config quickly
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('GroupMe ENV', {
+        client_id: process.env.GROUPME_CLIENT_ID,
+        redirect_uri: process.env.GROUPME_REDIRECT_URI,
+        secret_present: !!process.env.GROUPME_CLIENT_SECRET,
+      });
     }
   }
 );
