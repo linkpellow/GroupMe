@@ -102,6 +102,26 @@ type NextGenLeadData = z.infer<typeof NextGenLeadSchema>;
 
 // Adapter to convert NextGen format to our Lead schema
 const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
+  // Format height from inches to feet/inches (if it's a number)
+  let formattedHeight = nextgenData.height;
+  if (nextgenData.height && !isNaN(parseInt(nextgenData.height))) {
+    const heightInches = parseInt(nextgenData.height);
+    formattedHeight = `${Math.floor(heightInches / 12)}'${heightInches % 12}"`;
+  }
+
+  // Format date of birth
+  const formattedDob = nextgenData.dob ? new Date(nextgenData.dob).toLocaleDateString() : undefined;
+
+  // Format gender (capitalize first letter)
+  let formattedGender = undefined;
+  if (nextgenData.gender) {
+    if (nextgenData.gender.toLowerCase().startsWith('m')) {
+      formattedGender = 'Male';
+    } else if (nextgenData.gender.toLowerCase().startsWith('f')) {
+      formattedGender = 'Female';
+    }
+  }
+
   const adapted = {
     // IDs
     nextgenId: nextgenData.nextgen_id || nextgenData.lead_id,
@@ -117,19 +137,15 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
     phone: nextgenData.phone,
 
     // Location
-    city: nextgenData.city,
-    state: nextgenData.state?.toUpperCase(),
-    zipcode: nextgenData.zip_code,
-    street1: nextgenData.street_address,
+    city: nextgenData.city?.trim(),
+    state: nextgenData.state?.toUpperCase()?.trim(),
+    zipcode: nextgenData.zip_code?.trim(),
+    street1: nextgenData.street_address?.trim(),
 
-    // Demographics
-    dob: nextgenData.dob,
-    gender: nextgenData.gender?.toLowerCase()?.startsWith('m')
-      ? 'male'
-      : nextgenData.gender?.toLowerCase()?.startsWith('f')
-        ? 'female'
-        : undefined,
-    height: nextgenData.height,
+    // Demographics - with consistent formatting
+    dob: formattedDob,
+    gender: formattedGender,
+    height: formattedHeight,
     weight: nextgenData.weight,
 
     // Health
@@ -159,8 +175,8 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
     subIdHash: nextgenData.sub_id_hash,
 
     // Defaults
-    source: 'nextgen' as const,
-    disposition: 'new' as const,
+    source: 'NextGen' as const,  // Changed to match the enum in Lead model
+    disposition: 'New Lead' as const,  // Changed to match other imports
     status: 'New' as const,
   };
 

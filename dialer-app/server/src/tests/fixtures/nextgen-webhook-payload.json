@@ -1,0 +1,41 @@
+{
+  "lead_id": "test-123456",
+  "nextgen_id": "nextgen-654321",
+  
+  "first_name": "John",
+  "last_name": "Smith",
+  "email": "john.smith@example.com",
+  "phone": "5551234567",
+  
+  "city": "Austin ",
+  "state": "tx",
+  "zip_code": "78701 ",
+  "street_address": "123 Main St ",
+  
+  "dob": "1985-06-15",
+  "gender": "M",
+  "height": "70",
+  "weight": "180",
+  
+  "tobacco_user": false,
+  "pregnant": false,
+  "has_prescription": true,
+  "has_medicare_parts_ab": false,
+  "has_medical_condition": true,
+  "medical_conditions": ["Asthma", "Allergies"],
+  
+  "household_size": "3",
+  "household_income": "75000",
+  
+  "campaign_name": "Health Insurance Q3",
+  "product": "Premium Health Plan",
+  "vendor_name": "NextGen Leads",
+  "account_name": "Health Direct",
+  "bid_type": "fixed",
+  "price": "25.50",
+  
+  "call_log_id": "call-789012",
+  "call_duration": "125",
+  "source_hash": "abc123def456",
+  "sub_id_hash": "ghi789jkl012"
+} 
