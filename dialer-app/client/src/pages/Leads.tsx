@@ -78,7 +78,10 @@ const DISPOSITION_COLORS = {
 };
 
 // Helper functions
-const formatPhoneNumber = (phone: string) => {
+const formatPhoneNumber = (phone: string | undefined | null) => {
+  if (!phone) {
+    return ''; // Return empty string if phone is null or undefined
+  }
   const cleaned = phone.replace(/\D/g, '');
   const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
   if (match) {
