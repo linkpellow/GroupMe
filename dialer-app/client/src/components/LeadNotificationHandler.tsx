@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNotification } from '../context/NotificationContext';
 import { webSocketService } from '../services/websocketService';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface NewLeadNotification {
   type: 'new_lead_notification';
@@ -19,6 +20,7 @@ interface NewLeadNotification {
  */
 const LeadNotificationHandler: React.FC = () => {
   const { showNotification } = useNotification();
+  const queryClient = useQueryClient();
   const [recentNotifications] = useState<Set<string>>(new Set());
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [showDebug, setShowDebug] = useState<boolean>(false);
@@ -63,8 +65,38 @@ const LeadNotificationHandler: React.FC = () => {
             }, { once: true });
           }
           
-          // Show notification with NextGen type - sound will be played by the Notification component
+          // 1. Trigger banner/SFX
           showNotification(`New NextGen Lead! ${name}`, 'nextgen');
+          
+          // 2. Optimistically inject into any cached first-page query to avoid flicker
+          const cachedQueries = queryClient.getQueriesData({ queryKey: ['leads'] }) as any[];
+          cachedQueries.forEach(([key, cached]) => {
+            const cachedAny = cached as any;
+            if (!cachedAny || !cachedAny.leads) return;
+            const list = cachedAny.leads as any[];
+            if (!Array.isArray(list)) return;
+            const already = list.find((l) => l._id === leadId);
+            if (!already) {
+              // Prepend and trim to page limit if available
+              const newList = [{ _id: leadId, name, source, createdAt: new Date().toISOString() }, ...list];
+              if (cachedAny.pagination?.limit && newList.length > cachedAny.pagination.limit) {
+                newList.pop();
+              }
+              // Write back
+              queryClient.setQueryData(key as any, {
+                ...cachedAny,
+                leads: newList,
+                pagination: cachedAny.pagination
+                  ? { ...cachedAny.pagination, total: cachedAny.pagination.total + 1 }
+                  : cachedAny.pagination,
+              });
+            }
+          });
+          
+          // 3. Schedule invalidate after 700 ms to ensure DB commit is visible for all pages
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+          }, 700);
           
           // Increment counter
           notificationCountRef.current++;
@@ -156,7 +188,7 @@ const LeadNotificationHandler: React.FC = () => {
       window.removeEventListener('message', handleWindowMessage);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showNotification, recentNotifications, showDebug]);
+  }, [showNotification, recentNotifications, showDebug, queryClient]);
   
   // 2. Set up fallback polling mechanism when WebSocket is disconnected
   useEffect(() => {
