@@ -93,6 +93,18 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
       return;
     }
 
+    // Store current auth token in sessionStorage before starting OAuth flow
+    try {
+      const currentToken = localStorage.getItem('token');
+      if (currentToken) {
+        console.log('Backing up current auth token to sessionStorage');
+        sessionStorage.setItem('groupme_auth_token_backup', currentToken);
+      }
+    } catch (storageError) {
+      console.warn('Could not save token to sessionStorage:', storageError);
+      // Continue anyway - this is just a precaution
+    }
+
     setIsConnecting(true);
     try {
       console.log('Initiating GroupMe OAuth...');
@@ -110,15 +122,53 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
         authUrl = authUrl.replace('login_dialog', 'authorize');
       }
 
+      // Ensure we're using the implicit flow by adding response_type=token
+      if (!authUrl.includes('response_type=token')) {
+        console.log('Adding response_type=token to ensure implicit flow');
+        authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + 'response_type=token';
+      }
+
       // Add cache-busting parameter to prevent using cached URL
       authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
       console.log('Final auth URL with cache busting:', authUrl);
 
-      // Redirect to GroupMe OAuth page
-      console.log('Redirecting to:', authUrl);
-      window.location.href = authUrl;
+      // Store OAuth state in sessionStorage
+      try {
+        sessionStorage.setItem('groupme_auth_in_progress', 'true');
+        sessionStorage.setItem('groupme_auth_user_id', user.id);
+        sessionStorage.setItem('groupme_auth_timestamp', Date.now().toString());
+      } catch (storageError) {
+        console.warn('Could not save OAuth state to sessionStorage:', storageError);
+        // Continue anyway - this is just a precaution
+      }
+
+      // Use a timeout to ensure UI updates before redirect
+      setTimeout(() => {
+        try {
+          // Redirect to GroupMe OAuth page
+          console.log('Redirecting to:', authUrl);
+          window.location.href = authUrl;
+        } catch (redirectError) {
+          console.error('Failed to redirect to GroupMe OAuth:', redirectError);
+          toast({
+            title: 'Navigation Error',
+            description: 'Could not navigate to GroupMe. Please try again.',
+            status: 'error',
+            duration: 5000,
+            isClosable: true
+          });
+          setIsConnecting(false);
+        }
+      }, 100);
     } catch (error) {
       console.error('Error initiating GroupMe OAuth:', error);
+      toast({
+        title: 'Connection Error',
+        description: 'Failed to connect to GroupMe. Please try again.',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
       setIsConnecting(false);
     }
   };

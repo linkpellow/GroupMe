@@ -1,23 +1,53 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Heading, Text, Spinner, Alert, AlertIcon, Button } from '@chakra-ui/react';
+import { Box, Heading, Text, Spinner, Alert, AlertIcon, Button, VStack } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { groupMeOAuthService } from '../services/groupMeOAuth.service';
 
 /**
  * This component handles the GroupMe OAuth callback.
  * It extracts the access_token from the URL hash and sends it to the server.
- * Then it notifies the parent window and closes itself.
+ * Then it restores the user's authentication token to prevent logout.
  */
 const GroupMeCallbackPage: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const navigate = useNavigate();
 
   useEffect(() => {
     const handleCallback = async () => {
-      console.log('GroupMeCallbackPage: Handling OAuth callback');
+      console.log('=== GroupMeCallbackPage: Handling OAuth callback ===');
+      console.log('URL:', window.location.href);
+      console.log('Hash:', window.location.hash);
+      console.log('Search params:', window.location.search);
+      
+      // Collect debug info
+      const debugData = {
+        url: window.location.href,
+        hash: window.location.hash ? 'present (length: ' + window.location.hash.length + ')' : 'missing',
+        search: window.location.search,
+        sessionStorageKeys: Object.keys(sessionStorage),
+        hasBackupToken: !!sessionStorage.getItem('groupme_auth_token_backup'),
+        hasLocalToken: !!localStorage.getItem('token')
+      };
+      setDebugInfo(JSON.stringify(debugData, null, 2));
       
       try {
+        // First, ensure we have the user's auth token restored
+        // This needs to happen BEFORE any API calls to prevent 401 errors
+        try {
+          const backupToken = sessionStorage.getItem('groupme_auth_token_backup');
+          if (backupToken) {
+            console.log('GroupMeCallbackPage: Restoring auth token from backup');
+            localStorage.setItem('token', backupToken);
+            // Keep the backup until we're sure everything worked
+          } else {
+            console.warn('No backup token found in sessionStorage');
+          }
+        } catch (storageError) {
+          console.error('Error accessing sessionStorage:', storageError);
+        }
+        
         // Extract and process the access token from the URL hash
         const success = await groupMeOAuthService.handleImplicitCallback();
         
@@ -25,38 +55,24 @@ const GroupMeCallbackPage: React.FC = () => {
           console.log('GroupMeCallbackPage: Token saved successfully');
           setStatus('success');
           
-          // Restore the auth token from session storage if it was backed up
+          // Now that we've successfully saved the token, we can remove the backup
           try {
-            const backupToken = sessionStorage.getItem('groupme_auth_token_backup');
-            if (backupToken) {
-              console.log('GroupMeCallbackPage: Restoring auth token from backup');
-              localStorage.setItem('token', backupToken);
-              sessionStorage.removeItem('groupme_auth_token_backup');
-            }
+            sessionStorage.removeItem('groupme_auth_token_backup');
+            sessionStorage.removeItem('groupme_auth_in_progress');
+            console.log('Removed temporary OAuth data from sessionStorage');
           } catch (storageError) {
-            console.warn('Could not restore token from sessionStorage:', storageError);
-            // Continue anyway - user can log in again if needed
+            console.warn('Could not clean up sessionStorage:', storageError);
           }
           
-          // Check if this window was opened by another window
-          if (window.opener && !window.opener.closed) {
+          // Wait a moment before navigating to ensure state updates
+          setTimeout(() => {
             try {
-              // Notify the parent window about the successful connection
-              console.log('Notifying parent window about successful connection');
-              window.opener.postMessage({ type: 'GROUPME_CONNECTED', success: true }, '*');
-              
-              // Close this window after a short delay
-              setTimeout(() => {
-                window.close();
-              }, 1500);
-            } catch (e) {
-              console.error('Error communicating with parent window:', e);
-              // If communication fails, just show success message
+              navigate('/chat');
+            } catch (navError) {
+              console.error('Navigation error:', navError);
+              // If navigation fails, provide a button for manual navigation
             }
-          } else {
-            // If no parent window, provide a button to go back to the main app
-            console.log('No parent window found, showing navigation options');
-          }
+          }, 1500);
         } else {
           console.error('GroupMeCallbackPage: Failed to save token');
           setStatus('error');
@@ -73,11 +89,17 @@ const GroupMeCallbackPage: React.FC = () => {
   }, [navigate]);
 
   const handleRetry = () => {
-    if (window.opener) {
-      window.close();
-    } else {
-      navigate('/leads');
+    // Clean up any leftover OAuth data
+    try {
+      sessionStorage.removeItem('groupme_auth_in_progress');
+      sessionStorage.removeItem('groupme_auth_user_id');
+      sessionStorage.removeItem('groupme_auth_timestamp');
+    } catch (e) {
+      console.warn('Failed to clean up sessionStorage:', e);
     }
+    
+    // Navigate back to the main app
+    navigate('/chat');
   };
 
   return (
@@ -106,24 +128,42 @@ const GroupMeCallbackPage: React.FC = () => {
             <AlertIcon />
             GroupMe connected successfully!
           </Alert>
-          <Text mb={4}>This window will close automatically.</Text>
-          <Button colorScheme="blue" onClick={() => window.close()}>
-            Close Window
+          <Text mb={4}>Redirecting you back to the chat...</Text>
+          <Spinner size="sm" mb={4} />
+          <Button colorScheme="blue" onClick={() => navigate('/chat')}>
+            Go to Chat Now
           </Button>
         </>
       )}
 
       {status === 'error' && (
-        <>
-          <Alert status="error" borderRadius="md" mb={4}>
+        <VStack spacing={4} align="center">
+          <Alert status="error" borderRadius="md" mb={2}>
             <AlertIcon />
             Connection failed
           </Alert>
-          <Text mb={4}>{errorMessage}</Text>
+          <Text mb={2}>{errorMessage}</Text>
           <Button colorScheme="blue" onClick={handleRetry}>
-            {window.opener ? 'Close Window' : 'Return to App'}
+            Return to Chat
           </Button>
-        </>
+          
+          {debugInfo && (
+            <Box 
+              mt={6} 
+              p={4} 
+              bg="gray.100" 
+              borderRadius="md" 
+              maxW="600px" 
+              w="100%" 
+              overflowX="auto"
+            >
+              <Text fontWeight="bold" mb={2}>Debug Information:</Text>
+              <Box as="pre" fontSize="xs" whiteSpace="pre-wrap">
+                {debugInfo}
+              </Box>
+            </Box>
+          )}
+        </VStack>
       )}
     </Box>
   );
