@@ -21,6 +21,16 @@ import {
   Switch,
   SlideFade,
   Image,
+  Center,
+  Divider,
+  Tooltip,
+  SkeletonText,
+  SkeletonCircle,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverArrow,
+  PopoverBody,
 } from '@chakra-ui/react';
 import { useGroupMeConfig } from '../context/GroupMeContext';
 import {
@@ -34,6 +44,11 @@ import {
   FaThumbtack,
   FaEllipsisV,
   FaBellSlash,
+  FaArrowDown,
+  FaImage,
+  FaSmile,
+  FaMapMarkerAlt,
+  FaPaperclip,
 } from 'react-icons/fa';
 import { groupMeOAuthService } from '../services/groupMeOAuth.service';
 import { useAuth } from '../context/AuthContext';
@@ -85,6 +100,7 @@ interface Message {
   group_id?: string;
   system?: boolean;
   attachments?: any[];
+  reactions?: { [emoji: string]: string[] };
 }
 
 interface LiveMessage {
@@ -167,67 +183,216 @@ const extractEmojis = (str: string): string => {
   return matches ? matches.join('') : '';
 };
 
-const MessageItem: React.FC<{ message: Message }> = React.memo(({ message }) => {
-  const isUserMessage = message.sender_type === 'user';
+// Add a utility function to get a consistent color for a sender
+const getSenderColor = (name: string): string => {
+  // Define a set of GroupMe-like colors
+  const colors = [
+    '#FF5252', // red
+    '#FF9800', // orange
+    '#FFEB3B', // yellow
+    '#4CAF50', // green
+    '#2196F3', // blue
+    '#673AB7', // purple
+    '#E91E63', // pink
+    '#00BCD4', // cyan
+    '#009688', // teal
+    '#795548', // brown
+  ];
+  
+  // Generate a consistent index based on the name
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // Use the hash to get a color from the array
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
 
+const MessageItem: React.FC<{ 
+  message: Message;
+  isFirstInBlock?: boolean;
+  isLastInBlock?: boolean;
+}> = React.memo(({ message, isFirstInBlock = true, isLastInBlock = true }) => {
+  const isUserMessage = message.sender_type === 'user';
+  const senderName = message.name || message.senderName || 'Unknown';
+  const senderColor = isUserMessage ? 'blue.500' : getSenderColor(senderName);
+  const timestamp = formatTimestamp(message.created_at || message.createdAt);
+  const fullTimestamp = new Date(message.created_at || message.createdAt || Date.now()).toLocaleString();
+  
+  // Add state for reactions
+  const [reactions, setReactions] = useState<{ [emoji: string]: string[] }>(message.reactions || {});
+  
+  // Add a function to handle message actions
+  const handleCopyText = () => {
+    if (navigator.clipboard && message.text) {
+      navigator.clipboard.writeText(message.text);
+    }
+  };
+  
+  // Add a function to handle adding reactions
+  const handleAddReaction = (emoji: string) => {
+    setReactions(prev => {
+      const newReactions = { ...prev };
+      if (!newReactions[emoji]) {
+        newReactions[emoji] = [];
+      }
+      
+      // Add current user to the reaction if not already added
+      if (!newReactions[emoji].includes('You')) {
+        newReactions[emoji].push('You');
+      }
+      
+      return newReactions;
+    });
+  };
+  
   return (
     <HStack
-      py={1.5}
+      py={1}
       px={1}
       alignItems="flex-start"
       w="100%"
       justifyContent={isUserMessage ? 'flex-end' : 'flex-start'}
       spacing={2}
     >
-      {!isUserMessage && (
+      {!isUserMessage && isFirstInBlock && (
         <Avatar
           size="sm"
-          name={message.name || message.senderName || 'Unknown'}
+          name={senderName}
           src={message.avatar_url || message.avatarUrl}
           mr={1}
-          borderRadius="50%" // Keep circular avatars
+          borderRadius="50%"
         />
       )}
+      {!isUserMessage && !isFirstInBlock && (
+        <Box w="32px" mr={1} /> // Spacer for alignment when avatar is not shown
+      )}
+      
       <Flex direction="column" maxWidth="75%" position="relative">
-        {!isUserMessage && (
+        {!isUserMessage && isFirstInBlock && (
           <Text fontWeight="bold" color="gray.200" fontSize="xs" mb={0.5} ml={1}>
-            {message.name || message.senderName || 'Unknown'}
+            {senderName}
           </Text>
         )}
-        <Box
-          bg={isUserMessage ? 'blue.600' : '#262626'} // Dark theme message bubbles
-          color={isUserMessage ? 'white' : 'gray.100'}
-          px={3}
-          py={2}
-          borderRadius="18px"
-          borderTopLeftRadius={!isUserMessage ? '4px' : undefined}
-          borderTopRightRadius={isUserMessage ? '4px' : undefined}
-          boxShadow="0 1px 2px rgba(0,0,0,0.3)"
-          position="relative"
-        >
-          <Text fontSize="15px" lineHeight="1.4" wordBreak="break-word">
-            {message.text || ''}
+        
+        <Menu>
+          <Tooltip 
+            label={fullTimestamp} 
+            placement={isUserMessage ? "left" : "right"}
+            hasArrow
+            bg="gray.700"
+            color="white"
+            fontSize="xs"
+            openDelay={500}
+          >
+            <MenuButton as={Box}>
+              <Box
+                bg={isUserMessage ? 'blue.500' : '#262626'}
+                color="white"
+                px={3}
+                py={2}
+                borderRadius="18px"
+                borderTopLeftRadius={!isUserMessage && isFirstInBlock ? '4px' : undefined}
+                borderTopRightRadius={isUserMessage && isFirstInBlock ? '4px' : undefined}
+                borderBottomLeftRadius={!isUserMessage && isLastInBlock ? '4px' : undefined}
+                borderBottomRightRadius={isUserMessage && isLastInBlock ? '4px' : undefined}
+                boxShadow="0 1px 2px rgba(0,0,0,0.3)"
+                position="relative"
+                borderLeftColor={!isUserMessage ? senderColor : undefined}
+                borderLeftWidth={!isUserMessage ? '3px' : undefined}
+                _after={
+                  isLastInBlock
+                    ? {
+                        content: '""',
+                        position: 'absolute',
+                        width: '10px',
+                        height: '10px',
+                        transform: 'rotate(45deg)',
+                        bg: isUserMessage ? 'blue.500' : '#262626',
+                        borderBottomColor: !isUserMessage ? senderColor : undefined,
+                        borderBottomWidth: !isUserMessage ? '3px' : undefined,
+                        borderRightColor: !isUserMessage ? senderColor : undefined,
+                        borderRightWidth: !isUserMessage ? '3px' : undefined,
+                        bottom: '8px',
+                        left: isUserMessage ? undefined : '-5px',
+                        right: isUserMessage ? '-5px' : undefined,
+                      }
+                    : undefined
+                }
+              >
+                <Text fontSize="15px" lineHeight="1.4" wordBreak="break-word">
+                  {message.text || ''}
+                </Text>
+              </Box>
+            </MenuButton>
+          </Tooltip>
+          
+          <MenuList bg="#262626" borderColor="#333" boxShadow="lg" zIndex={10}>
+            <MenuItem 
+              onClick={handleCopyText} 
+              bg="#262626" 
+              _hover={{ bg: '#333' }} 
+              color="white"
+            >
+              Copy Text
+            </MenuItem>
+            {isUserMessage && (
+              <MenuItem 
+                bg="#262626" 
+                _hover={{ bg: '#333' }} 
+                color="white"
+              >
+                Delete Message
+              </MenuItem>
+            )}
+            <MenuItem 
+              bg="#262626" 
+              _hover={{ bg: '#333' }} 
+              color="white"
+              onClick={() => handleAddReaction('👍')}
+            >
+              Add Reaction
+            </MenuItem>
+          </MenuList>
+        </Menu>
+        
+        {/* Message reactions */}
+        {Object.keys(reactions).length > 0 || true && (
+          <Box ml={isUserMessage ? 'auto' : 0} mr={isUserMessage ? 0 : 'auto'}>
+            <MessageReactions 
+              reactions={reactions} 
+              onAddReaction={handleAddReaction} 
+            />
+          </Box>
+        )}
+        
+        {/* Only show timestamp on the last message in a block */}
+        {isLastInBlock && (
+          <Text
+            fontSize="11px"
+            color="gray.500"
+            alignSelf={isUserMessage ? 'flex-end' : 'flex-start'}
+            mt={0.5}
+            mx={1}
+          >
+            {timestamp}
           </Text>
-        </Box>
-        {/* Timestamp under the message */}
-        <Text
-          fontSize="11px"
-          color="gray.500"
-          alignSelf={isUserMessage ? 'flex-end' : 'flex-start'}
-          mt={0.5}
-          mx={1}
-        >
-          {formatTimestamp(message.created_at || message.createdAt)}
-        </Text>
+        )}
       </Flex>
-      {isUserMessage && (
+      
+      {isUserMessage && isLastInBlock && (
         <Avatar
           size="sm"
-          name={message.name || message.senderName || 'Unknown'}
+          name={senderName}
           src={message.avatar_url || message.avatarUrl}
           ml={1}
-          borderRadius="50%" // Keep circular avatars
+          borderRadius="50%"
         />
+      )}
+      {isUserMessage && !isLastInBlock && (
+        <Box w="32px" ml={1} /> // Spacer for alignment when avatar is not shown
       )}
     </HStack>
   );
@@ -471,6 +636,319 @@ const LiveMessageItem: React.FC<{
   );
 });
 
+// Add the GroupHeader component after the LiveMessageItem component
+const GroupHeader: React.FC<{
+  groupName: string;
+  groupAvatar?: string;
+  memberCount?: number;
+  onBackClick: () => void;
+}> = React.memo(({ groupName, groupAvatar, memberCount, onBackClick }) => {
+  return (
+    <HStack px={3} py={2} bg="gray.800" borderBottomWidth="1px" borderColor="#262626" spacing={2}>
+      <Icon
+        as={FaArrowLeft}
+        color="gray.400"
+        cursor="pointer"
+        _hover={{ color: 'white' }}
+        onClick={onBackClick}
+        boxSize={5}
+      />
+      <Avatar
+        size="sm"
+        name={groupName}
+        src={groupAvatar}
+        bg={!groupAvatar ? 'gray.600' : undefined}
+      />
+      <Box flex={1}>
+        <Text fontSize="md" fontWeight="bold" color="white" noOfLines={1}>
+          {groupName}
+        </Text>
+        {memberCount && (
+          <Text fontSize="xs" color="gray.400">
+            {memberCount} members
+          </Text>
+        )}
+      </Box>
+      <IconButton
+        aria-label="Group options"
+        icon={<FaEllipsisV />}
+        variant="ghost"
+        size="sm"
+        color="gray.400"
+        _hover={{ color: 'white', bg: 'whiteAlpha.200' }}
+      />
+    </HStack>
+  );
+});
+
+// Add a DaySeparator component
+const DaySeparator: React.FC<{ date: Date | string | number }> = ({ date }) => {
+  const formattedDate = formatDayLabel(date);
+  
+  return (
+    <Center my={2}>
+      <Divider flex="1" borderColor="gray.700" />
+      <Text mx={2} fontSize="xs" color="gray.500" fontWeight="medium">
+        {formattedDate}
+      </Text>
+      <Divider flex="1" borderColor="gray.700" />
+    </Center>
+  );
+};
+
+// Add a function to format the day label
+const formatDayLabel = (date: Date | string | number): string => {
+  const dateObj = new Date(date);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  if (dateObj.toDateString() === today.toDateString()) {
+    return 'Today';
+  }
+  
+  if (dateObj.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday';
+  }
+  
+  return dateObj.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+};
+
+// Update the groupMessagesBySender function to include day separators
+const groupMessagesBySender = (messages: Message[]): (
+  | { type: 'message'; message: Message; isFirstInBlock: boolean; isLastInBlock: boolean }
+  | { type: 'separator'; date: Date | string | number }
+)[] => {
+  if (!messages || messages.length === 0) return [];
+  
+  const result: (
+    | { type: 'message'; message: Message; isFirstInBlock: boolean; isLastInBlock: boolean }
+    | { type: 'separator'; date: Date | string | number }
+  )[] = [];
+  
+  let currentDay: string | null = null;
+  
+  messages.forEach((message, index, array) => {
+    // Add day separator if needed
+    const messageDate = new Date(message.created_at || message.createdAt || Date.now());
+    const messageDay = messageDate.toDateString();
+    
+    if (messageDay !== currentDay) {
+      result.push({ type: 'separator', date: messageDate });
+      currentDay = messageDay;
+    }
+    
+    // Process message as before
+    const prevMessage = index > 0 ? array[index - 1] : null;
+    const nextMessage = index < array.length - 1 ? array[index + 1] : null;
+    
+    const prevSender = prevMessage?.sender_type === 'user' ? 'user' : prevMessage?.name || prevMessage?.senderName;
+    const currentSender = message.sender_type === 'user' ? 'user' : message.name || message.senderName;
+    const nextSender = nextMessage?.sender_type === 'user' ? 'user' : nextMessage?.name || nextMessage?.senderName;
+    
+    const isFirstInBlock = prevSender !== currentSender;
+    const isLastInBlock = nextSender !== currentSender;
+    
+    result.push({ type: 'message', message, isFirstInBlock, isLastInBlock });
+  });
+  
+  return result;
+};
+
+// Add a TypingIndicator component
+const TypingIndicator: React.FC<{ senderName: string }> = ({ senderName }) => {
+  return (
+    <HStack py={1} px={1} alignItems="flex-start" spacing={2}>
+      <Avatar size="sm" name={senderName} mr={1} />
+      <Box
+        bg="#262626"
+        color="white"
+        px={3}
+        py={2}
+        borderRadius="18px"
+        borderTopLeftRadius="4px"
+        boxShadow="0 1px 2px rgba(0,0,0,0.3)"
+        position="relative"
+      >
+        <HStack spacing={1}>
+          <Text fontSize="xs" color="gray.300" mr={1}>
+            {senderName} is typing
+          </Text>
+          <Box className="typing-dot" animation="bounce 1s infinite" />
+          <Box className="typing-dot" animation="bounce 1s infinite 0.2s" />
+          <Box className="typing-dot" animation="bounce 1s infinite 0.4s" />
+        </HStack>
+      </Box>
+      <style jsx global>{`
+        @keyframes bounce {
+          0%, 60%, 100% {
+            transform: translateY(0);
+          }
+          30% {
+            transform: translateY(-4px);
+          }
+        }
+        .typing-dot {
+          width: 6px;
+          height: 6px;
+          background-color: #999;
+          border-radius: 50%;
+        }
+      `}</style>
+    </HStack>
+  );
+};
+
+// Add a ScrollToBottomButton component
+const ScrollToBottomButton: React.FC<{ onClick: () => void }> = ({ onClick }) => {
+  return (
+    <IconButton
+      aria-label="Scroll to bottom"
+      icon={<FaArrowDown />}
+      position="absolute"
+      bottom="80px"
+      right="20px"
+      colorScheme="blue"
+      borderRadius="full"
+      boxShadow="lg"
+      size="md"
+      onClick={onClick}
+      zIndex={2}
+    />
+  );
+};
+
+// Add an UnreadDivider component
+const UnreadDivider: React.FC = () => {
+  return (
+    <Box position="relative" my={2} width="100%">
+      <Divider borderColor="red.500" borderWidth="1px" />
+      <Box 
+        position="absolute" 
+        top="-10px" 
+        left="50%" 
+        transform="translateX(-50%)" 
+        bg="red.500" 
+        color="white" 
+        fontSize="xs" 
+        fontWeight="bold" 
+        px={2} 
+        py={0.5} 
+        borderRadius="md"
+      >
+        NEW MESSAGES
+      </Box>
+    </Box>
+  );
+};
+
+// Add a MessageSkeleton component
+const MessageSkeleton: React.FC<{ align?: 'left' | 'right' }> = ({ align = 'left' }) => {
+  return (
+    <HStack
+      py={1}
+      px={1}
+      alignItems="flex-start"
+      w="100%"
+      justifyContent={align === 'right' ? 'flex-end' : 'flex-start'}
+      spacing={2}
+    >
+      {align === 'left' && <SkeletonCircle size="8" mr={1} />}
+      <Box
+        bg={align === 'right' ? 'blue.500' : '#262626'}
+        px={3}
+        py={2}
+        borderRadius="18px"
+        borderTopLeftRadius={align === 'left' ? '4px' : undefined}
+        borderTopRightRadius={align === 'right' ? '4px' : undefined}
+        maxWidth="75%"
+        minWidth="100px"
+      >
+        <SkeletonText noOfLines={2} spacing="2" skeletonHeight="3" />
+      </Box>
+      {align === 'right' && <SkeletonCircle size="8" ml={1} />}
+    </HStack>
+  );
+};
+
+// Add a function to generate skeleton messages
+const generateSkeletonMessages = (count: number = 5): React.ReactNode[] => {
+  const skeletons = [];
+  
+  for (let i = 0; i < count; i++) {
+    const align = Math.random() > 0.5 ? 'right' : 'left';
+    skeletons.push(<MessageSkeleton key={`skeleton-${i}`} align={align} />);
+  }
+  
+  return skeletons;
+};
+
+// Add a MessageReactions component
+const MessageReactions: React.FC<{
+  reactions?: { [key: string]: string[] };
+  onAddReaction: (emoji: string) => void;
+}> = ({ reactions = {}, onAddReaction }) => {
+  const quickEmojis = ['👍', '❤️', '😂', '😮', '😢', '👏'];
+  
+  return (
+    <HStack mt={1} spacing={1} flexWrap="wrap">
+      {/* Display existing reactions */}
+      {Object.entries(reactions).map(([emoji, users]) => (
+        <Box 
+          key={emoji} 
+          bg="whiteAlpha.200" 
+          borderRadius="full" 
+          px={2} 
+          py={0.5}
+          fontSize="xs"
+          cursor="pointer"
+          _hover={{ bg: 'whiteAlpha.300' }}
+          onClick={() => onAddReaction(emoji)}
+        >
+          <Text as="span" mr={1}>{emoji}</Text>
+          <Text as="span" fontWeight="bold">{users.length}</Text>
+        </Box>
+      ))}
+      
+      {/* Quick reaction buttons */}
+      <Popover trigger="hover" placement="top" closeOnBlur={true}>
+        <PopoverTrigger>
+          <Box 
+            bg="whiteAlpha.200" 
+            borderRadius="full" 
+            px={2} 
+            py={0.5}
+            fontSize="xs"
+            cursor="pointer"
+            _hover={{ bg: 'whiteAlpha.300' }}
+          >
+            +
+          </Box>
+        </PopoverTrigger>
+        <PopoverContent bg="#262626" borderColor="#333" width="auto">
+          <PopoverArrow bg="#262626" />
+          <PopoverBody p={2}>
+            <HStack spacing={2}>
+              {quickEmojis.map(emoji => (
+                <Box 
+                  key={emoji} 
+                  cursor="pointer" 
+                  fontSize="lg"
+                  p={1}
+                  _hover={{ bg: 'whiteAlpha.200', borderRadius: 'md' }}
+                  onClick={() => onAddReaction(emoji)}
+                >
+                  {emoji}
+                </Box>
+              ))}
+            </HStack>
+          </PopoverBody>
+        </PopoverContent>
+      </Popover>
+    </HStack>
+  );
+};
+
 const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSidebar = false }) => {
   const {
     config,
@@ -533,6 +1011,16 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
   const currentSelectedGroupName = displayableGroups.find(
     (g) => g.groupId === selectedGroup
   )?.groupName;
+
+  // Add this code to get the current selected group details
+  const selectedGroupDetails = displayableGroups.find(g => g.groupId === selectedGroup);
+  
+  // Add this function to get a mock member count (since we don't have this data yet)
+  const getMockMemberCount = useCallback((groupId: string) => {
+    // This is a placeholder. In a real implementation, we would get this from the API
+    // For now, we'll generate a random number between 2 and 20
+    return Math.floor(Math.random() * 19) + 2;
+  }, []);
 
   const handleConnectGroupMe = async () => {
     if (!user?.id) {
@@ -1020,6 +1508,145 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
     }
   }, [selectedGroup, sortedGroups, handleGroupSelect]);
 
+  // Add typing indicator state
+  const [typingUsers, setTypingUsers] = useState<{ [groupId: string]: { name: string; timestamp: number }[] }>({});
+  
+  // Add a function to handle typing events
+  const handleTypingEvent = useCallback((event: any) => {
+    if (event && event.user_id && event.group_id && event.name) {
+      setTypingUsers(prev => {
+        const groupTypers = prev[event.group_id] || [];
+        const updatedTypers = groupTypers.filter(user => user.name !== event.name);
+        
+        updatedTypers.push({
+          name: event.name,
+          timestamp: Date.now()
+        });
+        
+        return {
+          ...prev,
+          [event.group_id]: updatedTypers
+        };
+      });
+      
+      // Clear typing indicator after 5 seconds
+      setTimeout(() => {
+        setTypingUsers(prev => {
+          const groupTypers = prev[event.group_id] || [];
+          const updatedTypers = groupTypers.filter(user => user.name !== event.name);
+          
+          if (updatedTypers.length === 0) {
+            const newState = { ...prev };
+            delete newState[event.group_id];
+            return newState;
+          }
+          
+          return {
+            ...prev,
+            [event.group_id]: updatedTypers
+          };
+        });
+      }, 5000);
+    }
+  }, []);
+  
+  // Add effect to simulate typing for demo purposes
+  useEffect(() => {
+    if (selectedGroup) {
+      const interval = setInterval(() => {
+        // 10% chance of showing typing indicator
+        if (Math.random() < 0.1) {
+          const randomUser = {
+            user_id: `demo-${Math.floor(Math.random() * 1000)}`,
+            group_id: selectedGroup,
+            name: ['Alex', 'Taylor', 'Jordan', 'Casey', 'Morgan'][Math.floor(Math.random() * 5)]
+          };
+          
+          handleTypingEvent(randomUser);
+        }
+      }, 10000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [selectedGroup, handleTypingEvent]);
+
+  // Add a function to scroll to bottom
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      setUserHasScrolled(false);
+    }
+  }, []);
+
+  // Add state for tracking last read message
+  const [lastReadTimestamp, setLastReadTimestamp] = useState<{ [groupId: string]: number }>({});
+  
+  // Function to mark messages as read when viewing a group
+  useEffect(() => {
+    if (selectedGroup && displayedMessages.length > 0) {
+      // Set a small delay to simulate reading
+      const timer = setTimeout(() => {
+        setLastReadTimestamp(prev => ({
+          ...prev,
+          [selectedGroup]: Date.now()
+        }));
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedGroup, displayedMessages]);
+  
+  // Function to find the unread message index
+  const findUnreadMessageIndex = useCallback((messages: Message[]): number => {
+    if (!selectedGroup || !lastReadTimestamp[selectedGroup]) return -1;
+    
+    const lastRead = lastReadTimestamp[selectedGroup];
+    
+    for (let i = 0; i < messages.length; i++) {
+      const msgTimestamp = new Date(messages[i].created_at || messages[i].createdAt || 0).getTime();
+      if (msgTimestamp < lastRead) {
+        return i;
+      }
+    }
+    
+    return -1;
+  }, [selectedGroup, lastReadTimestamp]);
+  
+  // Update the groupMessagesBySender function to include unread divider
+  const processMessagesWithUnread = useCallback((messages: Message[]) => {
+    if (!messages || messages.length === 0) return [];
+    
+    const result = groupMessagesBySender(messages);
+    
+    // If we have a selected group and last read timestamp, insert unread divider
+    if (selectedGroup && lastReadTimestamp[selectedGroup]) {
+      const unreadIndex = findUnreadMessageIndex(messages);
+      
+      if (unreadIndex > 0) {
+        // Find the corresponding index in the result array
+        let resultIndex = 0;
+        let messageCount = 0;
+        
+        for (let i = 0; i < result.length; i++) {
+          if (result[i].type === 'message') {
+            messageCount++;
+            if (messageCount === unreadIndex) {
+              resultIndex = i;
+              break;
+            }
+          }
+        }
+        
+        // Insert unread divider
+        if (resultIndex > 0) {
+          result.splice(resultIndex, 0, { type: 'unread' });
+        }
+      }
+    }
+    
+    return result;
+  }, [selectedGroup, lastReadTimestamp, findUnreadMessageIndex]);
+
   // Handle component in not-configured state
   if (!config || !config.accessToken) {
     return (
@@ -1071,72 +1698,55 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
       {!inSidebar && renderLiveMessages()}
 
       {/* Header: Show Chat List Header OR Selected Group Header */}
-      <Flex
-        p={3}
-        alignItems="center"
-        borderBottomWidth="1px"
-        borderColor="#262626" // Dark theme border
-        flexShrink={0}
-        bg="#000000" // Dark header
-        {...(inSidebar && { p: 2, minHeight: '48px' })}
-      >
-        {selectedGroup ? (
-          <>
-            <Icon
-              as={FaArrowLeft}
-              color="gray.400" // Dark theme icon
-              cursor="pointer"
-              _hover={{ color: 'white' }}
-              onClick={() => handleGroupSelect(null)}
-              mr={3}
-              boxSize={5}
+      {selectedGroup ? (
+        <GroupHeader
+          groupName={currentSelectedGroupName || 'Unknown Group'}
+          groupAvatar={selectedGroupDetails?.image_url}
+          memberCount={getMockMemberCount(selectedGroup)}
+          onBackClick={() => handleGroupSelect(null)}
+        />
+      ) : (
+        <Flex
+          p={3}
+          alignItems="center"
+          borderBottomWidth="1px"
+          borderColor="#262626" // Dark theme border
+          flexShrink={0}
+          bg="#000000" // Dark header
+          {...(inSidebar && { p: 2, minHeight: '48px' })}
+        >
+          <Image
+            src="/images/groups/GroupMe_gradient_logo.svg.png"
+            alt="GroupMe"
+            h="28px"
+            mr={4}
+          />
+          <InputGroup flex={1} size="sm" mr={2}>
+            <InputLeftElement pointerEvents="none">
+              <Icon as={FaSearch} color="gray.500" />
+            </InputLeftElement>
+            <Input
+              placeholder="Search chats"
+              bg="#262626" // Dark input
+              borderColor="#262626"
+              color="gray.300"
+              borderRadius="md"
+              fontSize="sm"
+              _placeholder={{ color: 'gray.500' }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <Text fontSize="lg" fontWeight="bold" color="white" noOfLines={1} flex={1}>
-              {currentSelectedGroupName || (
-                <Image
-                  src="/images/groups/GroupMe_gradient_logo.svg.png"
-                  alt="GroupMe"
-                  h="24px"
-                  display="inline"
-                />
-              )}
-            </Text>
-          </>
-        ) : (
-          <>
-            <Image
-              src="/images/groups/GroupMe_gradient_logo.svg.png"
-              alt="GroupMe"
-              h="28px"
-              mr={4}
-            />
-            <InputGroup flex={1} size="sm" mr={2}>
-              <InputLeftElement pointerEvents="none">
-                <Icon as={FaSearch} color="gray.500" />
-              </InputLeftElement>
-              <Input
-                placeholder="Search chats"
-                bg="#262626" // Dark input
-                borderColor="#262626"
-                color="gray.300"
-                borderRadius="md"
-                fontSize="sm"
-                _placeholder={{ color: 'gray.500' }}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </InputGroup>
-            <Icon
-              as={FaThLarge}
-              color="gray.400"
-              cursor="pointer"
-              _hover={{ color: 'white' }}
-              mr={3}
-            />
-            <Icon as={FaPlus} color="gray.400" cursor="pointer" _hover={{ color: 'white' }} />
-          </>
-        )}
-      </Flex>
+          </InputGroup>
+          <Icon
+            as={FaThLarge}
+            color="gray.400"
+            cursor="pointer"
+            _hover={{ color: 'white' }}
+            mr={3}
+          />
+          <Icon as={FaPlus} color="gray.400" cursor="pointer" _hover={{ color: 'white' }} />
+        </Flex>
+      )}
 
       {/* Content: Show Chat List OR Messages for Selected Group */}
       <Box
@@ -1145,6 +1755,7 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
         overflowY="auto"
         onScroll={handleScroll}
         bg="#000000" // Dark background
+        position="relative"
         {...(inSidebar && { maxHeight: 'calc(100vh - 428px)' })}
       >
         {!selectedGroup ? (
@@ -1202,17 +1813,39 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
           // Message Display Area for the selected group
           <VStack spacing={2} align="stretch" p={3} bg="#000000">
             {loadingMessages ? (
-              <Flex justify="center" align="center" h="200px">
-                <Spinner color="blue.400" size="lg" thickness="3px" speed="0.65s" />
-              </Flex>
+              <VStack spacing={2} align="stretch">
+                {generateSkeletonMessages(8)}
+              </VStack>
             ) : displayedMessages.length > 0 ? (
-              // Map messages using the MessageItem component
-              displayedMessages.map((msg) => (
-                <MessageItem
-                  key={msg.id || msg.messageId || `msg-${Date.now()}-${Math.random()}`}
-                  message={msg}
-                />
-              ))
+              <>
+                {/* Messages with unread divider */}
+                {processMessagesWithUnread(displayedMessages).map((item, index) => {
+                  if (item.type === 'separator') {
+                    return <DaySeparator key={`sep-${index}`} date={item.date} />;
+                  } else if (item.type === 'unread') {
+                    return <UnreadDivider key={`unread-${index}`} />;
+                  } else {
+                    return (
+                      <MessageItem
+                        key={item.message.id || item.message.messageId || `msg-${Date.now()}-${Math.random()}`}
+                        message={item.message}
+                        isFirstInBlock={item.isFirstInBlock}
+                        isLastInBlock={item.isLastInBlock}
+                      />
+                    );
+                  }
+                })}
+                
+                {/* Typing indicators */}
+                {selectedGroup && 
+                  typingUsers[selectedGroup]?.map(user => (
+                    <TypingIndicator 
+                      key={`typing-${user.name}-${user.timestamp}`} 
+                      senderName={user.name} 
+                    />
+                  ))
+                }
+              </>
             ) : (
               <Text color="gray.400" textAlign="center" mt={4}>
                 No messages in this group yet.
@@ -1220,6 +1853,11 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
             )}
             <div ref={messagesEndRef} />
           </VStack>
+        )}
+        
+        {/* Scroll to bottom button */}
+        {selectedGroup && userHasScrolled && (
+          <ScrollToBottomButton onClick={scrollToBottom} />
         )}
       </Box>
 
@@ -1252,13 +1890,51 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
               e.preventDefault();
               handleSendMessage();
             }}
+            p={inSidebar ? 2 : 3}
+            borderTopWidth="1px"
+            borderColor="#262626"
+            bg="#1a1a1a"
+            spacing={2}
+            alignItems="center"
           >
+            <IconButton
+              aria-label="Add attachment"
+              icon={<FaPaperclip />}
+              variant="ghost"
+              size="sm"
+              color="gray.400"
+              _hover={{ color: 'white', bg: 'whiteAlpha.200' }}
+            />
+            <IconButton
+              aria-label="Add image"
+              icon={<FaImage />}
+              variant="ghost"
+              size="sm"
+              color="gray.400"
+              _hover={{ color: 'white', bg: 'whiteAlpha.200' }}
+            />
+            <IconButton
+              aria-label="Add emoji"
+              icon={<FaSmile />}
+              variant="ghost"
+              size="sm"
+              color="gray.400"
+              _hover={{ color: 'white', bg: 'whiteAlpha.200' }}
+            />
+            <IconButton
+              aria-label="Add location"
+              icon={<FaMapMarkerAlt />}
+              variant="ghost"
+              size="sm"
+              color="gray.400"
+              _hover={{ color: 'white', bg: 'whiteAlpha.200' }}
+            />
             <Input
               placeholder="Send a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               flex="1"
-              bg="#262626" // Dark theme input
+              bg="#262626"
               color="white"
               borderColor="#333333"
               _placeholder={{ color: 'gray.500' }}
