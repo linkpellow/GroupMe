@@ -949,7 +949,7 @@ export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, r
       } else {
         console.warn('GroupMe token validation returned unexpected response format');
       }
-    } catch (validationError) {
+    } catch (validationError: any) {
       console.warn('GroupMe token validation failed, but continuing with save:', validationError.message);
     }
     
