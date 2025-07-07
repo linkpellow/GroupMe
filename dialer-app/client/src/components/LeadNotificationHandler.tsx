@@ -26,6 +26,8 @@ const LeadNotificationHandler: React.FC = () => {
   const lastPolledRef = useRef<number>(Date.now());
   const notificationCountRef = useRef<number>(0);
   
+  const POLL_MS = 3000; // 3-second fallback interval
+  
   // 1. Set up WebSocket notification listener
   useEffect(() => {
     console.log('[LeadNotification] Component mounted');
@@ -162,9 +164,9 @@ const LeadNotificationHandler: React.FC = () => {
       return; // No need for polling when WebSocket is connected
     }
     
-    console.log('[LeadNotification] Starting fallback polling for disconnected WebSocket');
+    console.log(`[LeadNotification] Starting fallback polling every ${POLL_MS}ms for disconnected WebSocket`);
     
-    // Poll every 30 seconds for new leads when WebSocket is disconnected
+    // Poll every POLL_MS when WebSocket is disconnected
     const pollInterval = setInterval(async () => {
       try {
         const now = Date.now();
@@ -199,12 +201,12 @@ const LeadNotificationHandler: React.FC = () => {
       } catch (error) {
         console.error('[LeadNotification] Error polling for notifications:', error);
       }
-    }, 30000);
+    }, POLL_MS);
     
     return () => {
       clearInterval(pollInterval);
     };
-  }, [isConnected, showNotification, recentNotifications]);
+  }, [isConnected, showNotification, recentNotifications, POLL_MS]);
   
   // 3. Handle manual refresh
   const handleRefresh = () => {
