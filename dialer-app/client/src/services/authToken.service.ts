@@ -8,6 +8,9 @@ import axios from 'axios';
 // Store the current token in memory
 let currentToken: string | null = localStorage.getItem('token');
 
+// Log initial token status on module load
+console.log('AuthToken service loaded, initial token status:', currentToken ? 'Present' : 'Not present');
+
 // Event name constants
 export const AUTH_TOKEN_UPDATED = 'auth_token_updated';
 export const AUTH_TOKEN_CLEARED = 'auth_token_cleared';
@@ -20,6 +23,7 @@ export const getToken = (): string | null => {
   // Always check localStorage first in case it was updated elsewhere
   const storedToken = localStorage.getItem('token');
   if (storedToken !== currentToken) {
+    console.log('Token changed in localStorage, updating in-memory token');
     currentToken = storedToken;
   }
   return currentToken;
@@ -50,6 +54,9 @@ export const setToken = (token: string): void => {
   // Update any global axios instance
   if (typeof window !== 'undefined' && window.axiosInstance) {
     window.axiosInstance.defaults.headers.common['Authorization'] = formattedToken;
+    console.log('Updated axiosInstance Authorization header');
+  } else {
+    console.warn('Global axiosInstance not available when setting token');
   }
   
   // Notify listeners
@@ -139,36 +146,51 @@ export const backupCurrentToken = (): boolean => {
  * This should be called when the application starts
  */
 export const initializeToken = (): void => {
+  console.log('Initializing token service');
   const token = localStorage.getItem('token');
+  console.log('Token from localStorage:', token ? 'Present' : 'Not present');
+  
   if (token) {
+    console.log('Setting token during initialization');
     setToken(token);
+  } else {
+    console.log('No token found during initialization');
   }
   
   // Listen for storage events (for multi-tab support)
   window.addEventListener('storage', (event) => {
+    console.log('Storage event detected:', event.key);
     if (event.key === 'token') {
       if (event.newValue) {
+        console.log('Token updated in another tab, syncing');
         setToken(event.newValue);
       } else {
+        console.log('Token cleared in another tab, syncing');
         clearToken();
       }
     }
   });
+  
+  console.log('Token service initialization complete');
 };
 
 /**
  * Helper function to dispatch token events
  */
-const dispatchTokenEvent = (eventName: string, detail: any = {}): void => {
+export const dispatchTokenEvent = (eventName: string, detail: any = {}): void => {
   if (typeof window !== 'undefined') {
     const event = new CustomEvent(eventName, { detail });
     window.dispatchEvent(event);
+    console.log(`Token event dispatched: ${eventName}`);
   }
 };
 
 // Initialize the token service when imported
 if (typeof window !== 'undefined') {
+  console.log('Window detected, initializing token service');
   initializeToken();
+} else {
+  console.log('No window object, skipping token service initialization');
 }
 
 export default {

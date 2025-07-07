@@ -516,68 +516,58 @@ export const initializeGroupMe = async (req: Request, res: Response): Promise<vo
 };
 
 /**
- * Get user's GroupMe service instance
+ * Helper to get or create a GroupMe service for a user
  */
-const getUserGroupMeService = async (userId: string): Promise<GroupMeService | null> => {
+export const getUserGroupMeService = async (
+  userId: string
+): Promise<GroupMeService | null> => {
+  console.log(`🔍 getUserGroupMeService: Creating GroupMe service for user ${userId}`);
+  
+  // Check if we already have a service instance for this user
+  if (serviceInstances.has(userId)) {
+    console.log(`✅ getUserGroupMeService: Using cached service instance for ${userId}`);
+    return serviceInstances.get(userId) as GroupMeService;
+  }
+
   try {
-    // Check cache first
-    const cachedService = serviceInstances.get(userId);
-    if (cachedService) {
-      return cachedService;
-    }
-
-    const user = await User.findById<IUser>(userId).select('groupMe.accessToken');
-
-    if (!user?.groupMe?.accessToken) {
-      console.log(`No GroupMe access token found for user ${userId}`);
+    // Get the user document with the encrypted GroupMe token
+    const user = await User.findById(userId).select('groupMe');
+    
+    if (!user) {
+      console.error(`❌ getUserGroupMeService: User ${userId} not found`);
       return null;
     }
-
-    // Decrypt the token – if decryption fails (e.g., token saved with a different key
-    // or legacy plain-text token), fall back to the stored string as-is.
-    let accessToken: string;
-    try {
-      accessToken = decrypt(user.groupMe.accessToken);
-      if (!accessToken || accessToken === 'undefined') {
-        console.error(`Invalid GroupMe token for user ${userId}`);
-        return null;
-      }
-    } catch (decryptErr) {
-      console.error(
-        `Failed to decrypt GroupMe token for user ${userId}. Token will be treated as invalid.`,
-        decryptErr
-      );
-      // If decryption fails, consider the user not connected so that the UI can prompt
-      // them to reconnect and store a fresh token. Returning null prevents repeated
-      // decryption attempts on every request.
+    
+    if (!user.groupMe?.accessToken) {
+      console.error(`❌ getUserGroupMeService: User ${userId} has no GroupMe access token`);
       return null;
     }
-
-    // Create new service instance for this user
+    
+    console.log(`✅ getUserGroupMeService: Found encrypted GroupMe token for user ${userId}`);
+    
+    // Decrypt the token
     try {
-      const service = new GroupMeService(accessToken);
+      const decryptedToken = decrypt(user.groupMe.accessToken);
+      console.log(`✅ getUserGroupMeService: Successfully decrypted token`);
+      
+      // Create a new service instance
+      const service = new GroupMeService(decryptedToken);
+      console.log(`✅ getUserGroupMeService: Created new service instance for ${userId}`);
+      
+      // Initialize the service
       await service.initialize();
-
+      console.log(`✅ getUserGroupMeService: Service initialized for ${userId}`);
+      
       // Cache the service instance
       serviceInstances.set(userId, service);
-
-      // Set up cleanup after 30 minutes of inactivity
-      setTimeout(
-        () => {
-          serviceInstances.delete(userId);
-          service.stopPolling();
-        },
-        30 * 60 * 1000
-      ); // 30 minutes
-
+      
       return service;
-    } catch (initError) {
-      console.error(`Failed to initialize GroupMe service for user ${userId}:`, initError);
-      // If initialization fails, the token might be invalid
+    } catch (decryptError) {
+      console.error(`❌ getUserGroupMeService: Failed to decrypt token for ${userId}:`, decryptError);
       return null;
     }
   } catch (error) {
-    console.error('Error getting user GroupMe service:', error);
+    console.error(`❌ getUserGroupMeService: Error creating GroupMe service for ${userId}:`, error);
     return null;
   }
 };
@@ -1026,122 +1016,163 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     
     console.log('Token saved successfully for user:', userId);
     
-    // Instead of redirecting, return HTML that will handle the OAuth flow client-side
+    // Return HTML that will handle the OAuth flow client-side
     console.log('Returning success HTML with postMessage');
-    res.status(200).send(`
+    res.send(`
       <!DOCTYPE html>
       <html>
-        <head>
-          <title>GroupMe Connected</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-              background-color: #f7fafc;
-              color: #2d3748;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
-              margin: 0;
-              padding: 20px;
-              text-align: center;
-            }
-            .success-box {
-              background-color: white;
-              border-radius: 8px;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              padding: 24px;
-              max-width: 500px;
-              width: 100%;
-            }
-            h1 {
-              color: #38a169;
-              margin-bottom: 16px;
-            }
-            .icon {
-              font-size: 48px;
-              color: #38a169;
-              margin-bottom: 16px;
-            }
-            p {
-              margin-bottom: 24px;
-            }
-            button {
-              background-color: #4299e1;
-              color: white;
-              border: none;
-              border-radius: 4px;
-              padding: 8px 16px;
-              cursor: pointer;
-              font-size: 16px;
-            }
-          </style>
-          <script>
-            window.onload = function() {
-              // Try to notify the opener window that GroupMe was connected successfully
-              try {
-                if (window.opener && !window.opener.closed) {
-                  console.log('Sending success message to opener window');
-                  
-                  // Try to access the backup token from the opener's sessionStorage
-                  let backupToken = null;
-                  try {
-                    backupToken = window.opener.sessionStorage.getItem('groupme_auth_token_backup');
-                    console.log('Found backup token in opener:', backupToken ? 'yes' : 'no');
-                  } catch (e) {
-                    console.error('Could not access opener sessionStorage:', e);
-                  }
-                  
-                  // Send the success message with token info
-                  window.opener.postMessage({ 
-                    type: 'GROUPME_CONNECTED', 
-                    success: true,
-                    hasBackupToken: !!backupToken
-                  }, '*');
-                  
-                  // Close this window after a short delay
-                  setTimeout(function() {
-                    window.close();
-                  }, 2000);
-                } else {
-                  console.log('No opener window found or it was closed');
-                  // If there's no opener or it's closed, show a button to close manually
-                  document.getElementById('closeButton').style.display = 'block';
-                }
-              } catch (err) {
-                console.error('Error communicating with opener:', err);
-                // Show the close button in case of error
-                document.getElementById('closeButton').style.display = 'block';
-              }
-            };
-            
-            function closeWindow() {
-              window.close();
-            }
-          </script>
-        </head>
-        <body>
-          <div class="success-box">
-            <div class="icon">✓</div>
-            <h1>GroupMe Connected Successfully!</h1>
-            <p>Your GroupMe account has been connected to Crokodial CRM.</p>
-            <p>You can close this window and return to the application.</p>
-            <button 
-              id="closeButton" 
-              style="display: none;"
-              onclick="closeWindow()"
-            >
-              Close Window
-            </button>
+      <head>
+        <title>GroupMe Connected Successfully!</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #2C2F33;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+          }
+          .success-card {
+            background-color: #36393F;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+          }
+          h1 {
+            color: #43B581;
+            margin-top: 0;
+          }
+          .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+          }
+          .info {
+            margin-bottom: 20px;
+            opacity: 0.9;
+          }
+          .closing {
+            font-size: 14px;
+            opacity: 0.7;
+          }
+          #countdown {
+            font-weight: bold;
+          }
+          .debug-info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #888;
+            text-align: left;
+            border-top: 1px solid #444;
+            padding-top: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="success-card">
+          <div class="icon">✅</div>
+          <h1>GroupMe Connected Successfully!</h1>
+          <p class="info">Your GroupMe account has been connected to the application.</p>
+          <p class="closing">This window will automatically close in <span id="countdown">3</span> seconds...</p>
+          
+          <div class="debug-info">
+            <p>Debug information:</p>
+            <ul>
+              <li>User ID: ${userId}</li>
+              <li>Connection time: ${new Date().toLocaleString()}</li>
+              <li>Token: ${access_token ? "Successfully saved" : "Failed to save"}</li>
+            </ul>
           </div>
-        </body>
+        </div>
+
+        <script>
+          // Send success message to opener (parent window) immediately
+          function notifyOpenerAndClose() {
+            console.log('Sending success message to parent window');
+            if (window.opener) {
+              try {
+                window.opener.postMessage({
+                  type: 'GROUPME_CONNECTED',
+                  success: true,
+                  timestamp: Date.now()
+                }, '*');
+                console.log('Success message sent to parent window');
+              } catch (e) {
+                console.error('Error sending message to parent:', e);
+              }
+              
+              // Check if the opener has the backup token in sessionStorage
+              try {
+                if (window.opener.sessionStorage) {
+                  const backupToken = window.opener.sessionStorage.getItem('groupme_auth_token_backup');
+                  console.log('Backup token in opener sessionStorage:', backupToken ? 'Present' : 'Not present');
+                }
+              } catch (e) {
+                console.log('Cannot access opener sessionStorage (normal due to cross-origin)');
+              }
+            } else {
+              console.warn('No opener window found, cannot send message');
+            }
+          }
+          
+          // Countdown and close
+          let secondsLeft = 3;
+          const countdownEl = document.getElementById('countdown');
+          
+          function updateCountdown() {
+            secondsLeft--;
+            countdownEl.textContent = secondsLeft;
+            
+            if (secondsLeft <= 0) {
+              // Try to close window after countdown
+              if (window.opener) {
+                window.close();
+              } else {
+                // If no opener or can't close, provide a message
+                document.body.innerHTML = '<div class="success-card"><h1>Connection Complete</h1><p>You can now close this window and return to the application.</p></div>';
+              }
+            } else {
+              setTimeout(updateCountdown, 1000);
+            }
+          }
+          
+          // Send message immediately, then start countdown
+          document.addEventListener('DOMContentLoaded', function() {
+            notifyOpenerAndClose();
+            setTimeout(updateCountdown, 1000);
+          });
+          
+          // Also try to send message now in case DOMContentLoaded already fired
+          notifyOpenerAndClose();
+        </script>
+      </body>
       </html>
     `);
-    return;
-  } catch (err) {
-    console.error('Failed to save GroupMe token:', err);
-    res.status(500).send('Failed to save GroupMe token');
-    return;
+  } catch (error) {
+    console.error('Error in GroupMe OAuth callback:', error);
+    res.status(500).send(`
+      <html>
+      <head>
+        <title>GroupMe Connection Error</title>
+        <style>
+          body { font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; }
+          h1 { color: #cc0000; }
+          pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+        </style>
+      </head>
+      <body>
+        <h1>Error Connecting GroupMe</h1>
+        <p>There was an error connecting your GroupMe account. Please try again or contact support.</p>
+        <p>Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
+        <p><a href="javascript:window.close()">Close this window</a> and try again.</p>
+      </body>
+      </html>
+    `);
   }
 };
