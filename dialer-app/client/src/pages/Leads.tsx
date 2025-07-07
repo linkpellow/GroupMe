@@ -1358,9 +1358,17 @@ export default function Leads() {
         // Set up the window content
         const doc = newWindow.document;
         doc.open();
-        const dispositionOptionsHtml = availableDispositions
+        
+        // --- CRITICAL FIX ---
+        // Ensure availableDispositions is not undefined before mapping. If the dispositions
+        // query fails or hasn't resolved, this prevents a fatal .map render error.
+        if (!availableDispositions) {
+            console.error('[Leads.tsx] CRITICAL: availableDispositions is undefined during handlePopoutNotes. Cannot render disposition options.');
+        }
+        const dispositionOptionsHtml = (availableDispositions || [])
           .map((d) => `<option value="${d}" ${d === lead.disposition ? 'selected' : ''}>${d}</option>`)
           .join('');
+
         const popupHTML = `<!DOCTYPE html><html><head>
         <meta charset='utf-8' />
         <title>Lead Details: ${lead.name}</title>
