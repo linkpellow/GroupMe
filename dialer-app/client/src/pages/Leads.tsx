@@ -972,7 +972,7 @@ export default function Leads() {
   }, [dispositionsList]);
 
   // useLeadsData expects an object with queryState and queryVersion
-  const { leads, isLoading, isFetching, error, pagination, refetch } = useLeadsData({
+  const { leads, isLoading, isInitialLoading, isFetching, error, pagination, refetch } = useLeadsData({
     queryState,
     queryVersion,
     enabled: true,
@@ -2377,7 +2377,7 @@ export default function Leads() {
   // Cast to any to relax prop type checks for react-simple-pull-to-refresh
   const PullToRefreshAny = PullToRefresh as any;
 
-  const showInitialOverlay = isLoading && !isFetching && leads.length === 0;
+  const showInitialOverlay = isInitialLoading && leads.length === 0;
 
   return (
     <>

@@ -24,6 +24,7 @@ interface UseLeadsDataReturn {
     limit: number;
   };
   isLoading: boolean;
+  isInitialLoading: boolean;
   isError: boolean;
   error: Error | null;
   isFetching: boolean;
@@ -125,6 +126,7 @@ export function useLeadsData({
       limit: queryState.limit,
     },
     isLoading: query.isLoading,
+    isInitialLoading: query.isInitialLoading,
     isError: query.isError,
     error: query.error as Error | null,
     isFetching: query.isFetching,
