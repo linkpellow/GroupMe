@@ -791,21 +791,33 @@ export const getConfig = async (req: AuthenticatedRequest, res: Response): Promi
     const userId = req.user?.id;
     if (!userId) {
       console.error('SERVER LOG: getConfig - ERROR: No userId in req.user');
-      return res.status(401).json({ message: 'User not authenticated for getConfig' });
+      return res.status(401).json({ 
+        error: 'User not authenticated for getConfig',
+        code: 'AUTHENTICATION_REQUIRED'
+      });
     }
+    
+    // Log the authentication details for debugging
     console.log(`SERVER LOG: getConfig - Called for userId: ${userId}`);
+    console.log(`SERVER LOG: getConfig - Auth header: ${req.headers.authorization ? 'Present' : 'Missing'}`);
+    
     const config = await GroupMeConfig.findOne({ userId });
     if (!config) {
       console.log(`SERVER LOG: getConfig - No GroupMeConfig found for userId: ${userId}`);
+      // Return 200 with null data instead of 404 to avoid triggering auth errors
       return res.status(200).json(null);
     }
+    
     console.log(
       `SERVER LOG: getConfig - Found GroupMeConfig for userId: ${userId}, accessToken presence: ${!!config.accessToken}`
     );
     return res.status(200).json(config);
   } catch (error) {
     console.error('SERVER LOG: Error in getConfig:', error);
-    return res.status(500).json({ message: 'Failed to get GroupMe configuration' });
+    return res.status(500).json({ 
+      message: 'Failed to get GroupMe configuration',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 

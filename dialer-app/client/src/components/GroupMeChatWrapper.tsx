@@ -5,6 +5,7 @@ import { useGroupMeConfig } from '../context/GroupMeContext';
 import { groupMeOAuthService } from '../services/groupMeOAuth.service';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import * as authTokenService from '../services/authToken.service';
 
 // Declare global window properties
 declare global {
@@ -88,6 +89,26 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
     }
   }, [loading]);
 
+  // Listen for auth token restoration events
+  useEffect(() => {
+    const handleTokenRestored = () => {
+      console.log('GroupMeChatWrapper: Auth token restored event received');
+      // Force reload the component to ensure it uses the restored token
+      setIsInitialized(false);
+      setTimeout(() => {
+        setIsInitialized(true);
+      }, 500);
+    };
+
+    // Add event listener for token restoration
+    window.addEventListener(authTokenService.AUTH_TOKEN_RESTORED, handleTokenRestored);
+
+    // Clean up the event listener
+    return () => {
+      window.removeEventListener(authTokenService.AUTH_TOKEN_RESTORED, handleTokenRestored);
+    };
+  }, []);
+
   const handleConnectGroupMe = async () => {
     if (!user?.id) {
       console.error('No user ID found, cannot connect GroupMe');
@@ -101,20 +122,11 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
       return;
     }
 
-    // Store current auth token in sessionStorage before starting OAuth flow
-    try {
-      const currentToken = localStorage.getItem('token');
-      if (currentToken) {
-        console.log('Backing up current auth token to sessionStorage');
-        sessionStorage.setItem('groupme_auth_token_backup', currentToken);
-        
-        // Also store the current URL so we can return here after auth
-        sessionStorage.setItem('groupme_return_url', window.location.pathname);
-      }
-    } catch (storageError) {
-      console.warn('Could not save token to sessionStorage:', storageError);
-      // Continue anyway - this is just a precaution
-    }
+    // Backup the current auth token using our centralized service
+    authTokenService.backupCurrentToken();
+    
+    // Also store the current URL so we can return here after auth
+    sessionStorage.setItem('groupme_return_url', window.location.pathname);
 
     setIsConnecting(true);
     try {
@@ -164,41 +176,11 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
           // Remove the event listener
           window.removeEventListener('message', messageHandler);
           
-          // Restore auth token from backup
-          try {
-            const backupToken = sessionStorage.getItem('groupme_auth_token_backup');
-            if (backupToken) {
-              console.log('Restoring auth token from backup in main window');
-              localStorage.setItem('token', backupToken);
-              
-              // Force axios to use the restored token by updating any axios instances
-              // This ensures subsequent API calls will include the token
-              import('axios').then(axiosModule => {
-                const axios = axiosModule.default;
-                // Update default axios headers
-                axios.defaults.headers.common['Authorization'] = `Bearer ${backupToken}`;
-                
-                // Also update any axios instances that might be in use
-                if (window.axiosInstance) {
-                  window.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${backupToken}`;
-                }
-                
-                console.log('Updated axios headers with restored token');
-              });
-              
-              // Clean up the backup
-              sessionStorage.removeItem('groupme_auth_token_backup');
-              
-              console.log('Auth token state:', {
-                localStorageToken: localStorage.getItem('token') ? 'present' : 'missing',
-                backupToken: 'removed after restoration',
-                authHeaderUpdated: true
-              });
-            } else {
-              console.warn('No backup token found in sessionStorage');
-            }
-          } catch (storageError) {
-            console.error('Error restoring auth token:', storageError);
+          // Restore auth token from backup using our centralized service
+          const restored = authTokenService.restoreTokenFromBackup();
+          
+          if (!restored) {
+            console.warn('Failed to restore auth token from backup');
           }
           
           // Refresh groups to show the connected state
@@ -216,12 +198,6 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
                   duration: 4000,
                   isClosable: true,
                 });
-                
-                // Force reload the component to ensure it uses the restored token
-                setIsInitialized(false);
-                setTimeout(() => {
-                  setIsInitialized(true);
-                }, 500);
               })
               .catch(err => {
                 console.error('Error refreshing groups after connection:', err);

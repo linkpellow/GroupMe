@@ -105,7 +105,28 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
     console.log("GroupMeContext: refreshConfig called");
     setLoading(true);
     setError(null);
+    
+    // Import and use our centralized auth token service
+    const authTokenService = await import('../services/authToken.service');
+    
+    // Get the current token from our service
+    const token = authTokenService.getToken();
+    
+    if (!token) {
+      console.warn('GroupMeContext: No auth token found, cannot fetch config');
+      setConfig(null);
+      setLoading(false);
+      return;
+    }
+    
+    console.log('GroupMeContext: Auth token found, fetching config');
+    
     try {
+      // Ensure the token is properly set in axios headers
+      axiosInstance.defaults.headers.common['Authorization'] = token.startsWith('Bearer ') 
+        ? token 
+        : `Bearer ${token}`;
+      
       const response = await axiosInstance.get("/api/groupme/config");
       if (response.data && response.data.accessToken) {
         setConfig(response.data);
@@ -147,6 +168,25 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
       hasGroups: !!config.groups,
       groupsCount: config.groups ? Object.keys(config.groups).length : 0
     });
+    
+    // Import and use our centralized auth token service
+    const authTokenService = await import('../services/authToken.service');
+    
+    // Get the current token from our service
+    const token = authTokenService.getToken();
+    
+    if (!token) {
+      console.warn('GroupMeContext: No auth token found, cannot fetch groups');
+      setError('Authentication token not found. Please log in again.');
+      setGroups([]);
+      setIsLoading(false);
+      return;
+    }
+    
+    // Ensure the token is properly set in axios headers
+    axiosInstance.defaults.headers.common['Authorization'] = token.startsWith('Bearer ') 
+      ? token 
+      : `Bearer ${token}`;
     
     setIsLoading(true);
     try {
