@@ -222,13 +222,22 @@ export const broadcastNewLeadNotification = (leadData: {
     timestamp: new Date().toISOString(),
   };
 
-  console.log('Broadcasting new lead notification:', notification);
+  logger.info(`Broadcasting lead notification: ${leadData.name} (${leadData.leadId}), isNew=${leadData.isNew}, clients=${wss.clients.size}`);
 
+  let sentCount = 0;
   wss.clients.forEach((client: ExtendedWebSocket) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(notification));
+      try {
+        client.send(JSON.stringify(notification));
+        sentCount++;
+        logger.debug(`Notification sent to client: ${client.userId || 'anonymous'}`);
+      } catch (error) {
+        logger.error(`Failed to send notification to client: ${error}`);
+      }
     }
   });
+
+  logger.info(`Notification broadcast complete: sent to ${sentCount}/${wss.clients.size} clients`);
 };
 
 const storage = multer.diskStorage({
