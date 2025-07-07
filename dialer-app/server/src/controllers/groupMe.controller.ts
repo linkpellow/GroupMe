@@ -773,7 +773,7 @@ export const sendMessage = asyncHandler(
 /**
  * Get GroupMe configuration for the authenticated user
  */
-export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
+export const getConfig = async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -799,7 +799,7 @@ export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
 /**
  * Save GroupMe configuration for the authenticated user
  */
-export const saveConfig = async (req: AuthenticatedRequest, res: Response) => {
+export const saveConfig = async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -856,14 +856,16 @@ export const saveConfig = async (req: AuthenticatedRequest, res: Response) => {
 /**
  * Handle webhook events from GroupMe
  */
-export const handleWebhook = async (req: Request, res: Response) => {
+export const handleWebhook = async (req: Request, res: Response): Promise<Response> => {
   try {
     console.log('SERVER LOG: GroupMe webhook received');
     const webhookData = req.body;
     res.status(200).send('OK');
     await groupMeService.processIncomingMessage(webhookData);
+    return res;
   } catch (error) {
     console.error('SERVER LOG: Error handling GroupMe webhook:', error);
+    return res;
   }
 };
 
@@ -894,7 +896,7 @@ const processWebhookMessage = async (webhookData: any) => {
 /**
  * Save GroupMe access token from OAuth callback
  */
-export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
   const userId = req.user?.id;
   const { access_token } = req.body;
   if (!userId || !access_token) return res.status(400).json({ error: 'Missing user or token' });
@@ -914,7 +916,7 @@ export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, r
     { upsert: true, new: true }
   );
 
-  res.sendStatus(204);
+  return res.sendStatus(204);
 });
 
 // ... add new handler for GET /groupme/callback (implicit grant)
