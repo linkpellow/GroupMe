@@ -1304,7 +1304,7 @@ export default function Leads() {
         globalAny.addFollowUpLead(lead.name, lead.phone, lead.state);
       } else if (typeof globalAny.appendDailyGoal === 'function') {
         // Fallback legacy string path. Ensure single parentheses and clean phone.
-        const cleanedPhone = lead.phone.replace(/[()]/g, '').trim();
+        const cleanedPhone = (lead.phone || '').replace(/[()]/g, '').trim();
         const phoneFormatted = `(${cleanedPhone})`;
         const reminderText = `Follow up with ${lead.name} ${phoneFormatted}${lead.state ? ` - ${lead.state}` : ''}`;
         globalAny.appendDailyGoal(reminderText);
@@ -2064,7 +2064,7 @@ export default function Leads() {
           <div className="grid-item">
             <div
               className="text-content value phone"
-              data-phone={lead.phone.replace(/[^\d]/g, '')}
+              data-phone={(lead.phone || '').replace(/[^\d]/g, '')}
               onClick={(e) => {
                 e.stopPropagation();
                 copyToClipboard(lead.phone, toast, 'Phone');
@@ -2354,6 +2354,9 @@ export default function Leads() {
     const target = evt.target as HTMLElement | null;
     return !(target && target.closest('.lead-card'));
   };
+
+  // Cast to any to relax prop type checks for react-simple-pull-to-refresh
+  const PullToRefreshAny = PullToRefresh as any;
 
   return (
     <>
@@ -2669,19 +2672,14 @@ export default function Leads() {
 
             // @ts-ignore – library prop types can be inconsistent, but runtime handles this
             return (
-              <PullToRefresh
-                shouldPullToRefresh={shouldStartPull as any}
+              <PullToRefreshAny
                 onRefresh={handleRefresh}
                 pullingContent={<CrocLoader size={48} />}
                 refreshingContent={<CrocLoader size={48} />}
-                pullDownToRefresh={true as any}
-                pullDownThreshold={200}
-                maxPullDownDistance={380}
-                triggerHeight={0}
-                resistance={1.0}
+                pullDownThreshold={150}
               >
                 {listElement}
-              </PullToRefresh>
+              </PullToRefreshAny>
             );
           })()}
 

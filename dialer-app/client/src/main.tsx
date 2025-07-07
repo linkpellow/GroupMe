@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ChakraProvider } from "@chakra-ui/react";
 import theme from "./theme";
@@ -52,7 +53,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <CallCountsProvider>
               <LifetimeCountsProvider>
                 <ZoomProvider>
-                  <App />
+                  <ErrorBoundary>
+                    <App />
+                  </ErrorBoundary>
                   <ZoomControls />
                 </ZoomProvider>
               </LifetimeCountsProvider>
@@ -99,3 +102,12 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 console.log('Initializing WebSocket service...');
 // This will execute the constructor
 webSocketService;
+
+// Add global error listeners to catch anything that slips past React's boundaries
+window.addEventListener('error', (event) => {
+  console.error('GLOBAL UNCAUGHT ERROR:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('GLOBAL UNHANDLED REJECTION:', event.reason);
+});

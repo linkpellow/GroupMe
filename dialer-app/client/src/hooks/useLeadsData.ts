@@ -51,8 +51,15 @@ export function useLeadsData({
     queryKey: getQueryKey(queryState, queryVersion),
     queryFn: () => leadsApi.queryLeads(queryState),
     enabled,
+    /**
+     * Preserve the previous list while refetching (v5 replacement for
+     * keepPreviousData).
+     */
+    placeholderData: (prev) => prev,
     staleTime: QUERY_CONFIG.PERFORMANCE.cacheTime,
     gcTime: QUERY_CONFIG.PERFORMANCE.cacheTime * 2,
+    refetchInterval: 60000, // Background refresh every 60s
+    refetchIntervalInBackground: true,
     retry: (failureCount, error) => {
       // Don't retry on client errors (4xx)
       if (error?.code?.startsWith('4')) return false;

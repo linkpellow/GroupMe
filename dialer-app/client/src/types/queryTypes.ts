@@ -28,6 +28,18 @@ export interface LeadsQueryState {
     dispositions?: string[];
     pipelineSource?: 'all' | 'nextgen' | 'marketplace' | 'selfgen' | 'csv' | 'manual' | 'usha';
   };
+
+  /**
+   * When true, the API should ignore pagination limits and return the full
+   * result set. Primarily used by CSV export logic.
+   */
+  getAllResults?: boolean;
+
+  /**
+   * Optional request identifier propagated through the API layer. Mainly for
+   * debugging/analytics – not required for normal operation.
+   */
+  requestId?: string;
 }
 
 // Response types
@@ -260,6 +272,8 @@ export function validateQueryState(state: unknown): {
       dispositions: s.filters?.dispositions?.filter((d: string) => d.length > 0),
       pipelineSource: s.filters?.pipelineSource || 'all',
     },
+    getAllResults: s.getAllResults,
+    requestId: s.requestId,
   };
 
   if (typeof s.search === 'string') {
@@ -296,6 +310,14 @@ export function serializeQueryState(state: LeadsQueryState): URLSearchParams {
 
   if (state.filters?.pipelineSource && state.filters.pipelineSource !== 'all') {
     params.set('pipelineSource', state.filters.pipelineSource);
+  }
+
+  if (state.getAllResults) {
+    params.set('getAllResults', 'true');
+  }
+
+  if (state.requestId) {
+    params.set('requestId', state.requestId);
   }
 
   return params;
@@ -372,5 +394,17 @@ export function deserializeQueryState(params: URLSearchParams): Partial<LeadsQue
     }
   }
 
+  if (params.has('getAllResults')) {
+    state.getAllResults = true;
+  }
+
+  if (params.has('requestId')) {
+    state.requestId = params.get('requestId')!;
+  }
+
   return state;
 }
+
+// Historical alias maintained for backwards-compatibility – use
+// `LeadsQueryResponse` going forward.
+export type PaginatedLeadsResponse = LeadsQueryResponse;

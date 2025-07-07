@@ -36,6 +36,9 @@ const LeadNotificationHandler: React.FC = () => {
     
     const handleNewLeadNotification = (data: NewLeadNotification) => {
       try {
+        // Log full payload for debugging
+        console.log('[WS] new_lead_notification payload:', JSON.stringify(data, null, 2));
+        
         const { leadId, name, source, isNew } = data.data;
         
         // Check if we've already shown this notification
@@ -52,18 +55,16 @@ const LeadNotificationHandler: React.FC = () => {
           // Pre-load the sound file for Chrome
           const audio = new Audio('/sounds/Cash app sound.mp3');
           
-          // Try to set autoplay policy-friendly attributes
+          // Configure audio & play immediately. If autoplay fails (Chrome), the
+          // existing Notification component will attempt a fallback on user
+          // interaction, so we ignore the rejection here.
           audio.muted = false;
           audio.volume = 0.3;
           audio.preload = 'auto';
-          
-          // Force a user interaction if this is Chrome
-          if (navigator.userAgent.includes('Chrome')) {
-            document.body.addEventListener('click', function playOnce() {
-              audio.play().catch(e => console.error('[Sound] Failed to play notification sound:', e));
-              document.body.removeEventListener('click', playOnce);
-            }, { once: true });
-          }
+          audio.currentTime = 0;
+          audio.play().catch((e) => {
+            console.warn('[Sound] Immediate play blocked, will rely on fallback:', e);
+          });
           
           // 1. Trigger banner/SFX
           showNotification(`New NextGen Lead! ${name}`, 'nextgen');
@@ -130,7 +131,8 @@ const LeadNotificationHandler: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('[LeadNotification] Error processing notification:', error);
+        console.error('[LeadNotification] FATAL: Error processing notification:', error);
+        // Also log to Sentry or other error reporting service if available
       }
     };
     

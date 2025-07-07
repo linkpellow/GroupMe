@@ -6,11 +6,9 @@
 
 import { useLeadsQuery } from './useLeadsQuery';
 import { useLeadsData, useFilterOptions } from './useLeadsData';
-import { Lead } from '../types/queryTypes';
-import { useEffect, useState } from 'react';
+import { Lead, LeadsQueryResponse, LeadsQueryState } from '../types/queryTypes';
 import { useQuery } from '@tanstack/react-query';
-import { LeadsQueryState, PaginatedLeadsResponse } from '../types/queryTypes';
-import { fetchLeads } from '../services/leadsApi';
+import { leadsApi } from '../services/leadsApi';
 
 export interface UseLeadsPageDataReturn {
   // Query state management
@@ -41,9 +39,11 @@ export interface UseLeadsPageDataReturn {
 }
 
 export function useLeadsPageData(queryState: LeadsQueryState): UseLeadsPageDataReturn {
-  const { search, filters, page, limit, sortBy, sortDirection, getAllResults, requestId } = queryState;
+  const { search, filters, page, limit, sortBy, sortDirection, getAllResults, requestId } =
+    queryState;
 
   const queryKey = [
+    'leads-page',
     search,
     filters,
     page,
@@ -57,30 +57,17 @@ export function useLeadsPageData(queryState: LeadsQueryState): UseLeadsPageDataR
   const {
     data,
     isLoading,
-    isError,
     error,
     refetch,
-    isFetching,
-    isPreviousData,
-  } = useQuery<PaginatedLeadsResponse, Error>({
+  } = useQuery<LeadsQueryResponse, Error>({
     queryKey: queryKey,
     queryFn: () => {
       console.log('[useLeadsPageData] Fetching leads with queryState:', queryState);
-      return fetchLeads(queryState);
+      return leadsApi.queryLeads(queryState) as Promise<LeadsQueryResponse>;
     },
-    keepPreviousData: true,
+    placeholderData: (prev: LeadsQueryResponse | undefined) => prev,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    // Adding logging for success and error cases
-    onSuccess: (data) => {
-      console.log('[useLeadsPageData] Successfully fetched leads:', {
-        leadCount: data.leads.length,
-        total: data.total,
-        page: data.page,
-      });
-    },
-    onError: (err) => {
-      console.error('[useLeadsPageData] Error fetching leads:', err);
-    },
+    // Logging handled by Axios interceptors inside leadsApi
   });
 
   // Use our centralized query state management

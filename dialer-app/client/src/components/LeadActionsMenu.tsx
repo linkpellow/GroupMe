@@ -129,6 +129,8 @@ interface LeadActionsMenuProps {
   onAddToCampaign: (lead: any) => void;
   onQuickDrip: (lead: any) => void;
   onReferralPartner: (lead: any) => void;
+  onAddToReminders?: (lead: any) => void;
+  onPopoutNotes?: (lead: any) => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -141,6 +143,8 @@ export const LeadActionsMenu: React.FC<LeadActionsMenuProps> = ({
   onAddToCampaign,
   onQuickDrip,
   onReferralPartner,
+  onAddToReminders,
+  onPopoutNotes,
   className,
   style,
 }) => {
