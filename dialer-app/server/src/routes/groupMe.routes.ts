@@ -17,9 +17,6 @@ router.get('/callback', groupMeController.handleGroupMeImplicitCallback);
 // Add token save endpoint (requires authentication)
 router.post('/token', auth, groupMeController.saveGroupMeToken);
 
-// Add code exchange endpoint (requires authentication)
-router.post('/exchange-code', auth, groupMeController.exchangeCode);
-
 // Apply auth middleware for all other routes
 router.use(auth);
 

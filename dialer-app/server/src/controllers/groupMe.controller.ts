@@ -117,11 +117,13 @@ export const initiateOAuth = asyncHandler(async (req: Request, res: Response): P
     maxAge: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Use default implicit behavior (no response_type) so GroupMe returns access_token directly.
+  // Per GroupMe documentation, the OAuth URL format is very simple:
+  // https://dev.groupme.com/tutorials/oauth
   const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
     REDIRECT_URI
   )}&state=${state}`;
 
+  console.log('Initiating OAuth with URL:', authUrl);
   sendSuccess(res, { authUrl, state });
 });
 
@@ -996,20 +998,23 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
   console.log('Request URL:', req.url);
   console.log('Request path:', req.path);
   
-  // Parse query parameters - look for both code and access_token
-  const { access_token, code, state } = req.query as { 
-    access_token?: string; 
-    code?: string;
+  // Per GroupMe docs, the token comes in query parameters for implicit flow
+  const { access_token, state } = req.query as { 
+    access_token?: string;
     state?: string 
   };
   
-  // Debug what we received
   console.log('Received access_token:', access_token ? `${access_token.substring(0, 5)}... (length: ${access_token.length})` : 'none');
-  console.log('Received code:', code ? `${code.substring(0, 5)}... (length: ${code.length})` : 'none');
   
   if (!state) {
     console.error('GroupMe callback missing state', req.query);
     res.status(400).send('Invalid GroupMe callback: Missing state parameter');
+    return;
+  }
+  
+  if (!access_token) {
+    console.error('GroupMe callback missing access_token', req.query);
+    res.status(400).send('Invalid GroupMe callback: Missing access_token parameter');
     return;
   }
   
@@ -1032,548 +1037,126 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     return;
   }
   
-  // If we received a code parameter directly, exchange it for a token
-  if (code && !access_token) {
-    console.log(`Received authorization code. Will exchange it server-side.`);
-    
-    try {
-      // Get the GroupMe client config
-      const GROUPME_CLIENT_ID = process.env.GROUPME_CLIENT_ID;
-      const GROUPME_CLIENT_SECRET = process.env.GROUPME_CLIENT_SECRET;
-      const REDIRECT_URI = process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback';
-      
-      if (!GROUPME_CLIENT_ID) {
-        console.error('Missing GROUPME_CLIENT_ID environment variable');
-        res.status(500).send('Server configuration error. Please contact support.');
-        return;
-      }
-      
-      console.log('Making token exchange request to GroupMe API');
-      
-      try {
-        const tokenResponse = await axios.post('https://oauth.groupme.com/oauth/token', {
-          client_id: GROUPME_CLIENT_ID,
-          client_secret: GROUPME_CLIENT_SECRET,
-          code: code,
-          redirect_uri: REDIRECT_URI,
-          grant_type: 'authorization_code'
-        });
-        
-        const exchangedToken = tokenResponse.data.access_token;
-        
-        if (!exchangedToken) {
-          console.error('No access_token in token exchange response');
-          res.status(400).send('Could not obtain access token from GroupMe. Please try again.');
-          return;
-        }
-        
-        console.log(`Token exchange successful - access_token length: ${exchangedToken.length}`);
-        
-        // Now save this token to the user's account
-        try {
-          const user = await User.findById(userId);
-          if (!user) {
-            console.error(`User ${userId} not found`);
-            res.status(404).send('User not found');
-            return;
-          }
-          
-          // Encrypt token before saving
-          const encryptedToken = encrypt(exchangedToken);
-          
-          // Set the token in user's groupMe field
-          user.groupMe = {
-            accessToken: encryptedToken,
-            tokenUpdatedAt: new Date(),
-          };
-          
-          // Save the user with the updated groupMe field
-          await user.save();
-          
-          console.log(`GroupMe token saved successfully for user ${userId}`);
-          
-          // Return success page
-          res.send(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>GroupMe Connected</title>
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                body {
-                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                  background-color: #2C2F33;
-                  color: white;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  height: 100vh;
-                  margin: 0;
-                  padding: 20px;
-                  text-align: center;
-                }
-                .card {
-                  background-color: #36393F;
-                  border-radius: 8px;
-                  padding: 30px;
-                  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                  max-width: 500px;
-                  width: 100%;
-                }
-                h1 {
-                  color: #43B581;
-                  margin-top: 0;
-                }
-                .icon {
-                  font-size: 48px;
-                  margin-bottom: 20px;
-                }
-                .message {
-                  margin-bottom: 20px;
-                }
-                button {
-                  background-color: #43B581;
-                  color: white;
-                  border: none;
-                  padding: 10px 20px;
-                  border-radius: 4px;
-                  cursor: pointer;
-                  font-weight: bold;
-                }
-                button:hover {
-                  background-color: #3ca374;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="card">
-                <div class="icon">✅</div>
-                <h1>GroupMe Connected!</h1>
-                <p class="message">Your GroupMe account has been successfully connected.</p>
-                <button onclick="window.close()">Close Window</button>
-                <script>
-                  // Notify the opener window about successful connection
-                  if (window.opener) {
-                    try {
-                      window.opener.postMessage({
-                        type: 'GROUPME_CONNECTED',
-                        success: true,
-                        timestamp: Date.now()
-                      }, '*');
-                      console.log('Success message sent to parent window');
-                      
-                      // Close this window after a short delay
-                      setTimeout(() => {
-                        window.close();
-                      }, 2000);
-                    } catch (e) {
-                      console.log('Error sending message to parent: ' + e.message);
-                    }
-                  }
-                </script>
-              </div>
-            </body>
-            </html>
-          `);
-        } catch (saveError: any) {
-          console.error('Failed to save GroupMe token:', saveError.message);
-          res.status(500).send('Failed to save GroupMe token: ' + saveError.message);
-        }
-      } catch (exchangeError: any) {
-        console.error('Token exchange error:', exchangeError.message);
-        console.error('Response status:', exchangeError.response?.status);
-        console.error('Response data:', exchangeError.response?.data);
-        
-        res.status(500).send('Failed to exchange code for token. Please try again.');
-      }
-      
-      return;
-    } catch (error: any) {
-      console.error('Error in code exchange flow:', error.message);
-      res.status(500).send('Internal server error');
+  // Now save this token to the user's account
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error(`User ${userId} not found`);
+      res.status(404).send('User not found');
       return;
     }
-  }
-  
-  // Return an HTML page that will handle token exchange and extraction
-  console.log('Returning HTML page to handle OAuth completion');
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>GroupMe Connected</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-          background-color: #2C2F33;
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 100vh;
-          margin: 0;
-          padding: 20px;
-          text-align: center;
-        }
-        .card {
-          background-color: #36393F;
-          border-radius: 8px;
-          padding: 30px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          max-width: 500px;
-          width: 100%;
-        }
-        h1 {
-          color: #43B581;
-          margin-top: 0;
-        }
-        .icon {
-          font-size: 48px;
-          margin-bottom: 20px;
-        }
-        .message {
-          margin-bottom: 20px;
-        }
-        #status {
-          font-weight: bold;
-        }
-        .spinner {
-          border: 4px solid rgba(255, 255, 255, 0.3);
-          border-radius: 50%;
-          border-top: 4px solid white;
-          width: 20px;
-          height: 20px;
-          animation: spin 1s linear infinite;
-          display: inline-block;
-          vertical-align: middle;
-          margin-right: 10px;
-        }
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        pre {
-          background: rgba(0,0,0,0.2);
-          border-radius: 4px;
-          padding: 8px;
-          max-width: 100%;
-          overflow: auto;
-          font-size: 12px;
-          text-align: left;
-          margin-top: 20px;
-        }
-        #debug {
-          max-height: 100px;
-          overflow-y: auto;
-        }
-        input {
-          padding: 10px;
-          width: 100%;
-          margin: 10px 0;
-          border-radius: 4px;
-          border: none;
-          box-sizing: border-box;
-        }
-        button {
-          background-color: #43B581;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-        button:hover {
-          background-color: #3ca374;
-        }
-        .manual-entry {
-          margin-top: 20px;
-          display: none;
-          border-top: 1px solid rgba(255,255,255,0.1);
-          padding-top: 20px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="card">
-        <div class="icon">🔄</div>
-        <h1>Connecting GroupMe...</h1>
-        <p class="message"><span class="spinner"></span> <span id="status">Processing your connection...</span></p>
-        <div id="debug"></div>
-        
-        <div class="manual-entry" id="manualEntry">
-          <h3>Manual Token Entry</h3>
-          <p>If automatic connection fails, paste your GroupMe access token below:</p>
-          <input type="text" id="manualToken" placeholder="Paste GroupMe access token here">
-          <button id="submitManualToken">Connect</button>
+    
+    // Encrypt token before saving
+    const encryptedToken = encrypt(access_token);
+    
+    // Set the token in user's groupMe field
+    user.groupMe = {
+      accessToken: encryptedToken,
+      tokenUpdatedAt: new Date(),
+    };
+    
+    // Save the user with the updated groupMe field
+    await user.save();
+    
+    // Also save to GroupMeConfig for the frontend
+    await GroupMeConfig.findOneAndUpdate(
+      { userId },
+      { 
+        userId, 
+        accessToken: encryptedToken 
+      },
+      { upsert: true, new: true }
+    );
+    
+    console.log(`GroupMe token saved successfully for user ${userId}`);
+    
+    // Return success page
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>GroupMe Connected</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #2C2F33;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+          }
+          .card {
+            background-color: #36393F;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+          }
+          h1 {
+            color: #43B581;
+            margin-top: 0;
+          }
+          .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+          }
+          .message {
+            margin-bottom: 20px;
+          }
+          button {
+            background-color: #43B581;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+          }
+          button:hover {
+            background-color: #3ca374;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">✅</div>
+          <h1>GroupMe Connected!</h1>
+          <p class="message">Your GroupMe account has been successfully connected.</p>
+          <button onclick="window.close()">Close Window</button>
+          <script>
+            // Notify the opener window about successful connection
+            if (window.opener) {
+              try {
+                window.opener.postMessage({
+                  type: 'GROUPME_CONNECTED',
+                  success: true,
+                  timestamp: Date.now()
+                }, '*');
+                console.log('Success message sent to parent window');
+                
+                // Close this window after a short delay
+                setTimeout(() => {
+                  window.close();
+                }, 2000);
+              } catch (e) {
+                console.log('Error sending message to parent: ' + e.message);
+              }
+            }
+          </script>
         </div>
-      </div>
-
-      <script>
-        // Debug logger function
-        function log(message) {
-          console.log(message);
-          const debugEl = document.getElementById('debug');
-          if (debugEl) {
-            const logEntry = document.createElement('pre');
-            logEntry.textContent = typeof message === 'object' 
-              ? JSON.stringify(message, null, 2) 
-              : message;
-            debugEl.appendChild(logEntry);
-            debugEl.scrollTop = debugEl.scrollHeight;
-          }
-        }
-        
-        // Function to extract URL parameters from either hash or query string
-        function getUrlParams(source) {
-          const params = {};
-          const regex = /([^&=]+)=([^&]*)/g;
-          let match;
-          
-          // Remove the leading # or ? if present
-          const cleanSource = source.replace(/^[#?]/, '');
-          
-          while (match = regex.exec(cleanSource)) {
-            params[decodeURIComponent(match[1])] = decodeURIComponent(match[2]);
-          }
-          
-          return params;
-        }
-        
-        // Function to exchange code for token if code is present
-        async function exchangeCodeForToken(code) {
-          try {
-            log('Exchanging authorization code for access token');
-            
-            // Get the auth token from localStorage
-            const authToken = localStorage.getItem('token');
-            if (!authToken) {
-              throw new Error('No auth token found in localStorage');
-            }
-            
-            const response = await fetch('/api/groupme/exchange-code', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + authToken
-              },
-              body: JSON.stringify({ code })
-            });
-            
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error('Failed to exchange code: ' + response.status + ' ' + errorText);
-            }
-            
-            const data = await response.json();
-            if (!data || !data.access_token) {
-              throw new Error('No access token received from code exchange');
-            }
-            
-            log('Successfully exchanged code for token (length: ' + data.access_token.length + ')');
-            return data.access_token;
-          } catch (error) {
-            log('Error exchanging code: ' + error.message);
-            return null;
-          }
-        }
-        
-        // Function to send the token to the server
-        async function sendTokenToServer(accessToken) {
-          try {
-            // Get the auth token from localStorage
-            const authToken = localStorage.getItem('token');
-            if (!authToken) {
-              throw new Error('No auth token found in localStorage');
-            }
-            
-            log('Auth token found in localStorage (length): ' + authToken.length);
-            
-            // Validate the token before sending
-            if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
-              throw new Error('Invalid access token: ' + accessToken);
-            }
-            
-            log('Sending GroupMe token to server (length): ' + accessToken.length);
-            
-            const response = await fetch('/api/groupme/token', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + authToken
-              },
-              body: JSON.stringify({ access_token: accessToken })
-            });
-            
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error('Failed to save token: ' + response.status + ' ' + errorText);
-            }
-            
-            log('Token saved successfully on server');
-            return true;
-          } catch (error) {
-            log('Error saving token: ' + error.message);
-            return false;
-          }
-        }
-        
-        // Function to show manual entry form
-        function showManualEntry() {
-          document.getElementById('manualEntry').style.display = 'block';
-        }
-        
-        // Main function to handle the callback
-        async function handleCallback() {
-          // Get parameters from URL fragment (hash) first
-          const hashParams = getUrlParams(window.location.hash);
-          // Get parameters from URL query string as fallback
-          const queryParams = getUrlParams(window.location.search);
-          
-          // Log URL information for debugging
-          log('URL: ' + window.location.href);
-          log('Hash: ' + window.location.hash);
-          
-          // Log for debugging
-          log('Hash params: ' + JSON.stringify(hashParams));
-          log('Query params: ' + JSON.stringify(queryParams));
-          
-          // Try multiple approaches to get the token:
-          
-          // 1. Try to get access_token from hash (implicit flow)
-          let accessToken = hashParams.access_token;
-          if (accessToken && accessToken !== 'undefined' && accessToken !== 'null') {
-            log('Found valid access_token in URL hash: ' + accessToken.substring(0, 5) + '...');
-          } else {
-            // 2. Try to get authorization code from query (code flow)
-            const code = queryParams.code;
-            if (code) {
-              log('Found authorization code in query params: ' + code.substring(0, 5) + '...');
-              // Exchange code for token
-              accessToken = await exchangeCodeForToken(code);
-            } else {
-              // 3. Check query params for access_token (some providers do this)
-              accessToken = queryParams.access_token;
-              if (accessToken && accessToken !== 'undefined' && accessToken !== 'null') {
-                log('Found access_token in query params: ' + access_token.substring(0, 5) + '...');
-              } else {
-                log('No valid access token or code found in URL');
-                showManualEntry();
-                return false;
-              }
-            }
-          }
-          
-          const statusEl = document.getElementById('status');
-          
-          if (!accessToken) {
-            statusEl.textContent = 'Error: No valid access token found';
-            statusEl.style.color = '#f04747';
-            showManualEntry();
-            return false;
-          }
-          
-          // Update status
-          statusEl.textContent = 'Token found, saving...';
-          log('Access token found (length): ' + accessToken.length);
-          
-          // Send token to server
-          const success = await sendTokenToServer(accessToken);
-          
-          if (success) {
-            statusEl.textContent = 'GroupMe connected successfully!';
-            document.querySelector('.icon').textContent = '✅';
-            document.querySelector('h1').textContent = 'Connection Successful!';
-            document.querySelector('.spinner').style.display = 'none';
-            
-            // Notify the opener window about successful connection
-            if (window.opener) {
-              try {
-                window.opener.postMessage({
-                  type: 'GROUPME_CONNECTED',
-                  success: true,
-                  timestamp: Date.now()
-                }, '*');
-                log('Success message sent to parent window');
-                
-                // Close this window after a short delay
-                setTimeout(() => {
-                  window.close();
-                }, 2000);
-              } catch (e) {
-                log('Error sending message to parent: ' + e.message);
-              }
-            }
-            
-            return true;
-          } else {
-            statusEl.textContent = 'Error saving token. Please try manually.';
-            statusEl.style.color = '#f04747';
-            document.querySelector('.icon').textContent = '❌';
-            document.querySelector('.spinner').style.display = 'none';
-            showManualEntry();
-            return false;
-          }
-        }
-        
-        // Set up manual token submission
-        document.getElementById('submitManualToken').addEventListener('click', async () => {
-          const manualTokenInput = document.getElementById('manualToken');
-          const manualToken = manualTokenInput.value.trim();
-          
-          if (!manualToken) {
-            log('No manual token provided');
-            return;
-          }
-          
-          log('Using manually entered token (length: ' + manualToken.length + ')');
-          
-          const statusEl = document.getElementById('status');
-          statusEl.textContent = 'Saving manual token...';
-          
-          const success = await sendTokenToServer(manualToken);
-          
-          if (success) {
-            statusEl.textContent = 'GroupMe connected successfully!';
-            document.querySelector('.icon').textContent = '✅';
-            document.querySelector('h1').textContent = 'Connection Successful!';
-            
-            // Notify the opener window about successful connection
-            if (window.opener) {
-              try {
-                window.opener.postMessage({
-                  type: 'GROUPME_CONNECTED',
-                  success: true,
-                  timestamp: Date.now()
-                }, '*');
-                log('Success message sent to parent window');
-                
-                // Close this window after a short delay
-                setTimeout(() => {
-                  window.close();
-                }, 2000);
-              } catch (e) {
-                log('Error sending message to parent: ' + e.message);
-              }
-            }
-          } else {
-            statusEl.textContent = 'Error saving manual token.';
-            statusEl.style.color = '#f04747';
-          }
-        });
-        
-        // Run the callback handler when the page loads
-        window.addEventListener('DOMContentLoaded', handleCallback);
-        
-        // Also run it now in case DOMContentLoaded already fired
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          handleCallback();
-        }
-      </script>
-    </body>
-    </html>
-  `);
+      </body>
+      </html>
+    `);
+  } catch (saveError: any) {
+    console.error('Failed to save GroupMe token:', saveError.message);
+    res.status(500).send('Failed to save GroupMe token: ' + saveError.message);
+  }
 };
 
 /**

@@ -222,34 +222,29 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
         throw new Error('Invalid authorization URL received from server');
       }
 
-      // Ensure we're using the correct OAuth endpoint (authorize, not login_dialog)
+      // Ensure we're using the correct OAuth endpoint
       if (authUrl.includes('login_dialog')) {
         console.warn('Detected outdated login_dialog endpoint, replacing with authorize endpoint');
         authUrl = authUrl.replace('login_dialog', 'authorize');
       }
 
-      // CRITICAL: GroupMe's OAuth implementation doesn't properly follow the implicit flow
-      // It seems to ignore response_type=token, so we need a different approach
-      console.log('Configuring GroupMe OAuth URL with proper parameters');
+      // Per GroupMe docs: use simple URL format, do NOT modify response_type
+      // https://dev.groupme.com/tutorials/oauth
+      console.log('Using standard GroupMe OAuth URL format');
       
-      // Parse the URL to keep existing parameters
+      // Parse the URL to keep only what GroupMe needs
       const urlObj = new URL(authUrl);
       
-      // Ensure required parameters
-      urlObj.searchParams.set('client_id', urlObj.searchParams.get('client_id') || '');
-      urlObj.searchParams.set('redirect_uri', urlObj.searchParams.get('redirect_uri') || '');
-      urlObj.searchParams.set('state', urlObj.searchParams.get('state') || '');
+      // GroupMe docs state only client_id is needed
+      const cleanUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${urlObj.searchParams.get('client_id')}`;
       
-      // Try code flow instead of token flow (GroupMe seems to prefer this)
-      // Remove response_type=token if present
-      if (urlObj.searchParams.has('response_type')) {
-        urlObj.searchParams.delete('response_type');
+      // Add state parameter for security
+      if (urlObj.searchParams.get('state')) {
+        cleanUrl += `&state=${urlObj.searchParams.get('state')}`;
       }
       
-      // Add cache-busting parameter to prevent using cached URL
-      urlObj.searchParams.set('_cb', Date.now().toString());
-      
-      authUrl = urlObj.toString();
+      // Add cache busting to prevent using cached URL
+      authUrl = `${cleanUrl}&_cb=${Date.now()}`;
       console.log('Final GroupMe OAuth URL:', authUrl);
 
       // Store OAuth state in sessionStorage
