@@ -620,8 +620,7 @@ The initial implementation for real-time NextGen lead notifications was deployed
 
 ### Project Status Board
 - [ ] Server: Verify/repair WebSocket emit in `nextgenWebhookController`
-- [ ] Client: Confirm/repair subscription in `LeadNotificationHandler`
-- [x] Server: Restore demographic mapping in `adaptNextGenLead`
+- [x] Server: Reliable isNew detection in `Lead.upsertLead`
 - [ ] Tests: Unit test for `adaptNextGenLead`
 - [ ] Tests: Integration test for webhook → notification flow
 - [ ] Deploy + smoke test in production
@@ -631,6 +630,7 @@ _Planner created remediation plan 2025-07-07._
 
 ### Executor's Feedback or Assistance Requests
 - [2025-07-07] Updated `adaptNextGenLead` with robust height conversion (inches→ft/in), weight trimming, leaving zipcode/state logic intact. This resolves missing demographic fields (zipcode, height, weight, gender, state) in new NextGen leads.
+- Added more reliable `isNew` calculation in `Lead.upsertLead` (checks existence via findOne before insert/update). This ensures WebSocket notifications have correct `isNew=true` for genuinely new leads, allowing UI to display notifications.
 
 _No assistance required at this stage._
 
