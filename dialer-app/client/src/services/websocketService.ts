@@ -1,4 +1,4 @@
-import { AuthToken } from '../services/authToken.service';
+import AuthToken from '../services/authToken.service';
 
 interface WebSocketMessage {
   type: string;
@@ -231,7 +231,7 @@ class WebSocketService {
   private handleClose(event: CloseEvent): void {
     console.log(`[WebSocket] Connection closed: ${event.code} ${event.reason}`);
     this.setConnected(false);
-    this.scheduleReconnect();
+    // this.scheduleReconnect(); // Temporarily disabled for debugging
   }
   
   private handleError(event: Event): void {
@@ -434,7 +434,7 @@ class WebSocketService {
           console.log(`[WebSocket] API returned ${leads.length} recent leads`);
           
           // Forward these as notifications if they're not already in our list
-          leads.forEach(lead => {
+          leads.forEach((lead: any) => {
             const leadId = lead._id;
             const existingNotification = this.recentNotifications.find(n => 
               n.data.leadId === leadId

@@ -250,8 +250,10 @@ function App() {
                           <FollowUpUIProvider>
                             <NotesSyncer />
                             <DialerRestorer />
-                            {/* Global lead notification listener */}
-                            <LeadNotificationHandler />
+                            {/* Global lead notification listener, wrapped in its own boundary */}
+                            <ErrorBoundary>
+                              <LeadNotificationHandler />
+                            </ErrorBoundary>
                             <Routes>
                               {!passcodeValidated ? (
                                 <Route path="*" element={<PreLoginPasscode onPasscodeValid={handlePasscodeValid} />} />
