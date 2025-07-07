@@ -1344,3 +1344,53 @@ The user wants to generate 10 unique invite passcodes to distribute to beta test
 
 ### **Next Step**
 Executor will generate 10 codes using the API and output them for the user to distribute.
+
+## 📌 PLANNER ADDENDUM - GIT SYNC (2 Jul 2025)
+
+### Background and Motivation
+We need to synchronize the local workspace with the most recent commits from the remote repository before proceeding with further development or deployment. Keeping the codebase up-to-date ensures that new features, bug fixes, and configuration changes made by other contributors are incorporated, reducing the risk of merge conflicts later.
+
+### High-level Task Breakdown (GIT SYNC)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| GIT-1 | Verify working tree is clean (commit or stash local changes) | `git status` shows nothing to commit, working tree clean |
+| GIT-2 | Fetch latest changes from all remotes | `git fetch --all --prune` completes without errors |
+| GIT-3 | Pull latest commits for current branch `production-plan` | Local branch updated successfully (fast-forward or merge complete) |
+| GIT-4 | Resolve any merge conflicts | `git status` clean after conflicts resolved |
+| GIT-5 | Run full test suite | All tests pass locally |
+| GIT-6 | Record current commit hash in scratchpad | Commit hash documented for future reference |
+
+### Project Status Board ‑ GIT SYNC
+- [ ] GIT-1 Clean working tree
+- [ ] GIT-2 Fetch origin
+- [ ] GIT-3 Pull latest commits
+- [ ] GIT-4 Resolve conflicts (if any)
+- [ ] GIT-5 Run tests
+- [ ] GIT-6 Record commit hash
+
+### Executor Instructions (Immediate)
+1. Ensure working tree is clean with `git status`. If not, commit or stash changes.
+2. Run `git fetch --all --prune` to retrieve latest changes.
+3. Run `git pull origin production-plan` to update the current branch.
+4. If merge conflicts arise, stop and document details under "Executor's Feedback or Assistance Requests".
+5. After a successful pull, run the project's test suite (`npm test` or relevant command) to ensure stability.
+6. Update the "Project Status Board ‑ GIT SYNC" with completed tasks and add the new commit hash to the scratchpad.
+
+### Timeline Estimate (GIT SYNC)
+| Task | Est. Time |
+|------|-----------|
+| GIT-1 Clean working tree | 1 min |
+| GIT-2 Fetch origin        | 1 min |
+| GIT-3 Pull branch         | 1–2 min |
+| GIT-4 Resolve conflicts   | 5–15 min (only if needed) |
+| GIT-5 Run tests           | 2–5 min |
+| GIT-6 Record hash         | <1 min |
+| **Total** | **~10–25 min** |
+
+### Risk & Mitigation (GIT SYNC)
+1. **Merge Conflicts** – Stop, document conflicting files in "Executor's Feedback" and request guidance if unclear.
+2. **Broken Tests** – If tests fail post-pull, note failures and revert or fix before proceeding.
+3. **Local Changes** – Ensure clean tree to avoid accidental overwrites; stash if necessary.
+
+### Executor Assignment
+The next turn should switch to **Executor Mode** to carry out tasks GIT-1 → GIT-6. After each sub-task, update the "Project Status Board – GIT SYNC" checkboxes and log outcomes in "Executor's Feedback or Assistance Requests".
