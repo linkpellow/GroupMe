@@ -58,12 +58,18 @@ class WebSocketService {
   }
   
   public connect(): void {
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      console.log('[WebSocket] Already connected');
+    // If we already have an open or connecting socket, do nothing (idempotent connect)
+    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+      console.log('[WebSocket] connect() called but socket already open/connecting');
       return;
     }
-    
-    this.disconnect(); // Clean up any existing connection
+    // If there is an old socket in CLOSED state, clean it up before reconnecting
+    if (this.socket) {
+      try {
+        this.socket.close();
+      } catch {}
+      this.socket = null;
+    }
     
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsHost = process.env.NODE_ENV === 'production' 
@@ -231,7 +237,9 @@ class WebSocketService {
   private handleClose(event: CloseEvent): void {
     console.log(`[WebSocket] Connection closed: ${event.code} ${event.reason}`);
     this.setConnected(false);
-    // this.scheduleReconnect(); // Temporarily disabled for debugging
+    // Clean reference so connect() can create a new socket
+    this.socket = null;
+    this.scheduleReconnect(); // Re-enable exponential back-off reconnect
   }
   
   private handleError(event: Event): void {

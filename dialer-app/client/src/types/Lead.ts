@@ -3,10 +3,10 @@ export interface Lead {
   name: string;
   firstName?: string;
   lastName?: string;
-  email: string;
-  phone: string;
+  email?: string | null;
+  phone?: string | null;
   phoneNumber?: string;
-  status: string;
+  status?: string;
   source?: string;
   notes?: string;
   assignedTo?: string;

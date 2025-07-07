@@ -87,6 +87,7 @@ const NextGenLeadSchema = zod_1.z.object({
     last_name: zod_1.z.string().optional(),
     email: zod_1.z.string().email().optional(),
     phone: zod_1.z.string().optional(),
+    phone_number: zod_1.z.string().optional(),
     // Location
     city: zod_1.z.string().optional(),
     state: zod_1.z.string().length(2).optional(),
@@ -95,7 +96,7 @@ const NextGenLeadSchema = zod_1.z.object({
     // Demographics
     dob: zod_1.z.string().optional(),
     age: zod_1.z.number().optional(),
-    gender: zod_1.z.enum(['M', 'F', 'Male', 'Female']).optional(),
+    gender: zod_1.z.string().optional(),
     height: zod_1.z.string().optional(),
     weight: zod_1.z.string().optional(),
     // Health information
@@ -123,6 +124,34 @@ const NextGenLeadSchema = zod_1.z.object({
 });
 // Adapter to convert NextGen format to our Lead schema
 const adaptNextGenLead = (nextgenData) => {
+    // Convert numeric height in inches (e.g. "70") → `5'10"`. Fallback to raw string if parsing fails.
+    let formattedHeight = undefined;
+    if (nextgenData.height) {
+        const numeric = parseInt(nextgenData.height.replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(numeric) && numeric > 0) {
+            const feet = Math.floor(numeric / 12);
+            const inches = numeric % 12;
+            formattedHeight = `${feet}'${inches}"`;
+        }
+        else {
+            // Keep original if parsing fails (e.g. already formatted or contains non-numeric)
+            formattedHeight = nextgenData.height.trim();
+        }
+    }
+    // Normalize weight – trim and keep as-is (string) so UI can display
+    const formattedWeight = nextgenData.weight ? nextgenData.weight.trim() : undefined;
+    // Format date of birth
+    const formattedDob = nextgenData.dob ? new Date(nextgenData.dob).toLocaleDateString() : undefined;
+    // Format gender (capitalize first letter)
+    let formattedGender = undefined;
+    if (nextgenData.gender) {
+        if (nextgenData.gender.toLowerCase().startsWith('m')) {
+            formattedGender = 'Male';
+        }
+        else if (nextgenData.gender.toLowerCase().startsWith('f')) {
+            formattedGender = 'Female';
+        }
+    }
     const adapted = {
         // IDs
         nextgenId: nextgenData.nextgen_id || nextgenData.lead_id,
@@ -132,21 +161,17 @@ const adaptNextGenLead = (nextgenData) => {
         name: [nextgenData.first_name, nextgenData.last_name].filter(Boolean).join(' ') || 'NextGen Lead',
         // Contact
         email: nextgenData.email,
-        phone: nextgenData.phone,
+        phone: nextgenData.phone ?? nextgenData.phone_number,
         // Location
-        city: nextgenData.city,
-        state: nextgenData.state?.toUpperCase(),
-        zipcode: nextgenData.zip_code,
-        street1: nextgenData.street_address,
-        // Demographics
-        dob: nextgenData.dob,
-        gender: nextgenData.gender?.toLowerCase()?.startsWith('m')
-            ? 'male'
-            : nextgenData.gender?.toLowerCase()?.startsWith('f')
-                ? 'female'
-                : undefined,
-        height: nextgenData.height,
-        weight: nextgenData.weight,
+        city: nextgenData.city?.trim(),
+        state: nextgenData.state?.toUpperCase()?.trim(),
+        zipcode: nextgenData.zip_code?.trim(),
+        street1: nextgenData.street_address?.trim(),
+        // Demographics - with consistent formatting
+        dob: formattedDob,
+        gender: formattedGender,
+        height: formattedHeight,
+        weight: formattedWeight,
         // Health
         tobaccoUser: nextgenData.tobacco_user,
         pregnant: nextgenData.pregnant,
@@ -170,8 +195,8 @@ const adaptNextGenLead = (nextgenData) => {
         sourceHash: nextgenData.source_hash,
         subIdHash: nextgenData.sub_id_hash,
         // Defaults
-        source: 'nextgen',
-        disposition: 'new',
+        source: 'NextGen', // Changed to match the enum in Lead model
+        disposition: 'New Lead', // Changed to match other imports
         status: 'New',
     };
     // Remove undefined values
@@ -202,7 +227,7 @@ router.post('/nextgen', verifyNextGenAuth, async (req, res) => {
         }
         // Adapt the lead data
         const leadData = adaptNextGenLead(validationResult.data);
-        // Ensure we have minimum required data
+        // Ensure we have minimum required contact data
         if (!leadData.email && !leadData.phone) {
             logger.error('NextGen lead missing both email and phone', {
                 nextgenId: leadData.nextgenId,

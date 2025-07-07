@@ -57,6 +57,7 @@ import RemindersStrip from '../components/RemindersStrip';
 import { lockScroll, unlockScroll } from '../shared/scrollLock';
 import PullToRefresh from 'react-simple-pull-to-refresh';
 import CrocLoader from '../components/CrocLoader';
+import { safeStr } from '../utils/string';
 
 // Define disposition colors
 const DISPOSITION_COLORS = {
@@ -85,7 +86,7 @@ const formatPhoneNumber = (phone: string | undefined | null) => {
     console.warn('[Leads.tsx] formatPhoneNumber received null or undefined phone value.');
     return ''; // Return empty string if phone is null or undefined
   }
-  const cleaned = safe(phone).replace(/\D/g, '');
+  const cleaned = safeStr(phone).replace(/\D/g, '');
   const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
   if (match) {
     return '(' + match[1] + ') ' + match[2] + '-' + match[3];
@@ -95,10 +96,10 @@ const formatPhoneNumber = (phone: string | undefined | null) => {
 
 const formatHeight = (height: string | undefined | null) => {
   if (!height) return '';
-  if (safe(height).includes("'")) {
+  if (safeStr(height).includes("'")) {
     return height;
   }
-  const totalInches = parseInt(safe(height));
+  const totalInches = parseInt(safeStr(height));
   const feet = Math.floor(totalInches / 12);
   const inches = totalInches % 12;
   return `${feet}'${inches}"`;
@@ -107,10 +108,10 @@ const formatHeight = (height: string | undefined | null) => {
 const formatDate = (dateString: string | undefined | null) => {
   if (!dateString) return '';
   try {
-    if (safe(dateString).includes('/')) {
+    if (safeStr(dateString).includes('/')) {
       return dateString;
     }
-    const [year, month, day] = safe(dateString).split('-');
+    const [year, month, day] = safeStr(dateString).split('-');
     if (year && month && day) {
       return `${month}/${day}/${year}`;
     }
@@ -126,7 +127,7 @@ const formatDate = (dateString: string | undefined | null) => {
 
 const formatEmail = (email: string | undefined | null) => {
   if (!email) return '';
-  if (safe(email).length > 25) {
+  if (safeStr(email).length > 25) {
     const atIndex = email.indexOf('@');
     if (atIndex !== -1) {
       const username = email.substring(0, atIndex);
@@ -1314,7 +1315,7 @@ export default function Leads() {
         globalAny.addFollowUpLead(lead.name, lead.phone, lead.state);
       } else if (typeof globalAny.appendDailyGoal === 'function') {
         // Fallback legacy string path. Ensure single parentheses and clean phone.
-        const cleanedPhone = (lead.phone || '').replace(/[()]/g, '').trim();
+        const cleanedPhone = safeStr(lead.phone).replace(/[()]/g, '').trim();
         const phoneFormatted = `(${cleanedPhone})`;
         const reminderText = `Follow up with ${lead.name} ${phoneFormatted}${lead.state ? ` - ${lead.state}` : ''}`;
         globalAny.appendDailyGoal(reminderText);
@@ -1663,8 +1664,9 @@ export default function Leads() {
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: true
-              }).replace(' AM', 'AM').replace(' PM', 'PM');
-              timeDisplay.textContent = timeString + ' ' + tzAbbreviation;
+              });
+              const formattedTime = safeStr(timeString).replace(' AM', 'AM').replace(' PM', 'PM');
+              timeDisplay.textContent = formattedTime + ' ' + tzAbbreviation;
             };
             setInterval(updateTime, 1000);
             updateTime(); // Initial call
@@ -1672,7 +1674,7 @@ export default function Leads() {
 
           document.getElementById('call-btn').addEventListener('click', () => {
             if (window.opener && typeof window.opener.dialPhone === 'function') {
-              window.opener.dialPhone('${lead.phone}');
+              window.opener.dialPhone('${safeStr(lead.phone)}');
             }
           });
           document.getElementById('hangup-btn').addEventListener('click', () => {
@@ -1683,7 +1685,7 @@ export default function Leads() {
           if (qdbtn) {
             qdbtn.addEventListener('click', () => {
               if (window.opener && typeof window.opener.handleQuickDrip === 'function') {
-                const leadObject = { _id: '${lead._id}', name: '${lead.name}', phone: '${lead.phone}', email: '${lead.email}', disposition: '${lead.disposition}' };
+                const leadObject = { _id: '${lead._id}', name: '${safeStr(lead.name)}', phone: '${safeStr(lead.phone)}', email: '${safeStr(lead.email)}', disposition: '${safeStr(lead.disposition)}' };
                 window.opener.handleQuickDrip(leadObject);
               }
             });
@@ -1705,7 +1707,7 @@ export default function Leads() {
               }
             });
 
-            const leadObject = { _id: '${lead._id}', name: '${lead.name}', phone: '${lead.phone}', email: '${lead.email}', disposition: '${lead.disposition}', source: '${lead.source}', dob: '${lead.dob}', height: '${lead.height}', weight: '${lead.weight}', gender: '${lead.gender}', state: '${lead.state}', zipcode: '${lead.zipcode}', notes: ${JSON.stringify(lead.notes || '')} };
+            const leadObject = { _id: '${lead._id}', name: '${safeStr(lead.name)}', phone: '${safeStr(lead.phone)}', email: '${safeStr(lead.email)}', disposition: '${safeStr(lead.disposition)}', source: '${safeStr(lead.source)}', dob: '${safeStr(lead.dob)}', height: '${safeStr(lead.height)}', weight: '${safeStr(lead.weight)}', gender: '${safeStr(lead.gender)}', state: '${safeStr(lead.state)}', zipcode: '${safeStr(lead.zipcode)}', notes: ${JSON.stringify(safeStr(lead.notes))} };
 
             const actionHandlers = {
                 'edit-lead-action': () => window.opener.handleEditLead(leadObject),
@@ -2073,23 +2075,23 @@ export default function Leads() {
               title="Click to copy"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safe(lead.email), toast, 'Email');
+                copyToClipboard(safeStr(lead.email), toast, 'Email');
               }}
             >
-              {formatEmail(safe(lead.email))}
+              {formatEmail(safeStr(lead.email))}
             </div>
           </div>
           <div className="grid-item">
             <div
               className="text-content value phone"
-              data-phone={safe(lead.phone).replace(/[^\\d]/g, '')}
+              data-phone={safeStr(lead.phone).replace(/[^\\d]/g, '')}
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safe(lead.phone), toast, 'Phone');
+                copyToClipboard(safeStr(lead.phone), toast, 'Phone');
               }}
               title="Click to copy"
             >
-              {formatPhoneNumber(safe(lead.phone))}
+              {formatPhoneNumber(safeStr(lead.phone))}
             </div>
           </div>
           <div className="grid-item">

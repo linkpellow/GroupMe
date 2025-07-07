@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNotification } from '../context/NotificationContext';
 import { webSocketService } from '../services/websocketService';
 import { useQueryClient } from '@tanstack/react-query';
+import { safeStr } from '../utils/string';
 
 interface NewLeadNotification {
   type: 'new_lead_notification';
@@ -29,6 +30,19 @@ const LeadNotificationHandler: React.FC = () => {
   const notificationCountRef = useRef<number>(0);
   
   const POLL_MS = 3000; // 3-second fallback interval
+  
+  // Helper to build a fully-shaped placeholder Lead object so renderers never see undefined.
+  const createPlaceholderLead = (leadId: string, name: string, source: string) => ({
+    _id: leadId,
+    name,
+    firstName: name.split(' ')[0] || '',
+    lastName: name.split(' ').slice(1).join(' '),
+    email: '',
+    phone: '',
+    status: 'New Lead',
+    source,
+    createdAt: new Date().toISOString(),
+  });
   
   // 1. Set up WebSocket notification listener
   useEffect(() => {
@@ -79,7 +93,7 @@ const LeadNotificationHandler: React.FC = () => {
             const already = list.find((l) => l._id === leadId);
             if (!already) {
               // Prepend and trim to page limit if available
-              const newList = [{ _id: leadId, name, source, createdAt: new Date().toISOString() }, ...list];
+              const newList = [createPlaceholderLead(leadId, name, source), ...list];
               if (cachedAny.pagination?.limit && newList.length > cachedAny.pagination.limit) {
                 newList.pop();
               }

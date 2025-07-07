@@ -72,6 +72,7 @@ const webhook_routes_1 = __importDefault(require("./routes/webhook.routes"));
 const documents_routes_1 = __importDefault(require("./routes/documents.routes"));
 const textdrip_routes_1 = __importDefault(require("./routes/textdrip.routes"));
 const dialCounts_routes_1 = __importDefault(require("./routes/dialCounts.routes"));
+const test_routes_1 = __importDefault(require("./routes/test.routes"));
 // Comment out routes for files confirmed missing from ./routes/ directory
 // import clientRoutes from './routes/clients.routes';
 // import csvUploadRoutes from './routes/csvUpload.routes';
@@ -113,6 +114,8 @@ const port = process.env.PORT || 3005;
 const host = '0.0.0.0'; // Force IPv4 to prevent EADDRINUSE on ::1 and ensure wider network accessibility
 // WebSocket Server Setup
 const wss = new ws_1.WebSocketServer({ server });
+// In-memory map of the active authenticated WebSocket for each userId.
+const userSessions = new Map();
 wss.on('connection', (ws) => {
     console.log('Client connected to WebSocket');
     ws.isAlive = true;
@@ -128,6 +131,17 @@ wss.on('connection', (ws) => {
                     const decodedToken = (0, jwt_config_1.verifyToken)(parsedMessage.token);
                     if (decodedToken && decodedToken._id) {
                         ws.userId = decodedToken._id;
+                        // Replace any existing session for this user
+                        const existing = userSessions.get(ws.userId);
+                        if (existing && existing !== ws && existing.readyState === ws_1.WebSocket.OPEN) {
+                            try {
+                                existing.close(4000, 'New session established');
+                            }
+                            catch (err) {
+                                console.error('Error closing previous WebSocket session', err);
+                            }
+                        }
+                        userSessions.set(ws.userId, ws);
                         console.log(`WebSocket authenticated for userId: ${ws.userId}`);
                         ws.send(JSON.stringify({
                             type: 'auth_success',
@@ -177,6 +191,12 @@ wss.on('connection', (ws) => {
     });
     ws.on('close', () => {
         console.log('Client disconnected from WebSocket');
+        if (ws.userId) {
+            const current = userSessions.get(ws.userId);
+            if (current === ws) {
+                userSessions.delete(ws.userId);
+            }
+        }
     });
     ws.on('error', (error) => {
         console.error('WebSocket error:', error);
@@ -195,9 +215,25 @@ wss.on('close', () => {
 });
 // WebSocket broadcast functions
 const sendMessageToUser = (userId, message) => {
-    wss.clients.forEach((client) => {
-        if (client.readyState === ws_1.WebSocket.OPEN && client.userId === userId) {
+    const client = userSessions.get(userId);
+    if (client && client.readyState === ws_1.WebSocket.OPEN) {
+        try {
             client.send(JSON.stringify(message));
+        }
+        catch (err) {
+            console.error('Error sending WS message to user', err);
+        }
+        return;
+    }
+    // Fallback – iterate all (shouldn't normally be needed)
+    wss.clients.forEach((ws) => {
+        if (ws.readyState === ws_1.WebSocket.OPEN && ws.userId === userId) {
+            try {
+                ws.send(JSON.stringify(message));
+            }
+            catch (err) {
+                console.error('Error sending WS message in fallback loop', err);
+            }
         }
     });
 };
@@ -216,12 +252,21 @@ const broadcastNewLeadNotification = (leadData) => {
         data: leadData,
         timestamp: new Date().toISOString(),
     };
-    console.log('Broadcasting new lead notification:', notification);
+    logger_1.default.info(`Broadcasting lead notification: ${leadData.name} (${leadData.leadId}), isNew=${leadData.isNew}, clients=${wss.clients.size}`);
+    let sentCount = 0;
     wss.clients.forEach((client) => {
         if (client.readyState === ws_1.WebSocket.OPEN) {
-            client.send(JSON.stringify(notification));
+            try {
+                client.send(JSON.stringify(notification));
+                sentCount++;
+                logger_1.default.debug(`Notification sent to client: ${client.userId || 'anonymous'}`);
+            }
+            catch (error) {
+                logger_1.default.error(`Failed to send notification to client: ${error}`);
+            }
         }
     });
+    logger_1.default.info(`Notification broadcast complete: sent to ${sentCount}/${wss.clients.size} clients`);
 };
 exports.broadcastNewLeadNotification = broadcastNewLeadNotification;
 const storage = multer_1.default.diskStorage({
@@ -297,6 +342,11 @@ app.use('/api/webhooks', webhook_routes_1.default);
 app.use('/api/documents', documents_routes_1.default);
 app.use('/api/textdrip', textdrip_routes_1.default);
 app.use('/api/dial-counts', dialCounts_routes_1.default);
+// Register test routes only in non-production environments for security
+if (process.env.NODE_ENV !== 'production') {
+    app.use('/api/test', test_routes_1.default);
+    console.log('DEV-ONLY: Test routes registered at /api/test');
+}
 // Comment out app.use for missing routes only
 // app.use('/api/clients', clientRoutes);
 // app.use('/api/csv', csvUploadRoutes);

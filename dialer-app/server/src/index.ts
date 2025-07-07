@@ -100,6 +100,9 @@ interface ExtendedWebSocket extends WebSocket {
   userId?: string;
 }
 
+// In-memory map of the active authenticated WebSocket for each userId.
+const userSessions = new Map<string, ExtendedWebSocket>();
+
 wss.on('connection', (ws: ExtendedWebSocket) => {
   console.log('Client connected to WebSocket');
   ws.isAlive = true;
@@ -117,6 +120,16 @@ wss.on('connection', (ws: ExtendedWebSocket) => {
           const decodedToken = verifyToken(parsedMessage.token) as { _id: string };
           if (decodedToken && decodedToken._id) {
             ws.userId = decodedToken._id;
+            // Replace any existing session for this user
+            const existing = userSessions.get(ws.userId);
+            if (existing && existing !== ws && existing.readyState === WebSocket.OPEN) {
+              try {
+                existing.close(4000, 'New session established');
+              } catch (err) {
+                console.error('Error closing previous WebSocket session', err);
+              }
+            }
+            userSessions.set(ws.userId, ws);
             console.log(`WebSocket authenticated for userId: ${ws.userId}`);
             ws.send(
               JSON.stringify({
@@ -175,6 +188,12 @@ wss.on('connection', (ws: ExtendedWebSocket) => {
 
   ws.on('close', () => {
     console.log('Client disconnected from WebSocket');
+    if (ws.userId) {
+      const current = userSessions.get(ws.userId);
+      if (current === ws) {
+        userSessions.delete(ws.userId);
+      }
+    }
   });
 
   ws.on('error', (error) => {
@@ -196,9 +215,23 @@ wss.on('close', () => {
 
 // WebSocket broadcast functions
 export const sendMessageToUser = (userId: string, message: object) => {
-  wss.clients.forEach((client: ExtendedWebSocket) => {
-    if (client.readyState === WebSocket.OPEN && client.userId === userId) {
+  const client = userSessions.get(userId);
+  if (client && client.readyState === WebSocket.OPEN) {
+    try {
       client.send(JSON.stringify(message));
+    } catch (err) {
+      console.error('Error sending WS message to user', err);
+    }
+    return;
+  }
+  // Fallback – iterate all (shouldn't normally be needed)
+  wss.clients.forEach((ws: ExtendedWebSocket) => {
+    if (ws.readyState === WebSocket.OPEN && ws.userId === userId) {
+      try {
+        ws.send(JSON.stringify(message));
+      } catch (err) {
+        console.error('Error sending WS message in fallback loop', err);
+      }
     }
   });
 };
