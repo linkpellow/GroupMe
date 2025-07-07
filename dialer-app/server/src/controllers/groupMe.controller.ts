@@ -1053,8 +1053,8 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
       
       console.log('Token saved successfully for user:', userId);
       
-      // Redirect to success page
-      res.redirect('/integrations/groupme/success');
+      // Redirect to leads page instead of non-existent success page
+      res.redirect('/leads');
       return;
     } catch (err) {
       console.error('Failed to process GroupMe token:', err);
