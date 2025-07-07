@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import UserModel from './User';
 
 export interface IPolicyDocument {
   _id?: mongoose.Types.ObjectId;
@@ -87,6 +88,7 @@ export interface ILeadModel extends mongoose.Model<ILead> {
     email?: string;
     notes?: string;
     source?: string;
+    tenantId?: mongoose.Types.ObjectId;
     [key: string]: any;
   }): Promise<{
     lead: ILead;
@@ -236,6 +238,22 @@ leadSchema.pre('save', function (this: any, next) {
  */
 leadSchema.statics.upsertLead = async function(payload) {
   try {
+    // Ensure tenantId – fallback to first admin user if missing (legacy global webhook)
+    if (!payload.tenantId) {
+      try {
+        const adminUser = await (UserModel as any).findOne({ role: 'admin' }).select('_id').lean();
+        if (adminUser) {
+          payload.tenantId = adminUser._id;
+        }
+      } catch (e) {
+        console.error('Failed to lookup admin user for tenantId fallback', e);
+      }
+    }
+
+    if (!payload.tenantId) {
+      throw new Error('tenantId is required for lead upsert');
+    }
+
     if (!payload.phone && !payload.email) {
       throw new Error('Either phone or email is required for lead upsert');
     }

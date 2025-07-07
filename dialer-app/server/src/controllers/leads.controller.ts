@@ -87,8 +87,12 @@ export const getLeads = async (req: ValidatedQuery, res: Response): Promise<void
     // Build MongoDB query
     const qbResult = QueryBuilderService.buildLeadsQuery(validatedQuery);
     const { sort, skip, limit, page } = qbResult;
-    // Merge tenant filter into generated query
-    const filter = withTenant(req, qbResult.filter);
+
+    // Build tenant or legacy filter so old leads (no tenantId) still appear
+    const tenantOrLegacy = {
+      $or: [{ tenantId: req.user?._id }, { tenantId: { $exists: false } }],
+    };
+    const filter = { $and: [qbResult.filter, tenantOrLegacy] } as any;
     // Get performance warnings
     const perfCheck = QueryBuilderService.validateQueryPerformance(validatedQuery);
     const allWarnings = [...perfCheck.warnings];
