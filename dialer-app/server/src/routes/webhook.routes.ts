@@ -21,30 +21,38 @@ const logger = winston.createLogger({
   ],
 });
 
-// Middleware to verify NextGen credentials
-const verifyNextGenAuth = (req: Request, res: Response, next: NextFunction) => {
-  const { sid, apikey } = req.headers;
+// Middleware to verify NextGen credentials (per-tenant)
+import NextGenCredential from '../models/NextGenCredential';
 
-  if (!process.env.NEXTGEN_SID || !process.env.NEXTGEN_API_KEY) {
-    logger.error('NextGen credentials not configured in environment');
-    return res.status(500).json({
-      success: false,
-      message: 'Server configuration error',
-    });
+const verifyNextGenAuth = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sid, apikey } = req.headers as Record<string, string | undefined>;
+
+    if (!sid || !apikey) {
+      return res.status(401).json({ success: false, message: 'Missing creds' });
+    }
+
+    // Look up active credential
+    const cred = await NextGenCredential.findOne({ sid, apiKey: apikey, active: true }).lean();
+
+    if (!cred) {
+      // Legacy env-var fallback for admin tenant
+      if (sid === process.env.NEXTGEN_SID && apikey === process.env.NEXTGEN_API_KEY) {
+        (req as any).tenantId = process.env.ADMIN_TENANT_ID || null;
+        return next();
+      }
+
+      logger.warn('Invalid NextGen credentials attempted', { sid: sid.substring(0,5)+'...', ip: req.ip });
+      return res.status(401).json({ success: false, message: 'Bad creds' });
+    }
+
+    // Attach tenantId for controller to use in upsert
+    (req as any).tenantId = cred.tenantId;
+    return next();
+  } catch (err) {
+    logger.error('verifyNextGenAuth error', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-
-  if (sid !== process.env.NEXTGEN_SID || apikey !== process.env.NEXTGEN_API_KEY) {
-    logger.warn('Invalid NextGen credentials attempted', {
-      sid: sid?.toString().substring(0, 5) + '...',
-      ip: req.ip,
-    });
-    return res.status(401).json({
-      success: false,
-      message: 'Bad creds',
-    });
-  }
-
-  next();
 };
 
 // Zod schema for NextGen webhook payload
