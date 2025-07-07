@@ -6,17 +6,16 @@ import crypto from 'crypto';
 import User, { IUser } from '../models/User';
 import { sendError, sendSuccess, asyncHandler, logRequest } from '../utils/controllerUtils';
 import { getEncryptionKey } from '../utils/secret';
-import { AuthenticatedRequest } from '../middleware/auth';
-import { encrypt } from '../utils/crypto';
 import axios from 'axios';
 
-// Extend Express Request type to include 'user'
+// Define our own AuthenticatedRequest interface since it's not exported from middleware/auth
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     groupMe?: {
       accessToken?: string;
       groups?: Record<string, string>;
+      tokenUpdatedAt?: Date;
     };
     [key: string]: any;
   };
@@ -1052,7 +1051,7 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     // Set the token in user's groupMe field
     user.groupMe = {
       accessToken: encryptedToken,
-      tokenUpdatedAt: new Date(),
+      connectedAt: new Date(),
     };
     
     // Save the user with the updated groupMe field
@@ -1158,84 +1157,3 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     res.status(500).send('Failed to save GroupMe token: ' + saveError.message);
   }
 };
-
-/**
- * Exchange authorization code for access token
- */
-export const exchangeCode = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  console.log('=== EXCHANGE AUTHORIZATION CODE DEBUG ===');
-  
-  const userId = req.user?.id;
-  const { code } = req.body;
-  
-  console.log('User ID:', userId);
-  console.log('Authorization code present:', !!code);
-  
-  if (!userId) {
-    console.error('No userId in request when exchanging code');
-    sendError(res, 401, 'User authentication required', null, 'AUTH_ERROR');
-    return;
-  }
-  
-  if (!code) {
-    console.error('No authorization code provided');
-    sendError(res, 400, 'Authorization code is required', null, 'INVALID_REQUEST');
-    return;
-  }
-  
-  try {
-    // Exchange code for token
-    console.log(`Exchanging authorization code for token - code length: ${code.length}`);
-    
-    const GROUPME_CLIENT_ID = process.env.GROUPME_CLIENT_ID;
-    const GROUPME_CLIENT_SECRET = process.env.GROUPME_CLIENT_SECRET;
-    const REDIRECT_URI = process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback';
-    
-    if (!GROUPME_CLIENT_ID) {
-      console.error('Missing GROUPME_CLIENT_ID environment variable');
-      sendError(res, 500, 'Missing GroupMe client configuration', null, 'CONFIG_ERROR');
-      return;
-    }
-    
-    // Make token exchange request
-    console.log('Making token exchange request to GroupMe API');
-    const axios = require('axios');
-    
-    try {
-      const tokenResponse = await axios.post('https://oauth.groupme.com/oauth/token', {
-        client_id: GROUPME_CLIENT_ID,
-        client_secret: GROUPME_CLIENT_SECRET, // May be optional with some providers
-        code: code,
-        redirect_uri: REDIRECT_URI,
-        grant_type: 'authorization_code'
-      });
-      
-      const { access_token } = tokenResponse.data;
-      
-      if (!access_token) {
-        console.error('No access_token in token exchange response');
-        sendError(res, 400, 'No access token in response', null, 'TOKEN_EXCHANGE_ERROR');
-        return;
-      }
-      
-      console.log(`Token exchange successful - access_token length: ${access_token.length}`);
-      
-      // Return the access token to the client
-      sendSuccess(res, { access_token });
-    } catch (exchangeError: any) {
-      console.error('Token exchange error:', exchangeError.message);
-      console.error('Response status:', exchangeError.response?.status);
-      console.error('Response data:', exchangeError.response?.data);
-      
-      sendError(res, 
-        exchangeError.response?.status || 500, 
-        'Failed to exchange code for token', 
-        exchangeError.response?.data || exchangeError.message,
-        'CODE_EXCHANGE_ERROR'
-      );
-    }
-  } catch (error: any) {
-    console.error('Error in exchangeCode:', error.message);
-    sendError(res, 500, 'Internal server error', error.message, 'SERVER_ERROR');
-  }
-});
