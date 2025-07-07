@@ -100,9 +100,12 @@ class ErrorBoundary extends React.Component<
   }
 
   // Reset error state when the location changes (navigation happens)
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: { children: React.ReactNode }, prevState: { hasError: boolean }) {
     if (this.state.hasError && window.location.pathname !== '/login') {
-      this.setState({ hasError: false, errorInfo: '' });
+      // Only reset if the error state is currently true, to avoid loops
+      if (prevState.hasError !== this.state.hasError) {
+        this.setState({ hasError: false, errorInfo: '' });
+      }
     }
   }
 

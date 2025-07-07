@@ -80,6 +80,7 @@ const DISPOSITION_COLORS = {
 // Helper functions
 const formatPhoneNumber = (phone: string | undefined | null) => {
   if (!phone) {
+    console.warn('[Leads.tsx] formatPhoneNumber received null or undefined phone value.');
     return ''; // Return empty string if phone is null or undefined
   }
   const cleaned = phone.replace(/\D/g, '');
