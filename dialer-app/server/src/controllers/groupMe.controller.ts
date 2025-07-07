@@ -942,13 +942,10 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
   console.log('Request URL:', req.url);
   console.log('Request path:', req.path);
   
-  const { access_token, state } = req.query as { access_token?: string; state?: string };
-  
-  if (!access_token) {
-    console.error('GroupMe callback missing access_token', req.query);
-    res.status(400).send('Invalid GroupMe callback: Missing access_token');
-    return;
-  }
+  // IMPORTANT: For implicit flow, GroupMe sends the token in the URL fragment (#access_token=...)
+  // Express can't access URL fragments, so we need to handle this differently
+  // Instead of looking for access_token in req.query, we'll return a page that extracts it from the URL hash
+  const { state } = req.query as { state?: string };
   
   if (!state) {
     console.error('GroupMe callback missing state', req.query);
@@ -975,126 +972,161 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     return;
   }
   
-  // Save the token for the user
-  try {
-    console.log('Encrypting and saving token for user:', userId);
-    const encryptedToken = encrypt(access_token);
-    
-    // Update user with encrypted GroupMe token
-    const user = await User.findById<IUser>(
-      userId,
-      null,
-      { lean: true }
-    );
+  // Return an HTML page that will extract the token from the URL fragment and send it to the server
+  console.log('Returning HTML page that will extract token from URL fragment');
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>GroupMe Connected</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          background-color: #2C2F33;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+          margin: 0;
+          padding: 20px;
+          text-align: center;
+        }
+        .card {
+          background-color: #36393F;
+          border-radius: 8px;
+          padding: 30px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          max-width: 500px;
+          width: 100%;
+        }
+        h1 {
+          color: #43B581;
+          margin-top: 0;
+        }
+        .icon {
+          font-size: 48px;
+          margin-bottom: 20px;
+        }
+        .message {
+          margin-bottom: 20px;
+        }
+        #status {
+          font-weight: bold;
+        }
+        .spinner {
+          border: 4px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top: 4px solid white;
+          width: 20px;
+          height: 20px;
+          animation: spin 1s linear infinite;
+          display: inline-block;
+          vertical-align: middle;
+          margin-right: 10px;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="icon">🔄</div>
+        <h1>Connecting GroupMe...</h1>
+        <p class="message"><span class="spinner"></span> <span id="status">Processing your connection...</span></p>
+      </div>
 
-    if (!user) {
-      console.error('User not found in database:', userId);
-      res.status(404).send('User not found');
-      return;
-    }
-    
-    console.log('User found:', userId);
-    
-    // Update user document
-    await User.findByIdAndUpdate(
-      userId,
-      {
-        $set: {
-          'groupMe.accessToken': encryptedToken,
-          'groupMe.connectedAt': new Date(),
-        },
-      },
-      { new: true }
-    );
-    
-    // Also persist token in GroupMeConfig so front-end can pick it up via /config API
-    await GroupMeConfig.findOneAndUpdate(
-      { userId },
-      { userId, accessToken: encryptedToken },
-      { upsert: true, new: true }
-    );
-    
-    console.log('Token saved successfully for user:', userId);
-    
-    // Return HTML that will handle the OAuth flow client-side
-    console.log('Returning success HTML with postMessage');
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>GroupMe Connected Successfully!</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: #2C2F33;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            padding: 20px;
-            text-align: center;
-          }
-          .success-card {
-            background-color: #36393F;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
-            width: 100%;
-          }
-          h1 {
-            color: #43B581;
-            margin-top: 0;
-          }
-          .icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-          }
-          .info {
-            margin-bottom: 20px;
-            opacity: 0.9;
-          }
-          .closing {
-            font-size: 14px;
-            opacity: 0.7;
-          }
-          #countdown {
-            font-weight: bold;
-          }
-          .debug-info {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #888;
-            text-align: left;
-            border-top: 1px solid #444;
-            padding-top: 10px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="success-card">
-          <div class="icon">✅</div>
-          <h1>GroupMe Connected Successfully!</h1>
-          <p class="info">Your GroupMe account has been connected to the application.</p>
-          <p class="closing">This window will automatically close in <span id="countdown">3</span> seconds...</p>
+      <script>
+        // Function to extract URL parameters from either hash or query string
+        function getUrlParams(source) {
+          const params = {};
+          const regex = /([^&=]+)=([^&]*)/g;
+          let match;
           
-          <div class="debug-info">
-            <p>Debug information:</p>
-            <ul>
-              <li>User ID: ${userId}</li>
-              <li>Connection time: ${new Date().toLocaleString()}</li>
-              <li>Token: ${access_token ? "Successfully saved" : "Failed to save"}</li>
-            </ul>
-          </div>
-        </div>
-
-        <script>
-          // Send success message to opener (parent window) immediately
-          function notifyOpenerAndClose() {
-            console.log('Sending success message to parent window');
+          // Remove the leading # or ? if present
+          const cleanSource = source.replace(/^[#?]/, '');
+          
+          while (match = regex.exec(cleanSource)) {
+            params[decodeURIComponent(match[1])] = decodeURIComponent(match[2]);
+          }
+          
+          return params;
+        }
+        
+        // Function to send the token to the server
+        async function sendTokenToServer(accessToken) {
+          try {
+            // Get the auth token from localStorage
+            const authToken = localStorage.getItem('token');
+            if (!authToken) {
+              throw new Error('No auth token found');
+            }
+            
+            // Send the token to the server
+            const response = await fetch('/api/groupme/token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + authToken
+              },
+              body: JSON.stringify({ access_token: accessToken })
+            });
+            
+            if (!response.ok) {
+              throw new Error('Failed to save token: ' + response.statusText);
+            }
+            
+            return true;
+          } catch (error) {
+            console.error('Error saving token:', error);
+            return false;
+          }
+        }
+        
+        // Main function to handle the callback
+        async function handleCallback() {
+          // Get parameters from URL fragment (hash) first
+          const hashParams = getUrlParams(window.location.hash);
+          // Get parameters from URL query string as fallback
+          const queryParams = getUrlParams(window.location.search);
+          
+          // Log for debugging
+          console.log('Hash params:', hashParams);
+          console.log('Query params:', queryParams);
+          
+          // Try to get access token from hash first (implicit flow)
+          let accessToken = hashParams.access_token;
+          
+          // If no token in hash, try query params (though this shouldn't happen in implicit flow)
+          if (!accessToken) {
+            accessToken = queryParams.access_token;
+          }
+          
+          const statusEl = document.getElementById('status');
+          
+          if (!accessToken) {
+            statusEl.textContent = 'Error: No access token found in URL';
+            statusEl.style.color = '#f04747';
+            console.error('No access token found in URL');
+            return false;
+          }
+          
+          // Update status
+          statusEl.textContent = 'Token found, saving...';
+          
+          // Send token to server
+          const success = await sendTokenToServer(accessToken);
+          
+          if (success) {
+            statusEl.textContent = 'GroupMe connected successfully!';
+            document.querySelector('.icon').textContent = '✅';
+            document.querySelector('h1').textContent = 'Connection Successful!';
+            document.querySelector('.spinner').style.display = 'none';
+            
+            // Notify the opener window about successful connection
             if (window.opener) {
               try {
                 window.opener.postMessage({
@@ -1103,76 +1135,35 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
                   timestamp: Date.now()
                 }, '*');
                 console.log('Success message sent to parent window');
+                
+                // Close this window after a short delay
+                setTimeout(() => {
+                  window.close();
+                }, 2000);
               } catch (e) {
                 console.error('Error sending message to parent:', e);
               }
-              
-              // Check if the opener has the backup token in sessionStorage
-              try {
-                if (window.opener.sessionStorage) {
-                  const backupToken = window.opener.sessionStorage.getItem('groupme_auth_token_backup');
-                  console.log('Backup token in opener sessionStorage:', backupToken ? 'Present' : 'Not present');
-                }
-              } catch (e) {
-                console.log('Cannot access opener sessionStorage (normal due to cross-origin)');
-              }
-            } else {
-              console.warn('No opener window found, cannot send message');
             }
-          }
-          
-          // Countdown and close
-          let secondsLeft = 3;
-          const countdownEl = document.getElementById('countdown');
-          
-          function updateCountdown() {
-            secondsLeft--;
-            countdownEl.textContent = secondsLeft;
             
-            if (secondsLeft <= 0) {
-              // Try to close window after countdown
-              if (window.opener) {
-                window.close();
-              } else {
-                // If no opener or can't close, provide a message
-                document.body.innerHTML = '<div class="success-card"><h1>Connection Complete</h1><p>You can now close this window and return to the application.</p></div>';
-              }
-            } else {
-              setTimeout(updateCountdown, 1000);
-            }
+            return true;
+          } else {
+            statusEl.textContent = 'Error saving token. Please try again.';
+            statusEl.style.color = '#f04747';
+            document.querySelector('.icon').textContent = '❌';
+            document.querySelector('.spinner').style.display = 'none';
+            return false;
           }
-          
-          // Send message immediately, then start countdown
-          document.addEventListener('DOMContentLoaded', function() {
-            notifyOpenerAndClose();
-            setTimeout(updateCountdown, 1000);
-          });
-          
-          // Also try to send message now in case DOMContentLoaded already fired
-          notifyOpenerAndClose();
-        </script>
-      </body>
-      </html>
-    `);
-  } catch (error) {
-    console.error('Error in GroupMe OAuth callback:', error);
-    res.status(500).send(`
-      <html>
-      <head>
-        <title>GroupMe Connection Error</title>
-        <style>
-          body { font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; }
-          h1 { color: #cc0000; }
-          pre { background: #f5f5f5; padding: 10px; overflow: auto; }
-        </style>
-      </head>
-      <body>
-        <h1>Error Connecting GroupMe</h1>
-        <p>There was an error connecting your GroupMe account. Please try again or contact support.</p>
-        <p>Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
-        <p><a href="javascript:window.close()">Close this window</a> and try again.</p>
-      </body>
-      </html>
-    `);
-  }
+        }
+        
+        // Run the callback handler when the page loads
+        window.addEventListener('DOMContentLoaded', handleCallback);
+        
+        // Also run it now in case DOMContentLoaded already fired
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          handleCallback();
+        }
+      </script>
+    </body>
+    </html>
+  `);
 };

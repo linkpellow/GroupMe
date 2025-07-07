@@ -219,14 +219,13 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
         authUrl = authUrl.replace('login_dialog', 'authorize');
       }
 
-      // Ensure we're using the implicit flow by adding response_type=token
-      if (!authUrl.includes('response_type=token')) {
-        console.log('Adding response_type=token to ensure implicit flow');
-        authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + 'response_type=token';
-      }
+      // CRITICAL: Ensure we're using the implicit flow by adding response_type=token
+      // This makes GroupMe return the token directly in the URL fragment
+      console.log('Adding response_type=token to ensure implicit flow');
+      authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + 'response_type=token';
 
       // Add cache-busting parameter to prevent using cached URL
-      authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+      authUrl = authUrl + '&_cb=' + Date.now();
       console.log('Final auth URL with cache busting:', authUrl);
 
       // Store OAuth state in sessionStorage
