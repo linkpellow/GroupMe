@@ -114,6 +114,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       authCheckInProgress.current = true;
 
+      // Add a safety timeout to prevent infinite loading
+      const safetyTimeout = setTimeout(() => {
+        console.warn('Auth check safety timeout reached, forcing loading to false');
+        setIsLoading(false);
+        authCheckInProgress.current = false;
+      }, 10000); // 10 second safety timeout
+
       try {
         // Get token from localStorage (the source of truth)
         const token = localStorage.getItem('token');
@@ -124,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setIsLoading(false);
           authCheckInProgress.current = false;
+          clearTimeout(safetyTimeout);
           return;
         }
 
@@ -167,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } finally {
         setIsLoading(false);
         authCheckInProgress.current = false;
+        clearTimeout(safetyTimeout);
       }
     };
 
@@ -207,6 +216,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         controller.abort();
       }, 5000);
 
+      // Add a safety timeout to prevent infinite loading
+      const safetyTimeout = setTimeout(() => {
+        console.warn('Auth check safety timeout reached, forcing completion');
+        setIsLoading(false);
+      }, 8000); // 8 second safety timeout
+
       try {
         const response = await axiosInstance.get('/api/auth/profile', {
           signal: controller.signal,
@@ -216,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         clearTimeout(timeoutId);
+        clearTimeout(safetyTimeout);
 
         if (!response.data || !response.data._id) {
           throw new Error('Invalid user data received');
@@ -238,6 +254,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Auth check successful, loaded user:', response.data.name);
       } catch (error) {
         clearTimeout(timeoutId);
+        clearTimeout(safetyTimeout);
         console.error('Auth request failed:', error);
 
         // Only clear token if unauthorized and not a network error
@@ -367,6 +384,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Reset global login counter on success
       if (window.__checkAuthCount !== undefined) {
         window.__checkAuthCount = 0;
+      }
+
+      // Check if there's a stored redirect URL from a previous session
+      const redirectUrl = sessionStorage.getItem('redirect_after_login');
+      if (redirectUrl) {
+        console.log('Found stored redirect URL:', redirectUrl);
+        // Clear the stored URL
+        sessionStorage.removeItem('redirect_after_login');
+        // Navigate to the stored URL after a short delay to allow context to update
+        setTimeout(() => {
+          navigate(redirectUrl);
+        }, 100);
       }
 
       // Don't navigate here - let the Login component handle navigation

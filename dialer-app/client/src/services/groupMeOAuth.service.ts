@@ -4,7 +4,7 @@ import axios from 'axios';
 // This is used only for endpoints that don't require authentication (callback, status)
 const oauthAxios = axios.create({
   baseURL: '',
-  withCredentials: false,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,7 +22,7 @@ const authApi = axios.create({
 // Add auth token interceptor
 authApi.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,18 +37,46 @@ authApi.interceptors.request.use(
 authApi.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // Log the error for debugging
-    console.error('OAuth API Error:', error.response?.status, error.response?.data);
+    // Enhanced logging for debugging OAuth issues
+    console.error('OAuth API Error Details:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+      headers: error.config?.headers,
+    });
     
-    // OAuth initiate needs authentication, but callback/status don't
-    const isPublicOAuthEndpoint = error.config?.url?.includes('/oauth/callback') || 
-                                  error.config?.url?.includes('/oauth/status');
+    // Include ALL OAuth and GroupMe-related endpoints in the exclusion list
+    const isOAuthOrGroupMeEndpoint = 
+      error.config?.url?.includes('/oauth/') || 
+      error.config?.url?.includes('/groupme/') ||
+      error.config?.url?.includes('api.groupme.com') ||
+      error.config?.url?.includes('oauth.groupme.com');
     
-    if (error.response?.status === 401 && !isPublicOAuthEndpoint) {
-      // Handle unauthorized access
-      localStorage.removeItem('authToken');
+    console.log('Is OAuth/GroupMe endpoint:', isOAuthOrGroupMeEndpoint, 'URL:', error.config?.url);
+    
+    // Check if this is a page refresh
+    const isRefresh = document.referrer === window.location.href;
+    const currentPath = window.location.pathname;
+    
+    if (error.response?.status === 401 && !isOAuthOrGroupMeEndpoint && !isRefresh && currentPath !== '/login') {
+      console.warn('Non-OAuth 401 error detected - logging out user');
+      // Handle unauthorized access for non-OAuth endpoints
+      localStorage.removeItem('token'); // Use correct token key
+      
+      // Store the current URL to redirect back after login
+      sessionStorage.setItem('redirect_after_login', window.location.pathname);
+      
       window.location.href = '/login';
+    } else if (error.response?.status === 401) {
+      console.log('OAuth/GroupMe-related 401 error or refresh - NOT logging out user');
+      console.log('Context:', {
+        isOAuthEndpoint: isOAuthOrGroupMeEndpoint,
+        isRefresh,
+        currentPath
+      });
     }
+    
     return Promise.reject(error);
   }
 );
@@ -70,7 +98,7 @@ class GroupMeOAuthService {
    */
   async checkConnectionStatus(): Promise<GroupMeOAuthStatus> {
     try {
-      const response = await oauthAxios.get('/api/groupme/oauth/status');
+      const response = await authApi.get('/groupme/oauth/status');
       return {
         connected: response.data.connected,
         connectedAt: response.data.connectedAt ? new Date(response.data.connectedAt) : undefined,
@@ -122,22 +150,32 @@ class GroupMeOAuthService {
   /**
    * Handle OAuth callback
    */
-  async handleOAuthCallback(accessToken: string, state: string): Promise<void> {
+  async handleOAuthCallback(code: string, state: string): Promise<void> {
     console.log('=== groupMeOAuthService.handleOAuthCallback ===');
-    console.log('Access token received:', accessToken ? 'Yes' : 'No');
-    console.log('Access token length:', accessToken?.length);
+    console.log('Code received:', code ? 'Yes' : 'No');
+    console.log('Code length:', code?.length);
     console.log('State received:', state);
+    
+    if (!code) {
+      console.error('No code provided to handleOAuthCallback');
+      throw new Error('No authorization code provided');
+    }
+    
+    if (!state) {
+      console.error('No state parameter provided to handleOAuthCallback');
+      throw new Error('No state parameter provided');
+    }
     
     try {
       // Use the non-authenticated API for the callback
       console.log('Making POST request to /groupme/oauth/callback');
       console.log('Request payload:', { 
-        access_token: accessToken ? `${accessToken.substring(0, 10)}...` : null,
+        code: code ? `${code.substring(0, 10)}...` : null,
         state 
       });
       
       const response = await oauthAxios.post('/api/groupme/oauth/callback', {
-        access_token: accessToken,
+        code: code,
         state: state,
       });
       
@@ -146,6 +184,7 @@ class GroupMeOAuthService {
       console.log('Response data:', response.data);
       
       console.log('OAuth callback successful');
+      return response.data;
     } catch (error: any) {
       console.error('=== OAuth Callback Error ===');
       console.error('Error object:', error);
@@ -158,10 +197,18 @@ class GroupMeOAuthService {
       // Check if it's a token expiration error
       if (error?.response?.data?.message?.includes('token is no longer valid')) {
         console.error('Token validation failed - token expired or invalid');
+        throw new Error('GroupMe token expired or invalid. Please try connecting again.');
       }
       
       throw error;
     }
+  }
+
+  /**
+   * Handle Manual Token Submission
+   */
+  async handleManualToken(token: string): Promise<void> {
+    await authApi.post('/groupme/save-manual-token', { token });
   }
 
   /**
@@ -170,6 +217,79 @@ class GroupMeOAuthService {
   async disconnect(): Promise<void> {
     // Use authenticated API for this endpoint
     await authApi.post('/groupme/oauth/disconnect');
+  }
+
+  /**
+   * Handle OAuth callback when only a code is provided (authorization-code flow)
+   */
+  async handleOAuthCode(code: string, state: string): Promise<void> {
+    console.log('groupMeOAuthService.handleOAuthCode', { codeLen: code?.length, state });
+    if (!code || !state) throw new Error('Missing code or state');
+
+    await oauthAxios.post('/api/groupme/oauth/callback', { code, state });
+  }
+
+  /**
+   * Save access token obtained via implicit flow
+   */
+  async saveAccessToken(token: string): Promise<void> {
+    console.log('=== groupMeOAuthService.saveAccessToken ===');
+    console.log('Token received (length):', token ? token.length : 0);
+    
+    if (!token) {
+      console.error('Missing GroupMe access token');
+      throw new Error('Missing GroupMe access token');
+    }
+    
+    try {
+      console.log('Sending token to server...');
+      await authApi.post('/groupme/token', { access_token: token });
+      console.log('Token saved successfully');
+    } catch (error: any) {
+      console.error('Failed to save GroupMe token:', error);
+      console.error('Error response:', error?.response?.data);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract access token from URL hash and save it
+   * This should be called on the callback page that GroupMe redirects to
+   */
+  async handleImplicitCallback(): Promise<boolean> {
+    console.log('=== groupMeOAuthService.handleImplicitCallback ===');
+    
+    // Get URL hash (fragment)
+    const hash = window.location.hash.substring(1); // Remove the # character
+    console.log('URL hash:', hash ? 'present' : 'missing');
+    
+    if (!hash) {
+      console.error('No URL hash found - implicit flow should include access_token in URL fragment');
+      return false;
+    }
+    
+    // Parse the hash to get access_token and state
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    const state = params.get('state');
+    
+    console.log('Extracted from hash - access_token:', accessToken ? 'present' : 'missing');
+    console.log('Extracted from hash - state:', state ? 'present' : 'missing');
+    
+    if (!accessToken) {
+      console.error('No access_token found in URL hash');
+      return false;
+    }
+    
+    // Save the token to the server
+    try {
+      await this.saveAccessToken(accessToken);
+      console.log('Access token saved successfully');
+      return true;
+    } catch (error) {
+      console.error('Failed to save access token:', error);
+      return false;
+    }
   }
 }
 

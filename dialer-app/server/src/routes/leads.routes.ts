@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, Router } from 'express';
 import { check } from 'express-validator';
 import { auth, isAdmin } from '../middleware/auth';
 import LeadModel, { ILeadInput } from '../models/Lead';
@@ -20,7 +20,7 @@ import { HEADER_ALIASES } from '../utils/headerAliases';
 import { parseVendorCSV, getVendorDisplayName } from '../utils/csvParser';
 import { fixDob } from '../utils/fixDob';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Middleware to validate ObjectId format
 const validateObjectId = (req: Request, res: Response, next: NextFunction) => {
@@ -94,7 +94,7 @@ const leadValidation = [
 router.get('/test-db', auth, leadsController.testDb);
 
 // Main GET route for fetching leads with query parameters
-router.get('/', auth, validateQueryMiddleware, rateLimitMiddleware, (req, res, next) =>
+router.get('/', auth, validateQueryMiddleware, rateLimitMiddleware, (req: Request, res: Response, next: NextFunction) =>
   leadsController.getLeads(req as any, res)
 );
 
@@ -253,7 +253,7 @@ const normaliseRow = (raw: Record<string, any>) => {
 };
 
 // CSV Upload endpoint
-router.post('/upload', auth, upload.single('file'), async (req, res) => {
+router.post('/upload', auth, upload.single('file'), async (req: Request, res: Response) => {
   try {
     console.log('Starting CSV upload...');
     console.log('Request headers:', req.headers);
@@ -939,7 +939,7 @@ router.get('/sync-nextgen', auth, isAdmin, async (req: Request, res: Response) =
 });
 
 // CSV export route – placed before parameterised routes to avoid shadowing
-router.get('/export', auth, validateQueryMiddleware, rateLimitMiddleware, (req, res) =>
+router.get('/export', auth, validateQueryMiddleware, rateLimitMiddleware, (req: Request, res: Response) =>
   leadsController.exportLeadsCsv(req as any, res)
 );
 
@@ -985,7 +985,7 @@ router.delete('/:id', auth, async (req: Request, res: Response) => {
 });
 
 // Delete placeholder leads
-router.delete('/delete-placeholders', auth, async (req, res) => {
+router.delete('/delete-placeholders', auth, async (req: Request, res: Response) => {
   try {
     // Delete leads where name is "Unknown Name" or empty
     const result = await LeadModel.deleteMany({
@@ -1297,7 +1297,7 @@ router.post('/record-call', auth, async (req: Request, res: Response) => {
 });
 
 // Add a new endpoint to fix existing leads
-router.post('/fix-all-leads', auth, async (req, res) => {
+router.post('/fix-all-leads', auth, async (req: Request, res: Response) => {
   try {
     console.log('Starting to fix all leads in the database...');
 
@@ -1505,5 +1505,31 @@ router.get('/filters', auth, leadsController.getFilterOptions);
 // ADD_NOTES_ROUTE_START
 router.patch('/:id/notes', auth, leadsController.updateLeadNotes);
 // ADD_NOTES_ROUTE_END
+
+// --- Recent leads endpoint for WebSocket fallback polling ---
+// Public endpoint (no auth) so browser can poll when user not yet authenticated via JWT
+router.get('/recent', async (req: Request, res: Response) => {
+  try {
+    const sinceMs = parseInt((req.query.since as string) || '0', 10);
+    const sinceDate = new Date(isNaN(sinceMs) ? Date.now() - 5 * 60 * 1000 : sinceMs);
+
+    const filter: any = { createdAt: { $gt: sinceDate } };
+    if (req.query.source) {
+      filter.source = req.query.source;
+    }
+
+    // Return light payload to minimise bandwidth
+    const leads = await LeadModel.find(filter)
+      .select('_id name source createdAt')
+      .limit(50)
+      .sort({ createdAt: 1 })
+      .lean();
+
+    res.json(leads);
+  } catch (error) {
+    console.error('[Leads] /recent error', error);
+    res.status(500).json({ message: 'Failed to fetch recent leads' });
+  }
+});
 
 export default router;

@@ -11,6 +11,7 @@ import CallCountsProvider from "./context/CallCountsContext";
 import LifetimeCountsProvider from "./context/LifetimeCountsContext";
 import * as scrollLockUtil from "./shared/scrollLock";
 import { ZoomProvider, useZoom } from './context/ZoomContext';
+import { webSocketService } from './services/websocketService';
 
 // Prevent touch scrolling when dropdown lock is active
 window.addEventListener(
@@ -93,3 +94,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   // Hard-stop to prevent being stuck even if everything else fails
   setTimeout(fadeOut, HARD_STOP);
 })();
+
+// Ensure the import is used to prevent tree-shaking
+console.log('Initializing WebSocket service...');
+// This will execute the constructor
+webSocketService;

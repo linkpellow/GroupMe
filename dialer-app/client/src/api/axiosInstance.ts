@@ -1,4 +1,5 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { getToken } from '../services/authToken.service';
 
 // Base URL for local development with correct path
 const baseURL = ''; // Empty base URL to use relative paths with the proxy
@@ -33,11 +34,11 @@ const logError = (error: AxiosError) => {
 // Add request interceptor to include auth token
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Get the latest token from localStorage
-    const token = localStorage.getItem('token');
+    // Get the latest token using our centralized token service
+    const token = getToken();
 
     // Add additional debugging
-    console.log(`Token from localStorage: ${token ? 'Present' : 'Not present'}`);
+    console.log(`Token from authToken service: ${token ? 'Present' : 'Not present'}`);
 
     // Only set the token if it exists and add it properly formatted
     if (token) {
@@ -46,7 +47,7 @@ axiosInstance.interceptors.request.use(
 
       console.log(`Authorization header set: ${config.headers.Authorization}`);
     } else {
-      console.warn('No auth token found in localStorage');
+      console.warn('No auth token found in authToken service');
     }
 
     // Make sure all API requests start with /api
@@ -96,17 +97,46 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401) {
       console.warn('Authentication error - token may be invalid');
 
-      // Clear invalid token
+      // Check if this is an OAuth-related endpoint
+      const isOAuthRelatedEndpoint = 
+        error.config?.url?.includes('/oauth/') || 
+        error.config?.url?.includes('/groupme/oauth') ||
+        error.config?.url?.includes('/groupme/token') ||
+        error.config?.url?.includes('/groupme/callback') ||
+        error.config?.url?.includes('/groupme/config');
+      
+      // Only clear token and redirect if:
+      // 1. Not already on login page
+      // 2. Not an OAuth-related endpoint
+      // 3. Not during a page refresh (check referrer)
       const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register') {
-        console.log('Clearing invalid token from localStorage');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user_data');
+      const isRefresh = document.referrer === window.location.href;
+      
+      if (currentPath !== '/login' && !isOAuthRelatedEndpoint && !isRefresh) {
+        console.log('Clearing invalid token from localStorage and redirecting to login');
+        
+        // Use our centralized token service to clear the token
+        // This will handle removing from localStorage and updating axios instances
+        import('../services/authToken.service').then(authTokenService => {
+          authTokenService.clearToken();
+          
+          // Store the current URL to redirect back after login
+          sessionStorage.setItem('redirect_after_login', window.location.pathname);
 
-        // Optional: redirect to login page
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
+          // Redirect to login page after a short delay to allow other requests to complete
+          setTimeout(() => {
+            if (typeof window !== 'undefined') {
+              window.location.href = '/login';
+            }
+          }, 100);
+        });
+      } else {
+        console.log('Not redirecting to login because:', {
+          currentPath,
+          isLoginPage: currentPath === '/login',
+          isOAuthEndpoint: isOAuthRelatedEndpoint,
+          isRefresh
+        });
       }
     }
 
@@ -123,5 +153,10 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Make the instance available globally for debugging and emergency fixes
+if (typeof window !== 'undefined') {
+  window.axiosInstance = axiosInstance;
+}
 
 export default axiosInstance;

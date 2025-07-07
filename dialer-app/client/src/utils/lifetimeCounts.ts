@@ -1,4 +1,8 @@
-import { normalizePhone } from '@shared/utils/phoneUtils';
+// Local fallback: simple phone normalizer (digits only)
+const normalizePhone = (input: string): string => {
+  if (!input) return '';
+  return input.replace(/\D+/g, '');
+};
 
 export type LifetimeCounts = Record<string, number>;
 

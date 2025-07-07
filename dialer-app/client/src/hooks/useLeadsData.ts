@@ -7,7 +7,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LeadsQueryState, LeadsQueryResponse, QueryErrorResponse } from '../types/queryTypes';
 import { leadsApi } from '../services/leadsApi';
-import { QUERY_CONFIG } from '@shared/config/queryConfig';
+import { QUERY_CONFIG } from '../constants/queryConfigClient';
 
 interface UseLeadsDataOptions {
   queryState: LeadsQueryState;

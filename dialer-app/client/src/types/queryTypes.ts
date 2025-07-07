@@ -4,7 +4,7 @@
  * Uses pure TypeScript for type safety without external dependencies.
  */
 
-import { QUERY_CONFIG } from '@shared/config/queryConfig';
+import { QUERY_CONFIG } from '../constants/queryConfigClient';
 
 export type StateCode = string;
 export type DispositionType = string;

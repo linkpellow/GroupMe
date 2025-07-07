@@ -222,13 +222,22 @@ export const broadcastNewLeadNotification = (leadData: {
     timestamp: new Date().toISOString(),
   };
 
-  console.log('Broadcasting new lead notification:', notification);
+  logger.info(`Broadcasting lead notification: ${leadData.name} (${leadData.leadId}), isNew=${leadData.isNew}, clients=${wss.clients.size}`);
 
+  let sentCount = 0;
   wss.clients.forEach((client: ExtendedWebSocket) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(notification));
+      try {
+        client.send(JSON.stringify(notification));
+        sentCount++;
+        logger.debug(`Notification sent to client: ${client.userId || 'anonymous'}`);
+      } catch (error) {
+        logger.error(`Failed to send notification to client: ${error}`);
+      }
     }
   });
+
+  logger.info(`Notification broadcast complete: sent to ${sentCount}/${wss.clients.size} clients`);
 };
 
 const storage = multer.diskStorage({
@@ -248,6 +257,8 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   `http://localhost:${port}`,
   `http://127.0.0.1:${port}`,
+  'https://crokodial.com',
+  'https://www.crokodial.com',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 const corsOptions = {
@@ -338,6 +349,15 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });
+});
+
+// Add direct route for GroupMe OAuth callback
+app.get('/groupme/callback', (req, res) => {
+  console.log('Received GroupMe callback at /groupme/callback, forwarding to /api/groupme/callback');
+  // Forward the request to our API route
+  const { access_token, state } = req.query;
+  const targetUrl = `/api/groupme/callback?access_token=${access_token}&state=${state}`;
+  res.redirect(targetUrl);
 });
 
 // Determine client dist directory dynamically to work in dev, build, and Heroku slug paths

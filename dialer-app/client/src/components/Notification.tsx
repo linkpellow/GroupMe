@@ -101,6 +101,79 @@ const NotificationText = styled.div`
   text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
 `;
 
+// Keep a global audio element to prevent Chrome autoplay issues
+let globalAudio: HTMLAudioElement | null = null;
+
+// Function to safely play audio with multiple fallbacks for Chrome
+const safePlayAudio = (audioElement: HTMLAudioElement) => {
+  // Flag to track if we successfully played
+  let played = false;
+  
+  // Try standard play first
+  audioElement.play()
+    .then(() => {
+      console.log('Audio played successfully via standard play()');
+      played = true;
+    })
+    .catch(async (error) => {
+      console.warn('Standard audio play failed:', error);
+      
+      // Chrome autoplay policy workaround #1: Try muted first, then unmute
+      if (!played) {
+        try {
+          // Mute, play, then unmute
+          audioElement.muted = true;
+          await audioElement.play();
+          audioElement.muted = false;
+          console.log('Audio played successfully via mute/unmute strategy');
+          played = true;
+        } catch (error2) {
+          console.warn('Muted play attempt failed:', error2);
+        }
+      }
+      
+      // Chrome autoplay policy workaround #2: Listen for user interaction
+      if (!played) {
+        const playOnUserInteraction = () => {
+          audioElement.play()
+            .then(() => console.log('Audio played after user interaction'))
+            .catch(e => console.error('Even with interaction, playback failed:', e));
+          
+          // Remove listeners after one interaction
+          document.removeEventListener('click', playOnUserInteraction);
+          document.removeEventListener('touchstart', playOnUserInteraction);
+          document.removeEventListener('keydown', playOnUserInteraction);
+        };
+        
+        document.addEventListener('click', playOnUserInteraction, { once: true });
+        document.addEventListener('touchstart', playOnUserInteraction, { once: true });
+        document.addEventListener('keydown', playOnUserInteraction, { once: true });
+        
+        console.log('Added user interaction listeners for audio playback');
+      }
+    });
+};
+
+// Initialize the global audio if needed
+const getGlobalAudio = (): HTMLAudioElement => {
+  if (!globalAudio) {
+    globalAudio = new Audio('/sounds/Cash app sound.mp3');
+    globalAudio.volume = 0.3;
+    globalAudio.preload = 'auto';
+    
+    // Preload the audio when the document is first interacted with
+    const preloadAudio = () => {
+      globalAudio?.load();
+      document.removeEventListener('click', preloadAudio);
+      document.removeEventListener('touchstart', preloadAudio);
+    };
+    
+    document.addEventListener('click', preloadAudio, { once: true });
+    document.addEventListener('touchstart', preloadAudio, { once: true });
+  }
+  return globalAudio;
+};
+
 interface NotificationProps {
   message: string;
   onClose: () => void;
@@ -116,24 +189,32 @@ const Notification: React.FC<NotificationProps> = ({
 }) => {
   const [isClosing, setIsClosing] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isChrome = navigator.userAgent.includes('Chrome');
 
   useEffect(() => {
-    // Create audio element
-    audioRef.current = new Audio('/sounds/Cash app sound.mp3');
-    audioRef.current.volume = 0.3;
+    // Use global audio element for Chrome to avoid autoplay issues
+    if (isChrome) {
+      audioRef.current = getGlobalAudio();
+    } else {
+      // For other browsers, create a new audio instance each time
+      audioRef.current = new Audio('/sounds/Cash app sound.mp3');
+      audioRef.current.volume = 0.3;
+    }
 
     // Add event listeners for debugging
     if (audioRef.current) {
-      audioRef.current.addEventListener('canplaythrough', () => {
-        console.log('Audio loaded and ready to play');
-        audioRef.current?.play().catch((error) => {
+      // Reset the audio to beginning for playback
+      audioRef.current.currentTime = 0;
+      
+      if (isChrome) {
+        // For Chrome, use our safe play method
+        safePlayAudio(audioRef.current);
+      } else {
+        // For other browsers, use standard approach
+        audioRef.current.play().catch((error) => {
           console.error('Error playing notification sound:', error);
         });
-      });
-
-      audioRef.current.addEventListener('error', (e) => {
-        console.error('Error loading audio:', e);
-      });
+      }
     }
 
     const timer = setTimeout(() => {
@@ -144,17 +225,22 @@ const Notification: React.FC<NotificationProps> = ({
 
     return () => {
       clearTimeout(timer);
-      // Cleanup audio element
-      if (audioRef.current) {
+      // Don't pause global audio
+      if (!isChrome && audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
     };
-  }, [duration, onClose]);
+  }, [duration, onClose, isChrome]);
 
   const handleClick = () => {
     setIsClosing(true);
     setTimeout(onClose, 300);
+    
+    // Try playing audio on click as a fallback
+    if (isChrome && audioRef.current && audioRef.current.paused) {
+      audioRef.current.play().catch(() => {});
+    }
   };
 
   return (

@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { auth } from '../middleware/auth';
 import * as campaignController from '../controllers/campaign.controller';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Campaign CRUD routes
 router.post('/', auth, campaignController.createCampaign);

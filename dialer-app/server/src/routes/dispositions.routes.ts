@@ -10,7 +10,7 @@ import {
   seedDefaultDispositions,
 } from '../controllers/dispositions.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // Public routes
 // none

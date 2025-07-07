@@ -96,3 +96,20 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
   process.exit(1);
 }
 // --------------------------------------------------------------------------
+
+// ------------------- SECURITY HARDENING: MONGODB_URI CHECK -------------------
+if (!process.env.MONGODB_URI) {
+  console.error('\n\x1b[31m[FATAL ERROR] MONGODB_URI missing.\x1b[0m');
+  process.exit(1);
+}
+
+const mongoUri = process.env.MONGODB_URI;
+// Basic pattern: mongodb+srv://<user>:<pass>@<host>/<db>
+const mongoRegex = /^mongodb\+srv:\/\/[^:@]+:[^@]+@[^/]+\/.+/;
+if (!mongoRegex.test(mongoUri)) {
+  console.error('\n\x1b[31m[FATAL ERROR] Invalid MONGODB_URI format.\x1b[0m');
+  console.error('Value:', mongoUri);
+  console.error('Ensure it is fully URL-encoded and contains ":" between user and password and "@" before host.');
+  process.exit(1);
+}
+// --------------------------------------------------------------------------

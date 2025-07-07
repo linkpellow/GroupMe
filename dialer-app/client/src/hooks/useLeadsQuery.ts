@@ -13,7 +13,6 @@ import {
   serializeQueryState,
   validateQueryState,
 } from '../types/queryTypes';
-import { QUERY_CONFIG } from '@shared/config/queryConfig';
 
 interface UseLeadsQueryReturn {
   queryState: LeadsQueryState;
@@ -23,6 +22,9 @@ interface UseLeadsQueryReturn {
   errors: Array<{ field: string; message: string }>;
   queryVersion: number;
 }
+
+// Local fallback to debounce delay (ms) to avoid runtime dependency on shared package during build
+const SEARCH_DELAY_MS = 300;
 
 export function useLeadsQuery(): UseLeadsQueryReturn {
   const navigate = useNavigate();
@@ -113,7 +115,7 @@ export function useLeadsQuery(): UseLeadsQueryReturn {
           debounceTimerRef.current = setTimeout(() => {
             syncToUrl(newState);
             setIsDebouncing(false);
-          }, QUERY_CONFIG.DEBOUNCE.searchDelay);
+          }, SEARCH_DELAY_MS);
         } else {
           // Immediate update for pagination, sorting, and pipelineSource
           syncToUrl(newState);

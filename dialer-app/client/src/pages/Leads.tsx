@@ -32,7 +32,7 @@ import MultiDispositionFilter from '../components/MultiDispositionFilter';
 import { useLeadsQuery } from '../hooks/useLeadsQuery';
 import { useLeadsData } from '../hooks/useLeadsData';
 import { LeadsQueryState } from '../types/queryTypes';
-import { QUERY_CONFIG } from '@shared/config/queryConfig';
+import type { QUERY_CONFIG } from '@shared/config/queryConfig';
 import StateIcon from '../components/StateIcon';
 import LocalTime from '../components/LocalTime';
 import LeadActionsMenu from '../components/LeadActionsMenu';

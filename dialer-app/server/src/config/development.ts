@@ -16,8 +16,10 @@ export const developmentConfig = {
 
   // GroupMe settings
   groupMe: {
-    clientId: process.env.GROUPME_CLIENT_ID || 'm30BXQSEw03mzZK0ZfzDGQqqp8LXHRT2MiZNWWCeC7jmBSAx',
-    redirectUri: process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback',
+    clientId: process.env.GROUPME_CLIENT_ID || '6sdc8GOrrAhoOmTAkdVjArldmIfHfnJh5FivtUulrGEgXw66',
+    redirectUri:
+      process.env.GROUPME_REDIRECT_URI ||
+      (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/groupme/callback` : 'http://localhost:5173/groupme/callback'),
     apiUrl: 'https://api.groupme.com/v3',
     pollInterval: 3000, // 3 seconds
     retryAttempts: 3,

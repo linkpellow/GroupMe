@@ -241,6 +241,8 @@ const allowedOrigins = [
     'http://127.0.0.1:5173',
     `http://localhost:${port}`,
     `http://127.0.0.1:${port}`,
+    'https://crokodial.com',
+    'https://www.crokodial.com',
     process.env.CLIENT_URL,
 ].filter(Boolean);
 const corsOptions = {
@@ -318,6 +320,14 @@ app.get('/api/health', (req, res) => {
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
     });
+});
+// Add direct route for GroupMe OAuth callback
+app.get('/groupme/callback', (req, res) => {
+    console.log('Received GroupMe callback at /groupme/callback, forwarding to /api/groupme/callback');
+    // Forward the request to our API route
+    const { access_token, state } = req.query;
+    const targetUrl = `/api/groupme/callback?access_token=${access_token}&state=${state}`;
+    res.redirect(targetUrl);
 });
 // Determine client dist directory dynamically to work in dev, build, and Heroku slug paths
 const candidateClientDistPaths = [

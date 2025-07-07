@@ -1,11 +1,11 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, Router } from 'express';
 import Lead from '../models/Lead';
 import winston from 'winston';
 import { z } from 'zod';
 import * as Sentry from '@sentry/node';
 import { broadcastNewLeadNotification } from '../index';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Winston logger configuration
 const logger = winston.createLogger({
@@ -102,6 +102,36 @@ type NextGenLeadData = z.infer<typeof NextGenLeadSchema>;
 
 // Adapter to convert NextGen format to our Lead schema
 const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
+  // Convert numeric height in inches (e.g. "70") → `5'10"`. Fallback to raw string if parsing fails.
+  let formattedHeight: string | undefined = undefined;
+  if (nextgenData.height) {
+    const numeric = parseInt(nextgenData.height.replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(numeric) && numeric > 0) {
+      const feet = Math.floor(numeric / 12);
+      const inches = numeric % 12;
+      formattedHeight = `${feet}'${inches}"`;
+    } else {
+      // Keep original if parsing fails (e.g. already formatted or contains non-numeric)
+      formattedHeight = nextgenData.height.trim();
+    }
+  }
+
+  // Normalize weight – trim and keep as-is (string) so UI can display
+  const formattedWeight = nextgenData.weight ? nextgenData.weight.trim() : undefined;
+
+  // Format date of birth
+  const formattedDob = nextgenData.dob ? new Date(nextgenData.dob).toLocaleDateString() : undefined;
+
+  // Format gender (capitalize first letter)
+  let formattedGender = undefined;
+  if (nextgenData.gender) {
+    if (nextgenData.gender.toLowerCase().startsWith('m')) {
+      formattedGender = 'Male';
+    } else if (nextgenData.gender.toLowerCase().startsWith('f')) {
+      formattedGender = 'Female';
+    }
+  }
+
   const adapted = {
     // IDs
     nextgenId: nextgenData.nextgen_id || nextgenData.lead_id,
@@ -117,20 +147,16 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
     phone: nextgenData.phone,
 
     // Location
-    city: nextgenData.city,
-    state: nextgenData.state?.toUpperCase(),
-    zipcode: nextgenData.zip_code,
-    street1: nextgenData.street_address,
+    city: nextgenData.city?.trim(),
+    state: nextgenData.state?.toUpperCase()?.trim(),
+    zipcode: nextgenData.zip_code?.trim(),
+    street1: nextgenData.street_address?.trim(),
 
-    // Demographics
-    dob: nextgenData.dob,
-    gender: nextgenData.gender?.toLowerCase()?.startsWith('m')
-      ? 'male'
-      : nextgenData.gender?.toLowerCase()?.startsWith('f')
-        ? 'female'
-        : undefined,
-    height: nextgenData.height,
-    weight: nextgenData.weight,
+    // Demographics - with consistent formatting
+    dob: formattedDob,
+    gender: formattedGender,
+    height: formattedHeight,
+    weight: formattedWeight,
 
     // Health
     tobaccoUser: nextgenData.tobacco_user,
@@ -159,8 +185,8 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
     subIdHash: nextgenData.sub_id_hash,
 
     // Defaults
-    source: 'nextgen' as const,
-    disposition: 'new' as const,
+    source: 'NextGen' as const,  // Changed to match the enum in Lead model
+    disposition: 'New Lead' as const,  // Changed to match other imports
     status: 'New' as const,
   };
 

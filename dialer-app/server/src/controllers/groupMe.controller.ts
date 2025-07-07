@@ -6,14 +6,16 @@ import crypto from 'crypto';
 import User, { IUser } from '../models/User';
 import { sendError, sendSuccess, asyncHandler, logRequest } from '../utils/controllerUtils';
 import { getEncryptionKey } from '../utils/secret';
+import axios from 'axios';
 
-// Extend Express Request type to include 'user'
+// Define our own AuthenticatedRequest interface since it's not exported from middleware/auth
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     groupMe?: {
       accessToken?: string;
       groups?: Record<string, string>;
+      tokenUpdatedAt?: Date;
     };
     [key: string]: any;
   };
@@ -24,7 +26,8 @@ let groupMeServiceInstance: GroupMeService | null = null;
 // OAuth Configuration
 const GROUPME_CLIENT_ID = process.env.GROUPME_CLIENT_ID || 'YOUR_CLIENT_ID';
 const GROUPME_REDIRECT_URI =
-  process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback';
+  process.env.GROUPME_REDIRECT_URI ||
+  (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/groupme/callback` : 'http://localhost:5173/groupme/callback');
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Encryption helpers
@@ -113,8 +116,13 @@ export const initiateOAuth = asyncHandler(async (req: Request, res: Response): P
     maxAge: 10 * 60 * 1000, // 10 minutes
   });
 
-  const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&state=${state}`;
+  // Per GroupMe documentation, the OAuth URL format is very simple:
+  // https://dev.groupme.com/tutorials/oauth
+  const authUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(
+    REDIRECT_URI
+  )}&state=${state}`;
 
+  console.log('Initiating OAuth with URL:', authUrl);
   sendSuccess(res, { authUrl, state });
 });
 
@@ -128,16 +136,16 @@ export const handleOAuthCallback = asyncHandler(
     console.log('Request cookies:', req.cookies);
     console.log('Request headers:', req.headers);
 
-    const { access_token, state } = req.body;
+    const { code, state } = req.body;
 
-    console.log('Access token received:', access_token ? 'Yes' : 'No');
-    console.log('Token length:', access_token?.length);
-    console.log('Token first 20 chars:', access_token?.substring(0, 20));
+    console.log('Code received:', code ? 'Yes' : 'No');
+    console.log('Code length:', code?.length);
+    console.log('Code first 20 chars:', code?.substring(0, 20));
     console.log('State received:', state);
 
-    if (!access_token || !state) {
-      console.error('Missing access token or state');
-      sendError(res, 400, 'Missing access token or state', null, 'INVALID_REQUEST');
+    if (!code || !state) {
+      console.error('Missing code or state');
+      sendError(res, 400, 'Missing code or state', null, 'INVALID_REQUEST');
       return;
     }
 
@@ -164,19 +172,56 @@ export const handleOAuthCallback = asyncHandler(
 
     console.log('UserId from state:', userId);
 
-    // Validate token with GroupMe API before saving
-    console.log('=== VALIDATING TOKEN WITH GROUPME ===');
-    let tokenIsValid = false;
-    let groupMeUserData = null;
+    // Check if user is already connected
+    try {
+      const user = await User.findById(userId).select('groupMe.accessToken');
+      if (user?.groupMe?.accessToken) {
+        console.warn('User already connected to GroupMe:', userId);
+        sendError(res, 409, 'User already connected to GroupMe', null, 'ALREADY_CONNECTED');
+        return;
+      }
+    } catch (err) {
+      console.error('Error checking existing GroupMe connection:', err);
+      sendError(res, 500, 'Failed to check connection', null, 'CONNECTION_CHECK_ERROR');
+      return;
+    }
+
+    // Exchange code for access token via undocumented endpoint
+    console.log('=== EXCHANGING CODE FOR ACCESS TOKEN ===');
+    let accessToken = '';
 
     try {
       const axios = require('axios');
-      console.log('Making request to GroupMe API...');
-      console.log('Token to validate:', access_token.substring(0, 20) + '...');
+      const CLIENT_ID = process.env.GROUPME_CLIENT_ID;
+      const CLIENT_SECRET = process.env.GROUPME_CLIENT_SECRET;
 
+      console.log('Posting to https://api.groupme.com/oauth/access_token');
+      let tokenResp;
+      try {
+        // Per 2025 docs, only client_id and code are required (no secret, no grant_type)
+        tokenResp = await axios.post('https://api.groupme.com/oauth/access_token', {
+          client_id: CLIENT_ID,
+          code,
+        });
+      } catch (err: any) {
+        console.error('Token exchange failed', err.response?.status, err.response?.data || err.message);
+        sendError(res, 502, 'Token exchange failed', null, 'TOKEN_EXCHANGE_FAILED');
+        return;
+      }
+
+      if (!tokenResp.data || !tokenResp.data.access_token) {
+        console.error('No access_token in GroupMe response', tokenResp.data);
+        sendError(res, 500, 'Failed to obtain GroupMe token', null, 'TOKEN_EXCHANGE_ERROR');
+        return;
+      }
+
+      accessToken = tokenResp.data.access_token as string;
+      
+      // Validate the token with GroupMe API
+      console.log('Validating token with GroupMe API...');
       const validationResponse = await axios.get('https://api.groupme.com/v3/users/me', {
         headers: {
-          'X-Access-Token': access_token,
+          'X-Access-Token': accessToken,
           'Content-Type': 'application/json',
         },
         timeout: 10000, // 10 second timeout
@@ -184,8 +229,55 @@ export const handleOAuthCallback = asyncHandler(
 
       console.log('Token validation successful!');
       console.log('GroupMe user:', validationResponse.data.response);
-      tokenIsValid = true;
-      groupMeUserData = validationResponse.data.response;
+      const groupMeUserData = validationResponse.data.response;
+      
+      // Encrypt the access token before storing
+      console.log('Encrypting token...');
+      const encryptedToken = encrypt(accessToken);
+      console.log('Token encrypted successfully');
+
+      // Update user with encrypted GroupMe token
+      console.log('Updating user in database...');
+      const user = await User.findByIdAndUpdate<IUser>(
+        userId,
+        {
+          $set: {
+            'groupMe.accessToken': encryptedToken,
+            'groupMe.connectedAt': new Date(),
+            'groupMe.email': groupMeUserData?.email || null,
+            'groupMe.name': groupMeUserData?.name || null,
+          },
+        },
+        { new: true }
+      );
+
+      if (!user) {
+        console.error('User not found in database:', userId);
+        sendError(res, 404, 'User not found', null, 'USER_NOT_FOUND');
+        return;
+      }
+
+      console.log('User updated successfully');
+      console.log('=== OAUTH CALLBACK COMPLETE ===');
+      // Also persist token in GroupMeConfig so front-end can pick it up via /config API
+      await GroupMeConfig.findOneAndUpdate(
+        { userId },
+        { userId, accessToken: encryptedToken },
+        { upsert: true, new: true }
+      );
+      sendSuccess(res, {
+        message: 'GroupMe connected successfully',
+        user: {
+          id: user._id,
+          groupMe: {
+            connected: true,
+            connectedAt: user.groupMe?.connectedAt,
+            email: user.groupMe?.email,
+            name: user.groupMe?.name,
+          },
+        },
+      });
+      
     } catch (validationError: any) {
       console.error('=== TOKEN VALIDATION RESPONSE ===');
       console.error('Status:', validationError.response?.status);
@@ -210,63 +302,83 @@ export const handleOAuthCallback = asyncHandler(
       if (validationError.response?.status === 401 || validationError.response?.status === 403) {
         console.warn('GroupMe returned 401/403 - this is common for new tokens');
         console.warn('Proceeding with token storage - user can test connection after');
-        tokenIsValid = true; // Optimistically assume token is valid
-      } else {
-        console.error('Unexpected error from GroupMe:', validationError.message);
-        sendError(res, 500, 'Failed to validate GroupMe token', null, 'VALIDATION_ERROR');
+        
+        // Encrypt and save the token anyway
+        const encryptedToken = encrypt(accessToken);
+        
+        const user = await User.findByIdAndUpdate<IUser>(
+          userId,
+          {
+            $set: {
+              'groupMe.accessToken': encryptedToken,
+              'groupMe.connectedAt': new Date(),
+            },
+          },
+          { new: true }
+        );
+
+        if (!user) {
+          console.error('User not found in database:', userId);
+          sendError(res, 404, 'User not found', null, 'USER_NOT_FOUND');
+          return;
+        }
+        
+        sendSuccess(res, {
+          message: 'GroupMe connected successfully (token saved but not validated)',
+          user: {
+            id: user._id,
+            groupMe: {
+              connected: true,
+              connectedAt: user.groupMe?.connectedAt,
+            },
+          },
+        });
         return;
       }
+
+      console.error('Unexpected error from GroupMe:', validationError.message);
+      sendError(res, 500, 'Failed to validate GroupMe token', null, 'VALIDATION_ERROR');
     }
 
-    console.log('Token validation result:', tokenIsValid ? 'Valid' : 'Invalid');
+    // Debug: log critical GroupMe env vars (non-production) so we can spot mis-config quickly
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('GroupMe ENV', {
+        client_id: process.env.GROUPME_CLIENT_ID,
+        redirect_uri: process.env.GROUPME_REDIRECT_URI,
+        secret_present: !!process.env.GROUPME_CLIENT_SECRET,
+      });
+    }
+  }
+);
 
-    if (!tokenIsValid) {
-      sendError(res, 400, 'Invalid GroupMe access token', null, 'INVALID_TOKEN');
+/**
+ * Save manually entered GroupMe token
+ */
+export const saveManualToken = asyncHandler(
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const { token } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      sendError(res, 401, 'Unauthorized', null, 'AUTH_ERROR');
       return;
     }
 
-    console.log('Encrypting token...');
-    // Encrypt the access token before storing
-    const encryptedToken = encrypt(access_token);
-    console.log('Token encrypted successfully');
-
-    // Update user with encrypted GroupMe token
-    console.log('Updating user in database...');
-    const user = await User.findByIdAndUpdate<IUser>(
-      userId,
-      {
-        $set: {
-          'groupMe.accessToken': encryptedToken,
-          'groupMe.connectedAt': new Date(),
-          'groupMe.email': groupMeUserData?.email || null,
-          'groupMe.name': groupMeUserData?.name || null,
-        },
-      },
-      { new: true }
-    );
-
-    if (!user) {
-      console.error('User not found in database:', userId);
-      sendError(res, 404, 'User not found', null, 'USER_NOT_FOUND');
+    if (!token) {
+      sendError(res, 400, 'Token is required', null, 'INVALID_REQUEST');
       return;
     }
 
-    console.log('User updated successfully');
-
-    // Don't initialize service instance here - let it be created per-request
-    console.log('=== OAUTH CALLBACK COMPLETE ===');
-    sendSuccess(res, {
-      message: 'GroupMe connected successfully',
-      user: {
-        id: user._id,
-        groupMe: {
-          connected: true,
-          connectedAt: user.groupMe?.connectedAt,
-          email: user.groupMe?.email,
-          name: user.groupMe?.name,
-        },
+    // Encrypt and save the token
+    const encryptedToken = encrypt(token);
+    await User.findByIdAndUpdate(userId, {
+      $set: {
+        'groupMe.accessToken': encryptedToken,
+        'groupMe.connectedAt': new Date(),
       },
     });
+
+    sendSuccess(res, { message: 'Token saved successfully' });
   }
 );
 
@@ -408,64 +520,58 @@ export const initializeGroupMe = async (req: Request, res: Response): Promise<vo
 };
 
 /**
- * Get user's GroupMe service instance
+ * Helper to get or create a GroupMe service for a user
  */
-const getUserGroupMeService = async (userId: string): Promise<GroupMeService | null> => {
+export const getUserGroupMeService = async (
+  userId: string
+): Promise<GroupMeService | null> => {
+  console.log(`🔍 getUserGroupMeService: Creating GroupMe service for user ${userId}`);
+  
+  // Check if we already have a service instance for this user
+  if (serviceInstances.has(userId)) {
+    console.log(`✅ getUserGroupMeService: Using cached service instance for ${userId}`);
+    return serviceInstances.get(userId) as GroupMeService;
+  }
+
   try {
-    // Check cache first
-    const cachedService = serviceInstances.get(userId);
-    if (cachedService) {
-      return cachedService;
-    }
-
-    const user = await User.findById<IUser>(userId).select('groupMe.accessToken');
-
-    if (!user?.groupMe?.accessToken) {
+    // Get the user document with the encrypted GroupMe token
+    const user = await User.findById(userId).select('groupMe');
+    
+    if (!user) {
+      console.error(`❌ getUserGroupMeService: User ${userId} not found`);
       return null;
     }
-
-    // Decrypt the token – if decryption fails (e.g., token saved with a different key
-    // or legacy plain-text token), fall back to the stored string as-is.
-    let accessToken: string;
-    try {
-      accessToken = decrypt(user.groupMe.accessToken);
-    } catch (decryptErr) {
-      console.error(
-        `Failed to decrypt GroupMe token for user ${userId}. Token will be treated as invalid.`,
-        decryptErr
-      );
-      // If decryption fails, consider the user not connected so that the UI can prompt
-      // them to reconnect and store a fresh token. Returning null prevents repeated
-      // decryption attempts on every request.
+    
+    if (!user.groupMe?.accessToken) {
+      console.error(`❌ getUserGroupMeService: User ${userId} has no GroupMe access token`);
       return null;
     }
-
-    // Create new service instance for this user
-    const service = new GroupMeService(accessToken);
-
+    
+    console.log(`✅ getUserGroupMeService: Found encrypted GroupMe token for user ${userId}`);
+    
+    // Decrypt the token
     try {
+      const decryptedToken = decrypt(user.groupMe.accessToken);
+      console.log(`✅ getUserGroupMeService: Successfully decrypted token`);
+      
+      // Create a new service instance
+      const service = new GroupMeService(decryptedToken);
+      console.log(`✅ getUserGroupMeService: Created new service instance for ${userId}`);
+      
+      // Initialize the service
       await service.initialize();
-
+      console.log(`✅ getUserGroupMeService: Service initialized for ${userId}`);
+      
       // Cache the service instance
       serviceInstances.set(userId, service);
-
-      // Set up cleanup after 30 minutes of inactivity
-      setTimeout(
-        () => {
-          serviceInstances.delete(userId);
-          service.stopPolling();
-        },
-        30 * 60 * 1000
-      ); // 30 minutes
-
+      
       return service;
-    } catch (initError) {
-      console.error(`Failed to initialize GroupMe service for user ${userId}:`, initError);
-      // If initialization fails, the token might be invalid
+    } catch (decryptError) {
+      console.error(`❌ getUserGroupMeService: Failed to decrypt token for ${userId}:`, decryptError);
       return null;
     }
   } catch (error) {
-    console.error('Error getting user GroupMe service:', error);
+    console.error(`❌ getUserGroupMeService: Error creating GroupMe service for ${userId}:`, error);
     return null;
   }
 };
@@ -493,8 +599,59 @@ export const getGroups = asyncHandler(
       return;
     }
 
-    const groups = await service.getGroups();
-    sendSuccess(res, groups);
+    try {
+      console.log('Fetching groups for user:', userId);
+      // Use any type for the raw API response since it doesn't match our interface
+      const apiGroups = await service.getGroups() as any[];
+      console.log(`Retrieved ${apiGroups.length} groups from GroupMe API`);
+      console.log('Raw API response structure:', JSON.stringify(apiGroups.slice(0, 1), null, 2));
+      
+      // If we got groups from the API, save them to the user's GroupMe config
+      if (apiGroups.length > 0) {
+        const user = await User.findById(userId);
+        if (user && user.groupMe && user.groupMe.accessToken) {
+          // Store the groups in the user's config for future use
+          const groupsMap: Record<string, string> = {};
+          apiGroups.forEach(group => {
+            // The raw API response has id and name properties
+            if (group.id && group.name) {
+              groupsMap[group.id] = group.name;
+            }
+          });
+          
+          // Update or create GroupMe config
+          await GroupMeConfig.findOneAndUpdate(
+            { userId },
+            { userId, groups: groupsMap },
+            { upsert: true, new: true }
+          );
+          
+          console.log(`Saved ${Object.keys(groupsMap).length} groups to user's config`);
+        }
+      }
+      
+      // Format the groups to match the expected structure in the frontend
+      const formattedGroups = apiGroups.map(group => {
+        // Check if we need to handle the GroupMeService.getGroups format or the raw API format
+        const formattedGroup = {
+          groupId: group.id || group.groupId,
+          groupName: group.name || group.groupName,
+          image_url: group.image_url,
+          last_message: group.messages?.preview,
+          messages_count: group.messages?.count,
+          members_count: group.members_count
+        };
+        
+        console.log('Formatted group:', formattedGroup);
+        return formattedGroup;
+      });
+      
+      console.log(`Returning ${formattedGroups.length} formatted groups to client`);
+      sendSuccess(res, formattedGroups);
+    } catch (error) {
+      console.error('Error fetching groups from GroupMe API:', error);
+      sendError(res, 500, 'Failed to fetch groups', null, 'API_ERROR');
+    }
   }
 );
 
@@ -623,33 +780,45 @@ export const sendMessage = asyncHandler(
 /**
  * Get GroupMe configuration for the authenticated user
  */
-export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
+export const getConfig = async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
       console.error('SERVER LOG: getConfig - ERROR: No userId in req.user');
-      return res.status(401).json({ message: 'User not authenticated for getConfig' });
+      return res.status(401).json({ 
+        error: 'User not authenticated for getConfig',
+        code: 'AUTHENTICATION_REQUIRED'
+      });
     }
+    
+    // Log the authentication details for debugging
     console.log(`SERVER LOG: getConfig - Called for userId: ${userId}`);
+    console.log(`SERVER LOG: getConfig - Auth header: ${req.headers.authorization ? 'Present' : 'Missing'}`);
+    
     const config = await GroupMeConfig.findOne({ userId });
     if (!config) {
       console.log(`SERVER LOG: getConfig - No GroupMeConfig found for userId: ${userId}`);
+      // Return 200 with null data instead of 404 to avoid triggering auth errors
       return res.status(200).json(null);
     }
+    
     console.log(
       `SERVER LOG: getConfig - Found GroupMeConfig for userId: ${userId}, accessToken presence: ${!!config.accessToken}`
     );
     return res.status(200).json(config);
   } catch (error) {
     console.error('SERVER LOG: Error in getConfig:', error);
-    return res.status(500).json({ message: 'Failed to get GroupMe configuration' });
+    return res.status(500).json({ 
+      message: 'Failed to get GroupMe configuration',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
 /**
  * Save GroupMe configuration for the authenticated user
  */
-export const saveConfig = async (req: AuthenticatedRequest, res: Response) => {
+export const saveConfig = async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -706,14 +875,16 @@ export const saveConfig = async (req: AuthenticatedRequest, res: Response) => {
 /**
  * Handle webhook events from GroupMe
  */
-export const handleWebhook = async (req: Request, res: Response) => {
+export const handleWebhook = async (req: Request, res: Response): Promise<Response> => {
   try {
     console.log('SERVER LOG: GroupMe webhook received');
     const webhookData = req.body;
     res.status(200).send('OK');
     await groupMeService.processIncomingMessage(webhookData);
+    return res;
   } catch (error) {
     console.error('SERVER LOG: Error handling GroupMe webhook:', error);
+    return res;
   }
 };
 
@@ -738,5 +909,251 @@ const processWebhookMessage = async (webhookData: any) => {
     await message.save();
   } catch (error) {
     console.error('Error processing GroupMe message:', error);
+  }
+};
+
+/**
+ * Save GroupMe access token from OAuth callback
+ */
+export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
+  const userId = req.user?.id;
+  const { access_token } = req.body;
+  
+  console.log('=== SAVE GROUPME TOKEN DEBUG ===');
+  console.log('User ID:', userId);
+  console.log('Access token present:', !!access_token);
+  
+  if (!userId) {
+    console.error('No userId in request when saving GroupMe token');
+    return res.status(401).json({ error: 'User authentication required' });
+  }
+  
+  if (!access_token) {
+    console.error('No access_token provided when saving GroupMe token');
+    return res.status(400).json({ error: 'Access token is required' });
+  }
+  
+  if (access_token === 'undefined') {
+    console.error('Access token is string "undefined" - invalid token');
+    return res.status(400).json({ error: 'Invalid access token: "undefined" string received' });
+  }
+  
+  try {
+    console.log(`Saving GroupMe token for user ${userId} - token length: ${access_token.length}`);
+    
+    // Validate the token with a quick GroupMe API call
+    try {
+      const axios = require('axios');
+      const validateResponse = await axios.get('https://api.groupme.com/v3/users/me', {
+        headers: { 'X-Access-Token': access_token }
+      });
+      
+      if (validateResponse.data && validateResponse.data.response) {
+        console.log('GroupMe token validation successful - user:', validateResponse.data.response.name);
+      } else {
+        console.warn('GroupMe token validation returned unexpected response format');
+      }
+    } catch (validationError: any) {
+      console.warn('GroupMe token validation failed, but continuing with save:', validationError.message);
+    }
+    
+    // Encrypt the token
+    const encryptedToken = encrypt(access_token);
+    
+    // Save to User
+    await User.findByIdAndUpdate(userId, {
+      $set: { 
+        'groupMe.accessToken': encryptedToken, 
+        'groupMe.connectedAt': new Date()
+      }
+    });
+    
+    // Save to GroupMeConfig
+    await GroupMeConfig.findOneAndUpdate(
+      { userId },
+      { 
+        userId, 
+        accessToken: encryptedToken 
+      },
+      { upsert: true, new: true }
+    );
+    
+    console.log(`GroupMe token successfully saved for user ${userId}`);
+    return res.sendStatus(204);
+  } catch (error) {
+    console.error('Error saving GroupMe token:', error);
+    return res.status(500).json({
+      error: 'Failed to save GroupMe token',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// ... add new handler for GET /groupme/callback (implicit grant)
+export const handleGroupMeImplicitCallback = async (req: Request, res: Response): Promise<void> => {
+  console.log('=== GROUPME CALLBACK DEBUG ===');
+  console.log('Request query:', req.query);
+  console.log('Request cookies:', req.cookies);
+  console.log('Request URL:', req.url);
+  console.log('Request path:', req.path);
+  
+  // Per GroupMe docs, the token comes in query parameters for implicit flow
+  const { access_token, state } = req.query as { 
+    access_token?: string;
+    state?: string 
+  };
+  
+  console.log('Received access_token:', access_token ? `${access_token.substring(0, 5)}... (length: ${access_token.length})` : 'none');
+  
+  if (!state) {
+    console.error('GroupMe callback missing state', req.query);
+    res.status(400).send('Invalid GroupMe callback: Missing state parameter');
+    return;
+  }
+  
+  if (!access_token) {
+    console.error('GroupMe callback missing access_token', req.query);
+    res.status(400).send('Invalid GroupMe callback: Missing access_token parameter');
+    return;
+  }
+  
+  // Decode userId from state
+  let userId: string;
+  try {
+    const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+    userId = stateData.userId;
+    
+    if (!userId) {
+      console.error('No userId in state data', stateData);
+      res.status(400).send('Invalid state parameter: Missing userId');
+      return;
+    }
+    
+    console.log('Successfully decoded state with userId:', userId);
+  } catch (err) {
+    console.error('Failed to decode state:', err);
+    res.status(400).send('Invalid state parameter: Could not decode');
+    return;
+  }
+  
+  // Now save this token to the user's account
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      console.error(`User ${userId} not found`);
+      res.status(404).send('User not found');
+      return;
+    }
+    
+    // Encrypt token before saving
+    const encryptedToken = encrypt(access_token);
+    
+    // Set the token in user's groupMe field
+    user.groupMe = {
+      accessToken: encryptedToken,
+      connectedAt: new Date(),
+    };
+    
+    // Save the user with the updated groupMe field
+    await user.save();
+    
+    // Also save to GroupMeConfig for the frontend
+    await GroupMeConfig.findOneAndUpdate(
+      { userId },
+      { 
+        userId, 
+        accessToken: encryptedToken 
+      },
+      { upsert: true, new: true }
+    );
+    
+    console.log(`GroupMe token saved successfully for user ${userId}`);
+    
+    // Return success page
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>GroupMe Connected</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #2C2F33;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+          }
+          .card {
+            background-color: #36393F;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+          }
+          h1 {
+            color: #43B581;
+            margin-top: 0;
+          }
+          .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+          }
+          .message {
+            margin-bottom: 20px;
+          }
+          button {
+            background-color: #43B581;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+          }
+          button:hover {
+            background-color: #3ca374;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="icon">✅</div>
+          <h1>GroupMe Connected!</h1>
+          <p class="message">Your GroupMe account has been successfully connected.</p>
+          <button onclick="window.close()">Close Window</button>
+          <script>
+            // Notify the opener window about successful connection
+            if (window.opener) {
+              try {
+                window.opener.postMessage({
+                  type: 'GROUPME_CONNECTED',
+                  success: true,
+                  timestamp: Date.now()
+                }, '*');
+                console.log('Success message sent to parent window');
+                
+                // Close this window after a short delay
+                setTimeout(() => {
+                  window.close();
+                }, 2000);
+              } catch (e) {
+                console.log('Error sending message to parent: ' + e.message);
+              }
+            }
+          </script>
+        </div>
+      </body>
+      </html>
+    `);
+  } catch (saveError: any) {
+    console.error('Failed to save GroupMe token:', saveError.message);
+    res.status(500).send('Failed to save GroupMe token: ' + saveError.message);
   }
 };

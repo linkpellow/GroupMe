@@ -20,14 +20,13 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Create user with username defaulting to email. The User schema's pre-save
+    // hook will hash `password` securely – avoid hashing here to prevent a
+    // double-hash that breaks subsequent login attempts.
 
-    // Create user with username defaulting to email
     const user = await UserModel.create({
       email,
-      password: hashedPassword,
+      password, // plain text; will be hashed by pre-save middleware
       name,
       username: email, // Set username to email by default
       role: 'user', // Ensure new users get the user role
@@ -232,8 +231,10 @@ export const updateProfile = async (
 
     // If password is being updated, hash it
     if (password) {
+      // Hash password
       const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      user.password = hashedPassword;
     }
 
     // Save updated user
