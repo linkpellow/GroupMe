@@ -32,6 +32,7 @@ import PreLoginPasscode from './components/PreLoginPasscode';
 import PageOne from './pages/PageOne';
 import PageTwo from './pages/PageTwo';
 import GroupMeCallbackPage from './pages/GroupMeCallbackPage';
+import LeadNotificationHandler from './components/LeadNotificationHandler';
 // Fix linter errors for error type guard and missing module
 // import { restoreDialerLayout } from './restore-dialer'; // Import the restore function
 
@@ -244,6 +245,8 @@ function App() {
                           <FollowUpUIProvider>
                             <NotesSyncer />
                             <DialerRestorer />
+                            {/* Global lead notification listener */}
+                            <LeadNotificationHandler />
                             <Routes>
                               {!passcodeValidated ? (
                                 <Route path="*" element={<PreLoginPasscode onPasscodeValid={handlePasscodeValid} />} />
