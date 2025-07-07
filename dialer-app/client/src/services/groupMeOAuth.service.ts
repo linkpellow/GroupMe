@@ -221,8 +221,63 @@ class GroupMeOAuthService {
    * Save access token obtained via implicit flow
    */
   async saveAccessToken(token: string): Promise<void> {
-    if (!token) throw new Error('Missing GroupMe access token');
-    await authApi.post('/groupme/token', { access_token: token });
+    console.log('=== groupMeOAuthService.saveAccessToken ===');
+    console.log('Token received (length):', token ? token.length : 0);
+    
+    if (!token) {
+      console.error('Missing GroupMe access token');
+      throw new Error('Missing GroupMe access token');
+    }
+    
+    try {
+      console.log('Sending token to server...');
+      await authApi.post('/groupme/token', { access_token: token });
+      console.log('Token saved successfully');
+    } catch (error: any) {
+      console.error('Failed to save GroupMe token:', error);
+      console.error('Error response:', error?.response?.data);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract access token from URL hash and save it
+   * This should be called on the callback page that GroupMe redirects to
+   */
+  async handleImplicitCallback(): Promise<boolean> {
+    console.log('=== groupMeOAuthService.handleImplicitCallback ===');
+    
+    // Get URL hash (fragment)
+    const hash = window.location.hash.substring(1); // Remove the # character
+    console.log('URL hash:', hash ? 'present' : 'missing');
+    
+    if (!hash) {
+      console.error('No URL hash found - implicit flow should include access_token in URL fragment');
+      return false;
+    }
+    
+    // Parse the hash to get access_token and state
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    const state = params.get('state');
+    
+    console.log('Extracted from hash - access_token:', accessToken ? 'present' : 'missing');
+    console.log('Extracted from hash - state:', state ? 'present' : 'missing');
+    
+    if (!accessToken) {
+      console.error('No access_token found in URL hash');
+      return false;
+    }
+    
+    // Save the token to the server
+    try {
+      await this.saveAccessToken(accessToken);
+      console.log('Access token saved successfully');
+      return true;
+    } catch (error) {
+      console.error('Failed to save access token:', error);
+      return false;
+    }
   }
 }
 
