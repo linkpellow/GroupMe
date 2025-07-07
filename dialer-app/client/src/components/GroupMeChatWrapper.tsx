@@ -99,10 +99,20 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
       const response = await groupMeOAuthService.initiateOAuth(user.id);
       console.log('OAuth response received:', response);
       
-      const { authUrl } = response;
+      let { authUrl } = response;
       if (!authUrl || !authUrl.includes('oauth.groupme.com')) {
         throw new Error('Invalid authorization URL received from server');
       }
+
+      // Ensure we're using the correct OAuth endpoint (authorize, not login_dialog)
+      if (authUrl.includes('login_dialog')) {
+        console.warn('Detected outdated login_dialog endpoint, replacing with authorize endpoint');
+        authUrl = authUrl.replace('login_dialog', 'authorize');
+      }
+
+      // Add cache-busting parameter to prevent using cached URL
+      authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+      console.log('Final auth URL with cache busting:', authUrl);
 
       // Redirect to GroupMe OAuth page
       console.log('Redirecting to:', authUrl);

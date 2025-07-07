@@ -135,7 +135,7 @@ const GroupMeSettings = () => {
       console.log('Response type:', typeof response);
       console.log('Response keys:', Object.keys(response));
       
-      const { authUrl } = response;
+      let { authUrl } = response;
       console.log('Auth URL extracted:', authUrl);
 
       // Validate the auth URL before redirecting
@@ -148,6 +148,16 @@ const GroupMeSettings = () => {
       if (!authUrlObj.searchParams.get('client_id')) {
         throw new Error('Authorization URL is missing the client_id parameter');
       }
+
+      // Ensure we're using the correct OAuth endpoint (authorize, not login_dialog)
+      if (authUrl.includes('login_dialog')) {
+        console.warn('Detected outdated login_dialog endpoint, replacing with authorize endpoint');
+        authUrl = authUrl.replace('login_dialog', 'authorize');
+      }
+
+      // Add cache-busting parameter to prevent using cached URL
+      authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+      console.log('Final auth URL with cache busting:', authUrl);
 
       // Redirect to GroupMe OAuth page
       console.log('About to redirect to:', authUrl);

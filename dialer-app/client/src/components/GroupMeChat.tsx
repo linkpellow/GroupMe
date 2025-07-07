@@ -541,7 +541,18 @@ const GroupMeChatComponent: React.FC<GroupMeChatProps> = ({ setActiveTab, inSide
     }
     try {
       setIsConnecting(true);
-      const { authUrl } = await groupMeOAuthService.initiateOAuth(user.id);
+      let { authUrl } = await groupMeOAuthService.initiateOAuth(user.id);
+      
+      // Ensure we're using the correct OAuth endpoint (authorize, not login_dialog)
+      if (authUrl.includes('login_dialog')) {
+        console.warn('Detected outdated login_dialog endpoint, replacing with authorize endpoint');
+        authUrl = authUrl.replace('login_dialog', 'authorize');
+      }
+
+      // Add cache-busting parameter to prevent using cached URL
+      authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+      console.log('Final auth URL with cache busting:', authUrl);
+      
       window.location.href = authUrl; // redirect to GroupMe OAuth
     } catch (err: any) {
       console.error('Failed to initiate GroupMe OAuth', err);
