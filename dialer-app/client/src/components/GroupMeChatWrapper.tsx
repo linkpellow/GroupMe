@@ -93,53 +93,15 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
       return;
     }
 
-    console.log('=== Starting GroupMe OAuth Flow from Wrapper ===');
-    console.log('Current user ID:', user.id);
-    
-    // Store current auth token in sessionStorage before starting OAuth flow
-    try {
-      const currentToken = localStorage.getItem('token');
-      if (currentToken) {
-        sessionStorage.setItem('groupme_auth_token_backup', currentToken);
-        console.log('Saved current auth token to sessionStorage as backup');
-      }
-    } catch (storageError) {
-      console.warn('Could not save token to sessionStorage:', storageError);
-      // Continue anyway - this is just a precaution
-    }
-    
     setIsConnecting(true);
-    
     try {
       console.log('Initiating GroupMe OAuth...');
+      const response = await groupMeOAuthService.initiateOAuth(user.id);
+      console.log('OAuth response received:', response);
       
-      let authUrl;
-      try {
-        const response = await groupMeOAuthService.initiateOAuth(user.id);
-        console.log('OAuth response received:', response);
-        authUrl = response.authUrl;
-        
-        if (!authUrl || !authUrl.includes('oauth.groupme.com')) {
-          throw new Error('Invalid authorization URL received from server');
-        }
-      } catch (initError: any) {
-        console.error('OAuth initiation failed:', initError);
-        console.error('Error details:', {
-          status: initError?.response?.status,
-          data: initError?.response?.data,
-          message: initError?.message
-        });
-        
-        toast({
-          title: 'GroupMe Connection Error',
-          description: 'Could not start GroupMe connection. Please try again later.',
-          status: 'error',
-          duration: 5000,
-          isClosable: true
-        });
-        
-        setIsConnecting(false);
-        return;
+      let { authUrl } = response;
+      if (!authUrl || !authUrl.includes('oauth.groupme.com')) {
+        throw new Error('Invalid authorization URL received from server');
       }
 
       // Ensure we're using the correct OAuth endpoint (authorize, not login_dialog)
@@ -147,145 +109,16 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
         console.warn('Detected outdated login_dialog endpoint, replacing with authorize endpoint');
         authUrl = authUrl.replace('login_dialog', 'authorize');
       }
-      
-      // Ensure we're using the implicit flow by adding response_type=token
-      if (!authUrl.includes('response_type=token')) {
-        console.log('Adding response_type=token to ensure implicit flow');
-        authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + 'response_type=token';
-      }
 
       // Add cache-busting parameter to prevent using cached URL
       authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
       console.log('Final auth URL with cache busting:', authUrl);
 
-      // Store OAuth state in sessionStorage
-      try {
-        sessionStorage.setItem('groupme_auth_in_progress', 'true');
-        sessionStorage.setItem('groupme_auth_user_id', user.id);
-        sessionStorage.setItem('groupme_auth_timestamp', Date.now().toString());
-        console.log('Saved OAuth state to sessionStorage');
-      } catch (storageError) {
-        console.warn('Could not save OAuth state to sessionStorage:', storageError);
-        // Continue anyway - this is just a precaution
-      }
-
-      // Set up event listener for message from popup window
-      const messageHandler = (event: MessageEvent) => {
-        // Verify message is from our popup
-        if (event.data && event.data.type === 'GROUPME_CONNECTED') {
-          console.log('Received successful connection message from popup:', event.data);
-          
-          // Remove the event listener
-          window.removeEventListener('message', messageHandler);
-          
-          // Update connection status
-          setIsConnecting(false);
-          setIsConnected(true);
-          
-          // Refresh groups
-          if (refreshGroups) {
-            console.log('Refreshing groups after successful connection');
-            refreshGroups()
-              .then(() => {
-                toast({
-                  title: 'GroupMe Connected',
-                  description: 'Your GroupMe account has been connected successfully.',
-                  status: 'success',
-                  duration: 4000,
-                  isClosable: true,
-                });
-                setIsInitialized(true);
-              })
-              .catch(err => {
-                console.error('Error refreshing groups after connection:', err);
-                toast({
-                  title: 'Connection Successful',
-                  description: 'GroupMe connected, but there was an error loading your groups.',
-                  status: 'warning',
-                  duration: 4000,
-                  isClosable: true,
-                });
-                setIsInitialized(true);
-              });
-          }
-        }
-      };
-      
-      // Add the event listener
-      window.addEventListener('message', messageHandler);
-      
-      // Open popup window for OAuth flow instead of redirecting
-      try {
-        // Calculate popup dimensions
-        const width = 600;
-        const height = 700;
-        const left = (window.innerWidth - width) / 2;
-        const top = (window.innerHeight - height) / 2;
-        
-        // Open the popup
-        console.log('Opening popup for GroupMe OAuth:', authUrl);
-        const popup = window.open(
-          authUrl,
-          'groupmeOAuth',
-          `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=yes`
-        );
-        
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-          // Popup blocked or failed to open
-          console.error('Popup was blocked or failed to open');
-          window.removeEventListener('message', messageHandler);
-          
-          toast({
-            title: 'Popup Blocked',
-            description: 'Please allow popups for this site to connect GroupMe.',
-            status: 'error',
-            duration: 5000,
-            isClosable: true
-          });
-          
-          setIsConnecting(false);
-        } else {
-          // Set a timeout to clear the event listener if the popup is closed without completing
-          const popupCheckInterval = setInterval(() => {
-            if (popup.closed) {
-              clearInterval(popupCheckInterval);
-              window.removeEventListener('message', messageHandler);
-              setIsConnecting(false);
-              console.log('OAuth popup closed without completing');
-            }
-          }, 1000);
-          
-          // Clear the interval after 5 minutes (failsafe)
-          setTimeout(() => {
-            clearInterval(popupCheckInterval);
-            window.removeEventListener('message', messageHandler);
-            setIsConnecting(false);
-          }, 5 * 60 * 1000);
-        }
-      } catch (popupError) {
-        console.error('Failed to open GroupMe OAuth popup:', popupError);
-        window.removeEventListener('message', messageHandler);
-        
-        toast({
-          title: 'Navigation Error',
-          description: 'Could not open GroupMe authorization window. Please try again.',
-          status: 'error',
-          duration: 5000,
-          isClosable: true
-        });
-        
-        setIsConnecting(false);
-      }
+      // Redirect to GroupMe OAuth page
+      console.log('Redirecting to:', authUrl);
+      window.location.href = authUrl;
     } catch (error) {
-      // This catch block handles any other unexpected errors
-      console.error('Unexpected error in GroupMe OAuth flow:', error);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true
-      });
+      console.error('Error initiating GroupMe OAuth:', error);
       setIsConnecting(false);
     }
   };
