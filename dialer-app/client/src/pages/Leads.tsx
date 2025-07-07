@@ -57,7 +57,7 @@ import RemindersStrip from '../components/RemindersStrip';
 import { lockScroll, unlockScroll } from '../shared/scrollLock';
 import PullToRefresh from 'react-simple-pull-to-refresh';
 import CrocLoader from '../components/CrocLoader';
-import { safeStr } from '../utils/string';
+import { safeString } from '../utils/safeString';
 
 // Define disposition colors
 const DISPOSITION_COLORS = {
@@ -85,7 +85,7 @@ const formatPhoneNumber = (phone: string | undefined | null) => {
     console.warn('[Leads.tsx] formatPhoneNumber received null or undefined phone value.');
     return ''; // Return empty string if phone is null or undefined
   }
-  const cleaned = safeStr(phone).replace(/\D/g, '');
+  const cleaned = (phone ?? '').replace(/\D/g, '');
   const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
   if (match) {
     return '(' + match[1] + ') ' + match[2] + '-' + match[3];
@@ -95,10 +95,10 @@ const formatPhoneNumber = (phone: string | undefined | null) => {
 
 const formatHeight = (height: string | undefined | null) => {
   if (!height) return '';
-  if (safeStr(height).includes("'")) {
+  if (safeString(height).includes("'")) {
     return height;
   }
-  const totalInches = parseInt(safeStr(height));
+  const totalInches = parseInt(safeString(height));
   const feet = Math.floor(totalInches / 12);
   const inches = totalInches % 12;
   return `${feet}'${inches}"`;
@@ -107,10 +107,10 @@ const formatHeight = (height: string | undefined | null) => {
 const formatDate = (dateString: string | undefined | null) => {
   if (!dateString) return '';
   try {
-    if (safeStr(dateString).includes('/')) {
+    if (safeString(dateString).includes('/')) {
       return dateString;
     }
-    const [year, month, day] = safeStr(dateString).split('-');
+    const [year, month, day] = safeString(dateString).split('-');
     if (year && month && day) {
       return `${month}/${day}/${year}`;
     }
@@ -126,7 +126,7 @@ const formatDate = (dateString: string | undefined | null) => {
 
 const formatEmail = (email: string | undefined | null) => {
   if (!email) return '';
-  if (safeStr(email).length > 25) {
+  if (safeString(email).length > 25) {
     const atIndex = email.indexOf('@');
     if (atIndex !== -1) {
       const username = email.substring(0, atIndex);
@@ -972,7 +972,7 @@ export default function Leads() {
   }, [dispositionsList]);
 
   // useLeadsData expects an object with queryState and queryVersion
-  const { leads, isLoading, error, pagination, refetch } = useLeadsData({
+  const { leads, isLoading, isFetching, error, pagination, refetch } = useLeadsData({
     queryState,
     queryVersion,
     enabled: true,
@@ -1314,7 +1314,7 @@ export default function Leads() {
         globalAny.addFollowUpLead(lead.name, lead.phone, lead.state);
       } else if (typeof globalAny.appendDailyGoal === 'function') {
         // Fallback legacy string path. Ensure single parentheses and clean phone.
-        const cleanedPhone = safeStr(lead.phone).replace(/[()]/g, '').trim();
+        const cleanedPhone = safeString(lead.phone).replace(/[()]/g, '').trim();
         const phoneFormatted = `(${cleanedPhone})`;
         const reminderText = `Follow up with ${lead.name} ${phoneFormatted}${lead.state ? ` - ${lead.state}` : ''}`;
         globalAny.appendDailyGoal(reminderText);
@@ -1664,7 +1664,7 @@ export default function Leads() {
                 minute: '2-digit',
                 hour12: true
               });
-              const formattedTime = safeStr(timeString).replace(' AM', 'AM').replace(' PM', 'PM');
+              const formattedTime = safeString(timeString).replace(' AM', 'AM').replace(' PM', 'PM');
               timeDisplay.textContent = formattedTime + ' ' + tzAbbreviation;
             };
             setInterval(updateTime, 1000);
@@ -1673,7 +1673,7 @@ export default function Leads() {
 
           document.getElementById('call-btn').addEventListener('click', () => {
             if (window.opener && typeof window.opener.dialPhone === 'function') {
-              window.opener.dialPhone('${safeStr(lead.phone)}');
+              window.opener.dialPhone('${safeString(lead.phone)}');
             }
           });
           document.getElementById('hangup-btn').addEventListener('click', () => {
@@ -1684,7 +1684,7 @@ export default function Leads() {
           if (qdbtn) {
             qdbtn.addEventListener('click', () => {
               if (window.opener && typeof window.opener.handleQuickDrip === 'function') {
-                const leadObject = { _id: '${lead._id}', name: '${safeStr(lead.name)}', phone: '${safeStr(lead.phone)}', email: '${safeStr(lead.email)}', disposition: '${safeStr(lead.disposition)}' };
+                const leadObject = { _id: '${lead._id}', name: '${safeString(lead.name)}', phone: '${safeString(lead.phone)}', email: '${safeString(lead.email)}', disposition: '${safeString(lead.disposition)}' };
                 window.opener.handleQuickDrip(leadObject);
               }
             });
@@ -1706,7 +1706,7 @@ export default function Leads() {
               }
             });
 
-            const leadObject = { _id: '${lead._id}', name: '${safeStr(lead.name)}', phone: '${safeStr(lead.phone)}', email: '${safeStr(lead.email)}', disposition: '${safeStr(lead.disposition)}', source: '${safeStr(lead.source)}', dob: '${safeStr(lead.dob)}', height: '${safeStr(lead.height)}', weight: '${safeStr(lead.weight)}', gender: '${safeStr(lead.gender)}', state: '${safeStr(lead.state)}', zipcode: '${safeStr(lead.zipcode)}', notes: ${JSON.stringify(safeStr(lead.notes))} };
+            const leadObject = { _id: '${lead._id}', name: '${safeString(lead.name)}', phone: '${safeString(lead.phone)}', email: '${safeString(lead.email)}', disposition: '${safeString(lead.disposition)}', source: '${safeString(lead.source)}', dob: '${safeString(lead.dob)}', height: '${safeString(lead.height)}', weight: '${safeString(lead.weight)}', gender: '${safeString(lead.gender)}', state: '${safeString(lead.state)}', zipcode: '${safeString(lead.zipcode)}', notes: ${JSON.stringify(safeString(lead.notes))} };
 
             const actionHandlers = {
                 'edit-lead-action': () => window.opener.handleEditLead(leadObject),
@@ -2074,23 +2074,23 @@ export default function Leads() {
               title="Click to copy"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safeStr(lead.email), toast, 'Email');
+                copyToClipboard(safeString(lead.email), toast, 'Email');
               }}
             >
-              {formatEmail(safeStr(lead.email))}
+              {formatEmail(safeString(lead.email))}
             </div>
           </div>
           <div className="grid-item">
             <div
               className="text-content value phone"
-              data-phone={safeStr(lead.phone).replace(/[^\\d]/g, '')}
+              data-phone={safeString(lead.phone).replace(/[^\\d]/g, '')}
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safeStr(lead.phone), toast, 'Phone');
+                copyToClipboard(safeString(lead.phone), toast, 'Phone');
               }}
               title="Click to copy"
             >
-              {formatPhoneNumber(safeStr(lead.phone))}
+              {formatPhoneNumber(safeString(lead.phone))}
             </div>
           </div>
           <div className="grid-item">
@@ -2098,11 +2098,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safeStr(lead.zipcode), toast, 'Zipcode');
+                copyToClipboard(safeString(lead.zipcode), toast, 'Zipcode');
               }}
               title="Click to copy"
             >
-              {safeStr(lead.zipcode)}
+              {safeString(lead.zipcode)}
             </div>
           </div>
           <div className="grid-item">
@@ -2110,12 +2110,12 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                const dobDisplay = formatDate(safeStr(lead.dob));
+                const dobDisplay = formatDate(safeString(lead.dob));
                 copyToClipboard(dobDisplay, toast, 'DOB');
               }}
               title="Click to copy"
             >
-              {formatDate(safeStr(lead.dob))}
+              {formatDate(safeString(lead.dob))}
             </div>
           </div>
           <div className="grid-item">
@@ -2123,11 +2123,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safeStr(lead.height), toast, 'Height');
+                copyToClipboard(safeString(lead.height), toast, 'Height');
               }}
               title="Click to copy"
             >
-              {formatHeight(safeStr(lead.height))}
+              {formatHeight(safeString(lead.height))}
             </div>
           </div>
           <div className="grid-item">
@@ -2135,11 +2135,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safeStr(lead.weight), toast, 'Weight');
+                copyToClipboard(safeString(lead.weight), toast, 'Weight');
               }}
               title="Click to copy"
             >
-              {safeStr(lead.weight)}
+              {safeString(lead.weight)}
             </div>
           </div>
           <div className="grid-item">
@@ -2147,11 +2147,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safeStr(lead.gender), toast, 'Gender');
+                copyToClipboard(safeString(lead.gender), toast, 'Gender');
               }}
               title="Click to copy"
             >
-              {safeStr(lead.gender)}
+              {safeString(lead.gender)}
             </div>
           </div>
           <div className="grid-item">
@@ -2159,12 +2159,12 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safeStr(lead.state), toast, 'State');
+                copyToClipboard(safeString(lead.state), toast, 'State');
               }}
               title="Click to copy"
             >
-              <img src={`/states/${safeStr(lead.state)}.png`} alt={safeStr(lead.state)} style={{ height: '24px', maxWidth: '100%' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
-              <span style={{ display: 'none' }}>{safeStr(lead.state)}</span>
+              <img src={`/states/${safeString(lead.state)}.png`} alt={safeString(lead.state)} style={{ height: '24px', maxWidth: '100%' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+              <span style={{ display: 'none' }}>{safeString(lead.state)}</span>
             </div>
           </div>
           <div className="grid-item">
@@ -2201,7 +2201,7 @@ export default function Leads() {
         <div className="notes-section">
           <NotesEditor
             leadId={lead._id}
-            initialNotes={safeStr(lead.notes)}
+            initialNotes={safeString(lead.notes)}
             className="notes-textarea"
             style={{ resize: 'vertical', minHeight: '140px' }}
             onSaveSuccess={refetch}
@@ -2376,6 +2376,8 @@ export default function Leads() {
 
   // Cast to any to relax prop type checks for react-simple-pull-to-refresh
   const PullToRefreshAny = PullToRefresh as any;
+
+  const showInitialOverlay = isLoading && !isFetching && leads.length === 0;
 
   return (
     <>
@@ -2661,7 +2663,7 @@ export default function Leads() {
                     <div className="error-message" style={{ textAlign: 'center', padding: '2rem' }}>
                       Error loading leads: {error.message}
                     </div>
-                  ) : isLoading && leads.length === 0 ? (
+                  ) : showInitialOverlay ? (
                     <LoadingCroc />
                   ) : leads.length === 0 ? (
                     <div className="no-leads" style={{ textAlign: 'center', padding: '2rem' }}>
