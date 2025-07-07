@@ -102,11 +102,12 @@ type NextGenLeadData = z.infer<typeof NextGenLeadSchema>;
 
 // Adapter to convert NextGen format to our Lead schema
 const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
-  // Format height from inches to feet/inches (if it's a number)
+  // Format height where first digit is feet and remaining digits are inches
   let formattedHeight = nextgenData.height;
-  if (nextgenData.height && !isNaN(parseInt(nextgenData.height))) {
-    const heightInches = parseInt(nextgenData.height);
-    formattedHeight = `${Math.floor(heightInches / 12)}'${heightInches % 12}"`;
+  if (nextgenData.height && nextgenData.height.length >= 2) {
+    const feet = nextgenData.height.charAt(0);
+    const inches = nextgenData.height.substring(1);
+    formattedHeight = `${feet}'${inches}"`;
   }
 
   // Format date of birth
