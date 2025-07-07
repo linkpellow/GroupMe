@@ -1314,7 +1314,7 @@ export default function Leads() {
         globalAny.addFollowUpLead(lead.name, lead.phone, lead.state);
       } else if (typeof globalAny.appendDailyGoal === 'function') {
         // Fallback legacy string path. Ensure single parentheses and clean phone.
-        const cleanedPhone = safeString(lead.phone).replace(/[()]/g, '').trim();
+        const cleanedPhone = safeString(lead.phone).replace(/[^\d]/g, '').trim();
         const phoneFormatted = `(${cleanedPhone})`;
         const reminderText = `Follow up with ${lead.name} ${phoneFormatted}${lead.state ? ` - ${lead.state}` : ''}`;
         globalAny.appendDailyGoal(reminderText);
@@ -2083,7 +2083,7 @@ export default function Leads() {
           <div className="grid-item">
             <div
               className="text-content value phone"
-              data-phone={safeString(lead.phone).replace(/[^\\d]/g, '')}
+              data-phone={safeString(lead.phone).replace(/\D/g, '')}
               onClick={(e) => {
                 e.stopPropagation();
                 copyToClipboard(safeString(lead.phone), toast, 'Phone');
