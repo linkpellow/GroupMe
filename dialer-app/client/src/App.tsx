@@ -28,7 +28,6 @@ import GroupMeOAuthCallback from './pages/GroupMeOAuthCallback';
 import NotesSyncer from './components/NotesSyncer';
 import { FollowUpProvider } from './context/FollowUpContext';
 import { FollowUpUIProvider } from './context/FollowUpUIContext';
-import TestLogin from './pages/TestLogin';
 import PreLoginPasscode from './components/PreLoginPasscode';
 import PageOne from './pages/PageOne';
 import PageTwo from './pages/PageTwo';
@@ -360,7 +359,6 @@ function App() {
                                       </AuthenticatedRoute>
                                     }
                                   />
-                                  <Route path="/test-login" element={<TestLogin />} />
                                   <Route
                                     path="/page-one"
                                     element={
