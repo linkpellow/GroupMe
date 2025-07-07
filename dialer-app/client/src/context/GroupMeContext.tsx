@@ -137,39 +137,66 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
     if (!config || !config.accessToken) {
       // setError('Cannot refresh groups: Access token not available.'); // Potentially too noisy
       console.log("GroupMeContext: refreshGroups - No token, skipping fetch.");
+      console.log("GroupMeContext: Config state:", config);
       setGroups([]); // Clear groups if no token
       return;
     }
-    console.log("GroupMeContext: refreshGroups called");
+    console.log("GroupMeContext: refreshGroups called with token:", config.accessToken ? "present" : "missing");
+    console.log("GroupMeContext: Config state:", {
+      hasToken: !!config.accessToken,
+      hasGroups: !!config.groups,
+      groupsCount: config.groups ? Object.keys(config.groups).length : 0
+    });
+    
     setIsLoading(true);
     try {
+      console.log("GroupMeContext: Making API call to /api/groupme/groups");
       const response = await axiosInstance.get("/api/groupme/groups");
-      console.log("GroupMeContext: Groups response received:", response.data);
+      console.log("GroupMeContext: Groups API response:", response.data);
+      console.log("GroupMeContext: Response status:", response.status);
+      console.log("GroupMeContext: Response headers:", response.headers);
       
       // Handle different response formats
       let groupsData = [];
       
       if (response.data && response.data.success && response.data.data) {
         // Handle wrapped response format
+        console.log("GroupMeContext: Using wrapped response format");
         groupsData = response.data.data;
       } else if (Array.isArray(response.data)) {
         // Handle direct array format
+        console.log("GroupMeContext: Using direct array format");
         groupsData = response.data;
+      } else {
+        console.error("GroupMeContext: Unexpected response format:", response.data);
       }
       
-      // Map the data to ensure consistent format
-      const formattedGroups = groupsData.map((group: any) => ({
-        groupId: group.groupId || group.id,
-        groupName: group.groupName || group.name,
-        image_url: group.image_url,
-        last_message: group.last_message,
-        messages_count: group.messages_count
-      }));
+      console.log("GroupMeContext: Raw groups data:", groupsData);
       
-      console.log("GroupMeContext: Formatted groups:", formattedGroups);
+      // Map the data to ensure consistent format
+      const formattedGroups = groupsData.map((group: any) => {
+        const formatted = {
+          groupId: group.groupId || group.id,
+          groupName: group.groupName || group.name,
+          image_url: group.image_url,
+          last_message: group.last_message,
+          messages_count: group.messages_count
+        };
+        console.log("GroupMeContext: Formatted group:", formatted);
+        return formatted;
+      });
+      
+      console.log("GroupMeContext: All formatted groups:", formattedGroups);
       setGroups(formattedGroups);
     } catch (err) {
-      console.error("Error fetching GroupMe groups:", err);
+      console.error("GroupMeContext: Error fetching GroupMe groups:", err);
+      if (err.response) {
+        console.error("GroupMeContext: Error response:", {
+          status: err.response.status,
+          data: err.response.data,
+          headers: err.response.headers
+        });
+      }
       setError("Failed to load GroupMe groups.");
       setGroups([]);
     } finally {

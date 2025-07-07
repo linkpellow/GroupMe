@@ -125,8 +125,36 @@ export class GroupMeService extends EventEmitter {
   }
 
   async getGroups(): Promise<GroupMeGroup[]> {
-    const response = await this.api.get('/groups');
-    return response.data.response;
+    try {
+      console.log('GroupMeService.getGroups: Making API request to GroupMe API');
+      const response = await this.api.get('/groups', {
+        params: {
+          per_page: 50 // Request maximum number of groups
+        }
+      });
+      
+      console.log('GroupMeService.getGroups: Received response from GroupMe API');
+      
+      if (!response.data || !response.data.response) {
+        console.error('GroupMeService.getGroups: Invalid response format', response.data);
+        return [];
+      }
+      
+      const groups = response.data.response;
+      console.log(`GroupMeService.getGroups: Found ${groups.length} groups`);
+      
+      // Map the raw API response to our GroupMeGroup format
+      return groups.map((group: any) => ({
+        id: group.id,
+        name: group.name,
+        image_url: group.image_url,
+        messages: group.messages,
+        members_count: group.members ? group.members.length : 0
+      }));
+    } catch (error) {
+      console.error('GroupMeService.getGroups: Error fetching groups from GroupMe API', error);
+      throw error; // Re-throw to let the controller handle it
+    }
   }
 
   async getGroup(groupId: string): Promise<GroupMeGroup> {

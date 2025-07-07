@@ -610,6 +610,7 @@ export const getGroups = asyncHandler(
       // Use any type for the raw API response since it doesn't match our interface
       const apiGroups = await service.getGroups() as any[];
       console.log(`Retrieved ${apiGroups.length} groups from GroupMe API`);
+      console.log('Raw API response structure:', JSON.stringify(apiGroups.slice(0, 1), null, 2));
       
       // If we got groups from the API, save them to the user's GroupMe config
       if (apiGroups.length > 0) {
@@ -636,14 +637,22 @@ export const getGroups = asyncHandler(
       }
       
       // Format the groups to match the expected structure in the frontend
-      const formattedGroups = apiGroups.map(group => ({
-        groupId: group.id,
-        groupName: group.name,
-        image_url: group.image_url,
-        last_message: group.messages?.preview,
-        messages_count: group.messages?.count
-      }));
+      const formattedGroups = apiGroups.map(group => {
+        // Check if we need to handle the GroupMeService.getGroups format or the raw API format
+        const formattedGroup = {
+          groupId: group.id || group.groupId,
+          groupName: group.name || group.groupName,
+          image_url: group.image_url,
+          last_message: group.messages?.preview,
+          messages_count: group.messages?.count,
+          members_count: group.members_count
+        };
+        
+        console.log('Formatted group:', formattedGroup);
+        return formattedGroup;
+      });
       
+      console.log(`Returning ${formattedGroups.length} formatted groups to client`);
       sendSuccess(res, formattedGroups);
     } catch (error) {
       console.error('Error fetching groups from GroupMe API:', error);
