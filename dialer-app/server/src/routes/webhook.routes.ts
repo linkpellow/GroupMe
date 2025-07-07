@@ -120,8 +120,8 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
   // Normalize weight – trim and keep as-is (string) so UI can display
   const formattedWeight = nextgenData.weight ? nextgenData.weight.trim() : undefined;
 
-  // Format date of birth
-  const formattedDob = nextgenData.dob ? new Date(nextgenData.dob).toLocaleDateString() : undefined;
+  // Keep DOB as provided (MM/DD/YY) so UI can parse consistently
+  const formattedDob = nextgenData.dob ? nextgenData.dob.trim() : undefined;
 
   // Format gender (capitalize first letter)
   let formattedGender = undefined;
