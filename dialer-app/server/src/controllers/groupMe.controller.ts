@@ -168,6 +168,20 @@ export const handleOAuthCallback = asyncHandler(
 
     console.log('UserId from state:', userId);
 
+    // Check if user is already connected
+    try {
+      const user = await User.findById(userId).select('groupMe.accessToken');
+      if (user?.groupMe?.accessToken) {
+        console.warn('User already connected to GroupMe:', userId);
+        sendError(res, 409, 'User already connected to GroupMe', null, 'ALREADY_CONNECTED');
+        return;
+      }
+    } catch (err) {
+      console.error('Error checking existing GroupMe connection:', err);
+      sendError(res, 500, 'Failed to check connection', null, 'CONNECTION_CHECK_ERROR');
+      return;
+    }
+
     // Exchange code for access token via undocumented endpoint
     console.log('=== EXCHANGING CODE FOR ACCESS TOKEN ===');
     let accessToken = '';
