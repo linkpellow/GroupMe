@@ -69,10 +69,18 @@ export class GroupMeService extends EventEmitter {
   constructor(token: string) {
     super();
     // Validate token before using it
-    if (!token || token === 'undefined') {
-      console.error('Invalid GroupMe token provided');
-      throw new Error('Invalid GroupMe token');
+    if (!token) {
+      console.error('No GroupMe token provided');
+      throw new Error('No GroupMe token provided');
     }
+    
+    // Remove 'undefined' string check and add better logging
+    if (token === 'undefined') {
+      console.error('GroupMe token is the string "undefined", which is invalid');
+      throw new Error('Invalid GroupMe token: "undefined" string received');
+    }
+    
+    console.log(`GroupMeService: Initializing with token (first 5 chars): ${token.substring(0, 5)}...`);
     
     this.token = token;
     this.api = axios.create({

@@ -95,23 +95,53 @@ export const clearToken = (): void => {
  */
 export const restoreTokenFromBackup = (): boolean => {
   try {
-    const backupToken = sessionStorage.getItem('groupme_auth_token_backup');
+    // Try multiple storage locations for backup token
+    const backupSources = [
+      sessionStorage.getItem('groupme_auth_token_backup'),
+      localStorage.getItem('auth_token_backup'),
+      sessionStorage.getItem('auth_token_backup')
+    ];
+    
+    // Find the first valid backup token
+    const backupToken = backupSources.find(token => token && token !== 'undefined' && token !== 'null');
+    
     if (backupToken) {
-      console.log('Restoring auth token from backup');
+      console.log('Restoring auth token from backup - token length:', backupToken.length);
       
       // Set the token which will update localStorage and axios
       setToken(backupToken);
       
-      // Clean up the backup
+      // Clean up all backups
       sessionStorage.removeItem('groupme_auth_token_backup');
+      localStorage.removeItem('auth_token_backup');
+      sessionStorage.removeItem('auth_token_backup');
       
       // Notify listeners
       dispatchTokenEvent(AUTH_TOKEN_RESTORED, { token: backupToken });
       
-      console.log('Auth token restored from backup');
+      console.log('Auth token restored successfully');
       return true;
     } else {
-      console.warn('No backup token found in sessionStorage');
+      console.warn('No backup token found in any storage location');
+      
+      // Check if there's already a token in localStorage as a last resort
+      const existingToken = localStorage.getItem('token');
+      if (existingToken) {
+        console.log('Using existing token in localStorage as fallback');
+        
+        // Make sure axios is configured with the existing token
+        const formattedToken = existingToken.startsWith('Bearer ') ? existingToken : `Bearer ${existingToken}`;
+        axios.defaults.headers.common['Authorization'] = formattedToken;
+        
+        if (typeof window !== 'undefined' && window.axiosInstance) {
+          window.axiosInstance.defaults.headers.common['Authorization'] = formattedToken;
+          console.log('Updated axiosInstance with existing token');
+        }
+        
+        dispatchTokenEvent(AUTH_TOKEN_RESTORED, { token: existingToken });
+        return true;
+      }
+      
       return false;
     }
   } catch (error) {
@@ -128,11 +158,16 @@ export const backupCurrentToken = (): boolean => {
   try {
     const currentToken = localStorage.getItem('token');
     if (currentToken) {
-      console.log('Backing up current auth token to sessionStorage');
+      console.log('Backing up current auth token - token length:', currentToken.length);
+      
+      // Store in multiple locations for redundancy
       sessionStorage.setItem('groupme_auth_token_backup', currentToken);
+      localStorage.setItem('auth_token_backup', currentToken);
+      sessionStorage.setItem('auth_token_backup', currentToken);
+      
       return true;
     } else {
-      console.warn('No token to backup');
+      console.warn('No token found in localStorage to backup');
       return false;
     }
   } catch (error) {

@@ -914,24 +914,75 @@ const processWebhookMessage = async (webhookData: any) => {
 export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
   const userId = req.user?.id;
   const { access_token } = req.body;
-  if (!userId || !access_token) return res.status(400).json({ error: 'Missing user or token' });
-
-  // Encrypt the token
-  const encryptedToken = encrypt(access_token);
-
-  // Save to User
-  await User.findByIdAndUpdate(userId, {
-    $set: { 'groupMe.accessToken': encryptedToken, 'groupMe.connectedAt': new Date() }
-  });
-
-  // Save to GroupMeConfig
-  await GroupMeConfig.findOneAndUpdate(
-    { userId },
-    { userId, accessToken: encryptedToken },
-    { upsert: true, new: true }
-  );
-
-  return res.sendStatus(204);
+  
+  console.log('=== SAVE GROUPME TOKEN DEBUG ===');
+  console.log('User ID:', userId);
+  console.log('Access token present:', !!access_token);
+  
+  if (!userId) {
+    console.error('No userId in request when saving GroupMe token');
+    return res.status(401).json({ error: 'User authentication required' });
+  }
+  
+  if (!access_token) {
+    console.error('No access_token provided when saving GroupMe token');
+    return res.status(400).json({ error: 'Access token is required' });
+  }
+  
+  if (access_token === 'undefined') {
+    console.error('Access token is string "undefined" - invalid token');
+    return res.status(400).json({ error: 'Invalid access token: "undefined" string received' });
+  }
+  
+  try {
+    console.log(`Saving GroupMe token for user ${userId} - token length: ${access_token.length}`);
+    
+    // Validate the token with a quick GroupMe API call
+    try {
+      const axios = require('axios');
+      const validateResponse = await axios.get('https://api.groupme.com/v3/users/me', {
+        headers: { 'X-Access-Token': access_token }
+      });
+      
+      if (validateResponse.data && validateResponse.data.response) {
+        console.log('GroupMe token validation successful - user:', validateResponse.data.response.name);
+      } else {
+        console.warn('GroupMe token validation returned unexpected response format');
+      }
+    } catch (validationError) {
+      console.warn('GroupMe token validation failed, but continuing with save:', validationError.message);
+    }
+    
+    // Encrypt the token
+    const encryptedToken = encrypt(access_token);
+    
+    // Save to User
+    await User.findByIdAndUpdate(userId, {
+      $set: { 
+        'groupMe.accessToken': encryptedToken, 
+        'groupMe.connectedAt': new Date()
+      }
+    });
+    
+    // Save to GroupMeConfig
+    await GroupMeConfig.findOneAndUpdate(
+      { userId },
+      { 
+        userId, 
+        accessToken: encryptedToken 
+      },
+      { upsert: true, new: true }
+    );
+    
+    console.log(`GroupMe token successfully saved for user ${userId}`);
+    return res.sendStatus(204);
+  } catch (error) {
+    console.error('Error saving GroupMe token:', error);
+    return res.status(500).json({
+      error: 'Failed to save GroupMe token',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // ... add new handler for GET /groupme/callback (implicit grant)
@@ -1030,6 +1081,20 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        pre {
+          background: rgba(0,0,0,0.2);
+          border-radius: 4px;
+          padding: 8px;
+          max-width: 100%;
+          overflow: auto;
+          font-size: 12px;
+          text-align: left;
+          margin-top: 20px;
+        }
+        #debug {
+          max-height: 100px;
+          overflow-y: auto;
+        }
       </style>
     </head>
     <body>
@@ -1037,9 +1102,24 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
         <div class="icon">🔄</div>
         <h1>Connecting GroupMe...</h1>
         <p class="message"><span class="spinner"></span> <span id="status">Processing your connection...</span></p>
+        <div id="debug"></div>
       </div>
 
       <script>
+        // Debug logger function
+        function log(message) {
+          console.log(message);
+          const debugEl = document.getElementById('debug');
+          if (debugEl) {
+            const logEntry = document.createElement('pre');
+            logEntry.textContent = typeof message === 'object' 
+              ? JSON.stringify(message, null, 2) 
+              : message;
+            debugEl.appendChild(logEntry);
+            debugEl.scrollTop = debugEl.scrollHeight;
+          }
+        }
+        
         // Function to extract URL parameters from either hash or query string
         function getUrlParams(source) {
           const params = {};
@@ -1062,10 +1142,14 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
             // Get the auth token from localStorage
             const authToken = localStorage.getItem('token');
             if (!authToken) {
-              throw new Error('No auth token found');
+              throw new Error('No auth token found in localStorage');
             }
             
+            log('Auth token found in localStorage (length): ' + authToken.length);
+            
             // Send the token to the server
+            log('Sending GroupMe token to server (length): ' + accessToken.length);
+            
             const response = await fetch('/api/groupme/token', {
               method: 'POST',
               headers: {
@@ -1076,12 +1160,14 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
             });
             
             if (!response.ok) {
-              throw new Error('Failed to save token: ' + response.statusText);
+              const errorText = await response.text();
+              throw new Error('Failed to save token: ' + response.status + ' ' + errorText);
             }
             
+            log('Token saved successfully on server');
             return true;
           } catch (error) {
-            console.error('Error saving token:', error);
+            log('Error saving token: ' + error.message);
             return false;
           }
         }
@@ -1093,15 +1179,20 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
           // Get parameters from URL query string as fallback
           const queryParams = getUrlParams(window.location.search);
           
+          // Log URL information for debugging
+          log('URL: ' + window.location.href);
+          log('Hash: ' + window.location.hash);
+          
           // Log for debugging
-          console.log('Hash params:', hashParams);
-          console.log('Query params:', queryParams);
+          log('Hash params: ' + JSON.stringify(hashParams));
+          log('Query params: ' + JSON.stringify(queryParams));
           
           // Try to get access token from hash first (implicit flow)
           let accessToken = hashParams.access_token;
           
           // If no token in hash, try query params (though this shouldn't happen in implicit flow)
           if (!accessToken) {
+            log('No access_token in URL hash, checking query params');
             accessToken = queryParams.access_token;
           }
           
@@ -1110,12 +1201,13 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
           if (!accessToken) {
             statusEl.textContent = 'Error: No access token found in URL';
             statusEl.style.color = '#f04747';
-            console.error('No access token found in URL');
+            log('No access_token found in URL hash or query params');
             return false;
           }
           
           // Update status
           statusEl.textContent = 'Token found, saving...';
+          log('Access token found (length): ' + accessToken.length);
           
           // Send token to server
           const success = await sendTokenToServer(accessToken);
@@ -1134,14 +1226,14 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
                   success: true,
                   timestamp: Date.now()
                 }, '*');
-                console.log('Success message sent to parent window');
+                log('Success message sent to parent window');
                 
                 // Close this window after a short delay
                 setTimeout(() => {
                   window.close();
                 }, 2000);
               } catch (e) {
-                console.error('Error sending message to parent:', e);
+                log('Error sending message to parent: ' + e.message);
               }
             }
             

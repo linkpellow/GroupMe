@@ -194,9 +194,18 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
 
     // Backup the current auth token using our centralized service
     console.log('🔄 Backing up authentication token before OAuth flow');
+    
+    // Store auth token in localStorage AND sessionStorage for redundancy
+    const token = authTokenService.getToken();
+    if (token) {
+      console.log('🔑 Storing auth token for backup - token length:', token.length);
+      localStorage.setItem('auth_token_backup', token);
+      sessionStorage.setItem('auth_token_backup', token);
+    }
+    
     const backupSuccess = authTokenService.backupCurrentToken();
     if (!backupSuccess) {
-      console.warn('⚠️ Failed to backup authentication token - proceed anyway');
+      console.warn('⚠️ authTokenService.backupCurrentToken() failed - using manual backup');
     }
     
     // Also store the current URL so we can return here after auth
@@ -249,14 +258,37 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
           // Remove the event listener
           window.removeEventListener('message', messageHandler);
           
-          // Restore auth token from backup using our centralized service
+          // First ensure we have a valid auth token
+          let authToken = authTokenService.getToken();
+          
+          // If auth token is missing, try to restore from our manual backup
+          if (!authToken) {
+            console.warn('⚠️ Auth token missing - attempting restoration from manual backup');
+            authToken = localStorage.getItem('auth_token_backup') || sessionStorage.getItem('auth_token_backup');
+            
+            if (authToken) {
+              console.log('✅ Found manual backup token - length:', authToken.length);
+              // Restore token to localStorage
+              localStorage.setItem('token', authToken);
+              
+              // Apply to axios instances if window.axiosInstance is available
+              if (window.axiosInstance) {
+                window.axiosInstance.defaults.headers.common['Authorization'] = 
+                  authToken.startsWith('Bearer ') ? authToken : `Bearer ${authToken}`;
+                console.log('✅ Applied token to axios instance');
+              }
+            }
+          }
+          
+          // Now try the standard token restoration
           console.log('🔄 Attempting to restore auth token from backup');
           const restored = authTokenService.restoreTokenFromBackup();
           
           if (!restored) {
-            console.warn('⚠️ Failed to restore auth token from backup - will attempt direct config refresh');
+            console.warn('⚠️ authTokenService.restoreTokenFromBackup() failed');
+            // Don't return, we'll still try to make it work
           } else {
-            console.log('✅ Auth token restored successfully');
+            console.log('✅ Auth token restored successfully via authTokenService');
             
             // Make sure the token is applied to the axios instance
             const token = authTokenService.getToken();
