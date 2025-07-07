@@ -1046,6 +1046,15 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
             p {
               margin-bottom: 24px;
             }
+            button {
+              background-color: #4299e1;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              padding: 8px 16px;
+              cursor: pointer;
+              font-size: 16px;
+            }
           </style>
           <script>
             window.onload = function() {
@@ -1053,9 +1062,21 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
               try {
                 if (window.opener && !window.opener.closed) {
                   console.log('Sending success message to opener window');
+                  
+                  // Try to access the backup token from the opener's sessionStorage
+                  let backupToken = null;
+                  try {
+                    backupToken = window.opener.sessionStorage.getItem('groupme_auth_token_backup');
+                    console.log('Found backup token in opener:', backupToken ? 'yes' : 'no');
+                  } catch (e) {
+                    console.error('Could not access opener sessionStorage:', e);
+                  }
+                  
+                  // Send the success message with token info
                   window.opener.postMessage({ 
                     type: 'GROUPME_CONNECTED', 
-                    success: true 
+                    success: true,
+                    hasBackupToken: !!backupToken
                   }, '*');
                   
                   // Close this window after a short delay
@@ -1087,16 +1108,7 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
             <p>You can close this window and return to the application.</p>
             <button 
               id="closeButton" 
-              style="
-                display: none; 
-                background-color: #4299e1; 
-                color: white; 
-                border: none; 
-                border-radius: 4px; 
-                padding: 8px 16px; 
-                cursor: pointer;
-                font-size: 16px;
-              "
+              style="display: none;"
               onclick="closeWindow()"
             >
               Close Window
