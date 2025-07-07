@@ -922,7 +922,8 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
   const { access_token, state } = req.query as { access_token?: string; state?: string };
   if (!access_token || !state) {
     console.error('GroupMe callback missing access_token or state', req.query);
-    return res.status(400).send('Invalid GroupMe callback');
+    res.status(400).send('Invalid GroupMe callback');
+    return;
   }
   // Decode userId from state
   let userId: string;
@@ -931,7 +932,8 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     userId = stateData.userId;
   } catch (err) {
     console.error('Failed to decode state:', err);
-    return res.status(400).send('Invalid state parameter');
+    res.status(400).send('Invalid state parameter');
+    return;
   }
   // Save the token for the user
   try {
@@ -944,9 +946,11 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
       { userId, accessToken: encryptedToken },
       { upsert: true, new: true }
     );
-    return res.redirect('/integrations/groupme/success');
+    res.redirect('/integrations/groupme/success');
+    return;
   } catch (err) {
     console.error('Failed to save GroupMe token:', err);
-    return res.status(500).send('Failed to save GroupMe token');
+    res.status(500).send('Failed to save GroupMe token');
+    return;
   }
 };
