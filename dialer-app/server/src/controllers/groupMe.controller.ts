@@ -916,3 +916,37 @@ export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, r
 
   res.sendStatus(204);
 });
+
+// ... add new handler for GET /groupme/callback (implicit grant)
+export const handleGroupMeImplicitCallback = async (req: Request, res: Response): Promise<void> => {
+  const { access_token, state } = req.query as { access_token?: string; state?: string };
+  if (!access_token || !state) {
+    console.error('GroupMe callback missing access_token or state', req.query);
+    return res.status(400).send('Invalid GroupMe callback');
+  }
+  // Decode userId from state
+  let userId: string;
+  try {
+    const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
+    userId = stateData.userId;
+  } catch (err) {
+    console.error('Failed to decode state:', err);
+    return res.status(400).send('Invalid state parameter');
+  }
+  // Save the token for the user
+  try {
+    const encryptedToken = encrypt(access_token);
+    await User.findByIdAndUpdate(userId, {
+      $set: { 'groupMe.accessToken': encryptedToken, 'groupMe.connectedAt': new Date() }
+    });
+    await GroupMeConfig.findOneAndUpdate(
+      { userId },
+      { userId, accessToken: encryptedToken },
+      { upsert: true, new: true }
+    );
+    return res.redirect('/integrations/groupme/success');
+  } catch (err) {
+    console.error('Failed to save GroupMe token:', err);
+    return res.status(500).send('Failed to save GroupMe token');
+  }
+};

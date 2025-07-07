@@ -42,6 +42,9 @@ router.post('/groups/:groupId/messages', groupMeController.sendMessage);
 // Webhook for incoming GroupMe messages
 router.post('/webhook', groupMeController.handleWebhook);
 
+// Implicit grant callback (no auth)
+router.get('/callback', groupMeController.handleGroupMeImplicitCallback);
+
 interface GroupMeMessage {
   attachments: any[];
   avatar_url: string | null;
