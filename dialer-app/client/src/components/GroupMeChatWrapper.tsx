@@ -236,7 +236,7 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
       const urlObj = new URL(authUrl);
       
       // GroupMe docs state only client_id is needed
-      const cleanUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${urlObj.searchParams.get('client_id')}`;
+      let cleanUrl = `https://oauth.groupme.com/oauth/authorize?client_id=${urlObj.searchParams.get('client_id')}`;
       
       // Add state parameter for security
       if (urlObj.searchParams.get('state')) {
