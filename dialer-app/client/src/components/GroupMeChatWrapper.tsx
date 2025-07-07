@@ -93,15 +93,53 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
       return;
     }
 
+    console.log('=== Starting GroupMe OAuth Flow from Wrapper ===');
+    console.log('Current user ID:', user.id);
+    
+    // Store current auth token in sessionStorage before starting OAuth flow
+    try {
+      const currentToken = localStorage.getItem('token');
+      if (currentToken) {
+        sessionStorage.setItem('groupme_auth_token_backup', currentToken);
+        console.log('Saved current auth token to sessionStorage as backup');
+      }
+    } catch (storageError) {
+      console.warn('Could not save token to sessionStorage:', storageError);
+      // Continue anyway - this is just a precaution
+    }
+    
     setIsConnecting(true);
+    
     try {
       console.log('Initiating GroupMe OAuth...');
-      const response = await groupMeOAuthService.initiateOAuth(user.id);
-      console.log('OAuth response received:', response);
       
-      let { authUrl } = response;
-      if (!authUrl || !authUrl.includes('oauth.groupme.com')) {
-        throw new Error('Invalid authorization URL received from server');
+      let authUrl;
+      try {
+        const response = await groupMeOAuthService.initiateOAuth(user.id);
+        console.log('OAuth response received:', response);
+        authUrl = response.authUrl;
+        
+        if (!authUrl || !authUrl.includes('oauth.groupme.com')) {
+          throw new Error('Invalid authorization URL received from server');
+        }
+      } catch (initError: any) {
+        console.error('OAuth initiation failed:', initError);
+        console.error('Error details:', {
+          status: initError?.response?.status,
+          data: initError?.response?.data,
+          message: initError?.message
+        });
+        
+        toast({
+          title: 'GroupMe Connection Error',
+          description: 'Could not start GroupMe connection. Please try again later.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true
+        });
+        
+        setIsConnecting(false);
+        return;
       }
 
       // Ensure we're using the correct OAuth endpoint (authorize, not login_dialog)
@@ -114,13 +152,49 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
       authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
       console.log('Final auth URL with cache busting:', authUrl);
 
-      // Redirect to GroupMe OAuth page
-      console.log('Redirecting to:', authUrl);
-      window.location.href = authUrl;
+      // Store OAuth state in sessionStorage
+      try {
+        sessionStorage.setItem('groupme_auth_in_progress', 'true');
+        sessionStorage.setItem('groupme_auth_user_id', user.id);
+        sessionStorage.setItem('groupme_auth_timestamp', Date.now().toString());
+        console.log('Saved OAuth state to sessionStorage');
+      } catch (storageError) {
+        console.warn('Could not save OAuth state to sessionStorage:', storageError);
+        // Continue anyway - this is just a precaution
+      }
+
+      // Use a timeout to ensure UI updates before redirect
+      setTimeout(() => {
+        try {
+          // Redirect to GroupMe OAuth page
+          console.log('Redirecting to:', authUrl);
+          window.location.href = authUrl;
+        } catch (redirectError) {
+          console.error('Failed to redirect to GroupMe OAuth:', redirectError);
+          toast({
+            title: 'Navigation Error',
+            description: 'Could not navigate to GroupMe. Please try again.',
+            status: 'error',
+            duration: 5000,
+            isClosable: true
+          });
+          setIsConnecting(false);
+        }
+      }, 100);
+      
     } catch (error) {
-      console.error('Error initiating GroupMe OAuth:', error);
+      // This catch block handles any other unexpected errors
+      console.error('Unexpected error in GroupMe OAuth flow:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred. Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
       setIsConnecting(false);
     }
+    // Note: We don't set isConnecting to false here because we're redirecting
   };
 
   // Safely import the actual component only when needed

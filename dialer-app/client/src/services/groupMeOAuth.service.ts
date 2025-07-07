@@ -37,18 +37,34 @@ authApi.interceptors.request.use(
 authApi.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // Log the error for debugging
-    console.error('OAuth API Error:', error.response?.status, error.response?.data);
+    // Enhanced logging for debugging OAuth issues
+    console.error('OAuth API Error Details:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      url: error.config?.url,
+      method: error.config?.method,
+      headers: error.config?.headers,
+    });
     
-    // OAuth initiate needs authentication, but callback/status don't
-    const isPublicOAuthEndpoint = error.config?.url?.includes('/oauth/callback') || 
-                                  error.config?.url?.includes('/oauth/status');
+    // Include ALL OAuth-related endpoints in the exclusion list
+    // This prevents users from being logged out during the OAuth flow
+    const isOAuthRelatedEndpoint = 
+      error.config?.url?.includes('/oauth/callback') || 
+      error.config?.url?.includes('/oauth/status') ||
+      error.config?.url?.includes('/oauth/initiate') ||
+      error.config?.url?.includes('/groupme/oauth');
     
-    if (error.response?.status === 401 && !isPublicOAuthEndpoint) {
-      // Handle unauthorized access
-      localStorage.removeItem('authToken');
+    console.log('Is OAuth-related endpoint:', isOAuthRelatedEndpoint, 'URL:', error.config?.url);
+    
+    if (error.response?.status === 401 && !isOAuthRelatedEndpoint) {
+      console.warn('Non-OAuth 401 error detected - logging out user');
+      // Handle unauthorized access for non-OAuth endpoints
+      localStorage.removeItem('token'); // Use correct token key
       window.location.href = '/login';
+    } else if (error.response?.status === 401) {
+      console.log('OAuth-related 401 error - NOT logging out user');
     }
+    
     return Promise.reject(error);
   }
 );
