@@ -2377,7 +2377,7 @@ export default function Leads() {
   // Cast to any to relax prop type checks for react-simple-pull-to-refresh
   const PullToRefreshAny = PullToRefresh as any;
 
-  const showInitialOverlay = isInitialLoading && leads.length === 0;
+  const showInitialOverlay = isInitialLoading;
 
   return (
     <>
