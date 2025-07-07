@@ -145,24 +145,94 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
         // Continue anyway - this is just a precaution
       }
 
-      // Use a timeout to ensure UI updates before redirect
-      setTimeout(() => {
-        try {
-          // Redirect to GroupMe OAuth page
-          console.log('Redirecting to:', authUrl);
-          window.location.href = authUrl;
-        } catch (redirectError) {
-          console.error('Failed to redirect to GroupMe OAuth:', redirectError);
-          toast({
-            title: 'Navigation Error',
-            description: 'Could not navigate to GroupMe. Please try again.',
-            status: 'error',
-            duration: 5000,
-            isClosable: true
-          });
-          setIsConnecting(false);
+      // Set up event listener for message from popup
+      const messageHandler = (event: MessageEvent) => {
+        console.log('Received message from popup:', event.data);
+        
+        // Check if this is our success message
+        if (event.data && event.data.type === 'GROUPME_CONNECTED' && event.data.success) {
+          console.log('GroupMe connected successfully via popup');
+          
+          // Remove the event listener
+          window.removeEventListener('message', messageHandler);
+          
+          // Refresh groups to show the connected state
+          if (refreshGroups) {
+            console.log('Refreshing groups after successful connection');
+            refreshGroups()
+              .then(() => {
+                setIsConnected(true);
+                setIsConnecting(false);
+                
+                toast({
+                  title: 'GroupMe Connected',
+                  description: 'Your GroupMe account has been connected successfully.',
+                  status: 'success',
+                  duration: 4000,
+                  isClosable: true,
+                });
+              })
+              .catch(err => {
+                console.error('Error refreshing groups after connection:', err);
+                setIsConnecting(false);
+              });
+          } else {
+            setIsConnected(true);
+            setIsConnecting(false);
+          }
         }
-      }, 100);
+      };
+      
+      // Add the event listener
+      window.addEventListener('message', messageHandler);
+      
+      // Open the OAuth URL in a popup window
+      const popupWidth = 600;
+      const popupHeight = 700;
+      const left = (window.innerWidth - popupWidth) / 2 + window.screenX;
+      const top = (window.innerHeight - popupHeight) / 2 + window.screenY;
+      
+      const popup = window.open(
+        authUrl,
+        'groupme-oauth',
+        `width=${popupWidth},height=${popupHeight},left=${left},top=${top},resizable=yes,scrollbars=yes`
+      );
+      
+      if (!popup) {
+        // Popup was blocked
+        window.removeEventListener('message', messageHandler);
+        console.error('Popup was blocked by the browser');
+        toast({
+          title: 'Popup Blocked',
+          description: 'Please allow popups for this site and try again.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        setIsConnecting(false);
+        return;
+      }
+      
+      // Set up a check to see if the popup was closed manually
+      const popupCheckInterval = setInterval(() => {
+        if (!popup || popup.closed) {
+          clearInterval(popupCheckInterval);
+          window.removeEventListener('message', messageHandler);
+          setIsConnecting(false);
+          console.log('OAuth popup was closed manually');
+        }
+      }, 1000);
+      
+      // Clean up after 5 minutes (failsafe)
+      setTimeout(() => {
+        clearInterval(popupCheckInterval);
+        window.removeEventListener('message', messageHandler);
+        if (!isConnected) {
+          setIsConnecting(false);
+          console.warn('OAuth flow timed out after 5 minutes');
+        }
+      }, 5 * 60 * 1000);
+      
     } catch (error) {
       console.error('Error initiating GroupMe OAuth:', error);
       toast({

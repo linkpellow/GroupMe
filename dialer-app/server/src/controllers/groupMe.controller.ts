@@ -1005,9 +1005,106 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     
     console.log('Token saved successfully for user:', userId);
     
-    // Redirect to chat page instead of a non-existent success page
-    console.log('Redirecting to chat page');
-    res.redirect('/chat');
+    // Instead of redirecting, return HTML that will handle the OAuth flow client-side
+    console.log('Returning success HTML with postMessage');
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>GroupMe Connected</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              background-color: #f7fafc;
+              color: #2d3748;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              padding: 20px;
+              text-align: center;
+            }
+            .success-box {
+              background-color: white;
+              border-radius: 8px;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+              padding: 24px;
+              max-width: 500px;
+              width: 100%;
+            }
+            h1 {
+              color: #38a169;
+              margin-bottom: 16px;
+            }
+            .icon {
+              font-size: 48px;
+              color: #38a169;
+              margin-bottom: 16px;
+            }
+            p {
+              margin-bottom: 24px;
+            }
+          </style>
+          <script>
+            window.onload = function() {
+              // Try to notify the opener window that GroupMe was connected successfully
+              try {
+                if (window.opener && !window.opener.closed) {
+                  console.log('Sending success message to opener window');
+                  window.opener.postMessage({ 
+                    type: 'GROUPME_CONNECTED', 
+                    success: true 
+                  }, '*');
+                  
+                  // Close this window after a short delay
+                  setTimeout(function() {
+                    window.close();
+                  }, 2000);
+                } else {
+                  console.log('No opener window found or it was closed');
+                  // If there's no opener or it's closed, show a button to close manually
+                  document.getElementById('closeButton').style.display = 'block';
+                }
+              } catch (err) {
+                console.error('Error communicating with opener:', err);
+                // Show the close button in case of error
+                document.getElementById('closeButton').style.display = 'block';
+              }
+            };
+            
+            function closeWindow() {
+              window.close();
+            }
+          </script>
+        </head>
+        <body>
+          <div class="success-box">
+            <div class="icon">✓</div>
+            <h1>GroupMe Connected Successfully!</h1>
+            <p>Your GroupMe account has been connected to Crokodial CRM.</p>
+            <p>You can close this window and return to the application.</p>
+            <button 
+              id="closeButton" 
+              style="
+                display: none; 
+                background-color: #4299e1; 
+                color: white; 
+                border: none; 
+                border-radius: 4px; 
+                padding: 8px 16px; 
+                cursor: pointer;
+                font-size: 16px;
+              "
+              onclick="closeWindow()"
+            >
+              Close Window
+            </button>
+          </div>
+        </body>
+      </html>
+    `);
     return;
   } catch (err) {
     console.error('Failed to save GroupMe token:', err);
