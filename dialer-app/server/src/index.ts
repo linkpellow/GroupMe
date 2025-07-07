@@ -342,6 +342,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Add direct route for GroupMe OAuth callback
+app.get('/groupme/callback', (req, res) => {
+  console.log('Received GroupMe callback at /groupme/callback, forwarding to /api/groupme/callback');
+  // Forward the request to our API route
+  const { access_token, state } = req.query;
+  const targetUrl = `/api/groupme/callback?access_token=${access_token}&state=${state}`;
+  res.redirect(targetUrl);
+});
+
 // Determine client dist directory dynamically to work in dev, build, and Heroku slug paths
 const candidateClientDistPaths = [
   path.join(__dirname, '..', '..', 'client', 'dist'), // ../../client/dist  (dist/src -> dialer-app/server)
