@@ -77,6 +77,21 @@ export interface ILead extends ILeadInput, Document {
   updatedAt: Date;
 }
 
+// Extend the model with static methods
+export interface ILeadModel extends mongoose.Model<ILead> {
+  upsertLead(payload: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    notes?: string;
+    source?: string;
+    [key: string]: any;
+  }): Promise<{
+    lead: ILead;
+    isNew: boolean;
+  }>;
+}
+
 // Policy document schema
 const policyDocumentSchema = new Schema<IPolicyDocument>({
   clientId: { type: String, required: true },
@@ -207,5 +222,60 @@ leadSchema.pre('save', function (next) {
   next();
 });
 
-const LeadModel = mongoose.model<ILead>('Lead', leadSchema);
+/**
+ * Upsert helper for webhook feeds (NextGen, etc.)
+ * - Looks up a lead by phone number
+ * - Updates existing lead data if found
+ * - Inserts a new lead if not found
+ */
+leadSchema.statics.upsertLead = async function(payload) {
+  try {
+    // Required fields check
+    if (!payload.phone && !payload.email) {
+      throw new Error('Either phone or email is required for lead upsert');
+    }
+    
+    // Create a query to find existing lead by phone or email
+    const query: {phone?: string; email?: string} = {};
+    if (payload.phone) {
+      query.phone = payload.phone;
+    } else if (payload.email) {
+      query.email = payload.email;
+    }
+    
+    // Create update document
+    const updateDoc = {
+      $set: {
+        ...payload,
+        updatedAt: new Date()
+      },
+      $setOnInsert: {
+        createdAt: new Date(),
+        status: payload.status || 'New'
+      }
+    };
+    
+    // Perform upsert operation
+    const options = { 
+      upsert: true, 
+      new: true 
+    };
+    
+    const lead = await this.findOneAndUpdate(query, updateDoc, options);
+    
+    // Determine if this was a new insert or an update
+    const isNew = lead.createdAt && lead.updatedAt && 
+                  lead.createdAt.getTime() === lead.updatedAt.getTime();
+    
+    return {
+      lead,
+      isNew
+    };
+  } catch (error) {
+    console.error('Error in Lead.upsertLead:', error);
+    throw error;
+  }
+};
+
+const LeadModel = mongoose.model<ILead, ILeadModel>('Lead', leadSchema);
 export default LeadModel;
