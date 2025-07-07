@@ -90,7 +90,7 @@ const formatPhoneNumber = (phone: string | undefined | null) => {
   return phone;
 };
 
-const formatHeight = (height: string) => {
+const formatHeight = (height: string | undefined | null) => {
   if (!height) return '';
   if (height.includes("'")) {
     return height;
@@ -101,7 +101,7 @@ const formatHeight = (height: string) => {
   return `${feet}'${inches}"`;
 };
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string | undefined | null) => {
   if (!dateString) return '';
   try {
     if (dateString.includes('/')) {
@@ -121,7 +121,7 @@ const formatDate = (dateString: string) => {
   return dateString;
 };
 
-const formatEmail = (email: string) => {
+const formatEmail = (email: string | undefined | null) => {
   if (!email) return '';
   if (email.length > 25) {
     const atIndex = email.indexOf('@');
@@ -952,6 +952,10 @@ export default function Leads() {
 
   // Ensure special sentinel option always exists
   const availableDispositions: string[] = React.useMemo(() => {
+    // Add console warning if the upstream data is missing
+    if (!dispositionsList) {
+      console.warn('[Leads.tsx] dispositionsList is null or undefined. Using empty array for dropdown.');
+    }
     const names: string[] = Array.isArray(dispositionsList)
       ? dispositionsList.map((d: any) => d.name)
       : [];
@@ -2179,7 +2183,7 @@ export default function Leads() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <option value="">Disposition</option>
-                {availableDispositions.map((disposition: string) => (
+                {(availableDispositions || []).map((disposition: string) => (
                   <option key={disposition} value={disposition}>
                     {disposition}
                   </option>

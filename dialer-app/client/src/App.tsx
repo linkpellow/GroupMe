@@ -268,7 +268,9 @@ function App() {
                                     element={
                                       <AuthenticatedRoute>
                                         <Layout>
-                                          <Leads />
+                                          <ErrorBoundary>
+                                            <Leads />
+                                          </ErrorBoundary>
                                         </Layout>
                                       </AuthenticatedRoute>
                                     }
