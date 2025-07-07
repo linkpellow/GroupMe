@@ -1005,9 +1005,9 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     
     console.log('Token saved successfully for user:', userId);
     
-    // Redirect to success page
-    console.log('Redirecting to success page');
-    res.redirect('/integrations/groupme/success');
+    // Redirect to chat page instead of a non-existent success page
+    console.log('Redirecting to chat page');
+    res.redirect('/chat');
     return;
   } catch (err) {
     console.error('Failed to save GroupMe token:', err);

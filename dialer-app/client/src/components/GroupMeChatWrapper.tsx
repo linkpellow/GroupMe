@@ -99,6 +99,9 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
       if (currentToken) {
         console.log('Backing up current auth token to sessionStorage');
         sessionStorage.setItem('groupme_auth_token_backup', currentToken);
+        
+        // Also store the current URL so we can return here after auth
+        sessionStorage.setItem('groupme_return_url', window.location.pathname);
       }
     } catch (storageError) {
       console.warn('Could not save token to sessionStorage:', storageError);

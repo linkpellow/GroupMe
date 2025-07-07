@@ -56,22 +56,30 @@ const GroupMeCallbackPage: React.FC = () => {
           
           // Now that we've successfully saved the token, we can remove the backup
           try {
+            // Get the return URL before clearing storage
+            const returnUrl = sessionStorage.getItem('groupme_return_url') || '/chat';
+            
+            // Clean up session storage
             sessionStorage.removeItem('groupme_auth_token_backup');
             sessionStorage.removeItem('groupme_auth_in_progress');
+            sessionStorage.removeItem('groupme_return_url');
             console.log('Removed temporary OAuth data from sessionStorage');
+            
+            // Wait a moment before navigating to ensure state updates
+            setTimeout(() => {
+              try {
+                console.log('Navigating to:', returnUrl);
+                navigate(returnUrl);
+              } catch (navError) {
+                console.error('Navigation error:', navError);
+                // If navigation fails, provide a button for manual navigation
+              }
+            }, 1500);
           } catch (storageError) {
             console.warn('Could not clean up sessionStorage:', storageError);
+            // Navigate to chat as fallback
+            setTimeout(() => navigate('/chat'), 1500);
           }
-          
-          // Wait a moment before navigating to ensure state updates
-          setTimeout(() => {
-            try {
-              navigate('/chat');
-            } catch (navError) {
-              console.error('Navigation error:', navError);
-              // If navigation fails, provide a button for manual navigation
-            }
-          }, 1500);
         } else {
           console.error('GroupMeCallbackPage: Failed to save token');
           setStatus('error');

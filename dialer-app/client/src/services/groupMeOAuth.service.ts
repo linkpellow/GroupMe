@@ -46,23 +46,20 @@ authApi.interceptors.response.use(
       headers: error.config?.headers,
     });
     
-    // Include ALL OAuth-related endpoints in the exclusion list
-    // This prevents users from being logged out during the OAuth flow
-    const isOAuthRelatedEndpoint = 
+    // Include ALL OAuth and GroupMe-related endpoints in the exclusion list
+    const isOAuthOrGroupMeEndpoint = 
       error.config?.url?.includes('/oauth/') || 
-      error.config?.url?.includes('/groupme/oauth') ||
-      error.config?.url?.includes('/groupme/token') ||
-      error.config?.url?.includes('/groupme/callback') ||
-      error.config?.url?.includes('/groupme/config') ||
-      error.config?.url?.includes('api.groupme.com');
+      error.config?.url?.includes('/groupme/') ||
+      error.config?.url?.includes('api.groupme.com') ||
+      error.config?.url?.includes('oauth.groupme.com');
     
-    console.log('Is OAuth-related endpoint:', isOAuthRelatedEndpoint, 'URL:', error.config?.url);
+    console.log('Is OAuth/GroupMe endpoint:', isOAuthOrGroupMeEndpoint, 'URL:', error.config?.url);
     
     // Check if this is a page refresh
     const isRefresh = document.referrer === window.location.href;
     const currentPath = window.location.pathname;
     
-    if (error.response?.status === 401 && !isOAuthRelatedEndpoint && !isRefresh && currentPath !== '/login') {
+    if (error.response?.status === 401 && !isOAuthOrGroupMeEndpoint && !isRefresh && currentPath !== '/login') {
       console.warn('Non-OAuth 401 error detected - logging out user');
       // Handle unauthorized access for non-OAuth endpoints
       localStorage.removeItem('token'); // Use correct token key
@@ -72,9 +69,9 @@ authApi.interceptors.response.use(
       
       window.location.href = '/login';
     } else if (error.response?.status === 401) {
-      console.log('OAuth-related 401 error or refresh - NOT logging out user');
+      console.log('OAuth/GroupMe-related 401 error or refresh - NOT logging out user');
       console.log('Context:', {
-        isOAuthEndpoint: isOAuthRelatedEndpoint,
+        isOAuthEndpoint: isOAuthOrGroupMeEndpoint,
         isRefresh,
         currentPath
       });
