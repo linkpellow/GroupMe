@@ -51,21 +51,22 @@ const LeadNotificationHandler: React.FC = () => {
         // Only show notification for new NextGen leads
         if (isNew && source.toLowerCase() === 'nextgen') {
           console.log('[LeadNotification] Showing notification for new NextGen lead:', name);
-          
-          // Pre-load the sound file for Chrome
-          const audio = new Audio('/sounds/Cash app sound.mp3');
-          
-          // Configure audio & play immediately. If autoplay fails (Chrome), the
-          // existing Notification component will attempt a fallback on user
-          // interaction, so we ignore the rejection here.
-          audio.muted = false;
-          audio.volume = 0.3;
-          audio.preload = 'auto';
-          audio.currentTime = 0;
-          audio.play().catch((e) => {
-            console.warn('[Sound] Immediate play blocked, will rely on fallback:', e);
-          });
-          
+
+          // Temporarily disabled for debugging - this can be a source of silent crashes
+          // // Pre-load the sound file for Chrome
+          // const audio = new Audio('/sounds/Cash app sound.mp3');
+          // 
+          // // Configure audio & play immediately. If autoplay fails (Chrome), the
+          // // existing Notification component will attempt a fallback on user
+          // // interaction, so we ignore the rejection here.
+          // audio.muted = false;
+          // audio.volume = 0.3;
+          // audio.preload = 'auto';
+          // audio.currentTime = 0;
+          // audio.play().catch((e) => {
+          //   console.warn('[Sound] Immediate play blocked, will rely on fallback:', e);
+          // });
+
           // 1. Trigger banner/SFX
           showNotification(`New NextGen Lead! ${name}`, 'nextgen');
           
