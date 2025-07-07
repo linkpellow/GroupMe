@@ -902,26 +902,82 @@ const processWebhookMessage = async (webhookData: any) => {
  * Save GroupMe access token from OAuth callback
  */
 export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<Response> => {
+  console.log('=== SAVE GROUPME TOKEN ===');
+  console.log('Request body:', req.body);
+  console.log('User from request:', req.user?.id);
+  
   const userId = req.user?.id;
   const { access_token } = req.body;
-  if (!userId || !access_token) return res.status(400).json({ error: 'Missing user or token' });
+  
+  if (!userId) {
+    console.error('Missing user ID in request');
+    return res.status(400).json({ error: 'Missing user ID' });
+  }
+  
+  if (!access_token) {
+    console.error('Missing access_token in request body');
+    return res.status(400).json({ error: 'Missing token' });
+  }
 
-  // Encrypt the token
-  const encryptedToken = encrypt(access_token);
+  console.log('UserId:', userId);
+  console.log('Token length:', access_token.length);
+  console.log('Token first 10 chars:', access_token.substring(0, 10));
 
-  // Save to User
-  await User.findByIdAndUpdate(userId, {
-    $set: { 'groupMe.accessToken': encryptedToken, 'groupMe.connectedAt': new Date() }
-  });
+  try {
+    // Encrypt the token
+    const encryptedToken = encrypt(access_token);
+    console.log('Token encrypted successfully');
 
-  // Save to GroupMeConfig
-  await GroupMeConfig.findOneAndUpdate(
-    { userId },
-    { userId, accessToken: encryptedToken },
-    { upsert: true, new: true }
-  );
+    // Save to User
+    await User.findByIdAndUpdate(userId, {
+      $set: { 'groupMe.accessToken': encryptedToken, 'groupMe.connectedAt': new Date() }
+    });
+    console.log('Token saved to User document');
 
-  return res.sendStatus(204);
+    // Save to GroupMeConfig
+    await GroupMeConfig.findOneAndUpdate(
+      { userId },
+      { userId, accessToken: encryptedToken },
+      { upsert: true, new: true }
+    );
+    console.log('Token saved to GroupMeConfig');
+
+    // Validate the token with GroupMe API
+    try {
+      console.log('Validating token with GroupMe API...');
+      const axios = require('axios');
+      const validationResponse = await axios.get('https://api.groupme.com/v3/users/me', {
+        headers: {
+          'X-Access-Token': access_token,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000, // 10 second timeout
+      });
+      
+      console.log('Token validation successful!');
+      console.log('GroupMe user:', validationResponse.data.response);
+      
+      // Update user with GroupMe profile info
+      await User.findByIdAndUpdate(userId, {
+        $set: {
+          'groupMe.email': validationResponse.data.response?.email || null,
+          'groupMe.name': validationResponse.data.response?.name || null,
+        }
+      });
+      console.log('Updated user with GroupMe profile info');
+    } catch (validationError: any) {
+      console.error('Token validation failed:', validationError.message);
+      console.error('Status:', validationError.response?.status);
+      console.error('Response data:', validationError.response?.data);
+      // Continue anyway - the token is saved and the user can try using it
+    }
+
+    console.log('Token saved successfully');
+    return res.sendStatus(204);
+  } catch (error) {
+    console.error('Error saving token:', error);
+    return res.status(500).json({ error: 'Failed to save token' });
+  }
 });
 
 // Add new handler for GET /groupme/callback (implicit grant)
