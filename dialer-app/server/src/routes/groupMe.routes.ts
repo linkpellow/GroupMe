@@ -11,6 +11,9 @@ router.post('/oauth/callback', groupMeController.handleOAuthCallback);
 router.get('/oauth/status', auth, groupMeController.getConnectionStatus);
 router.post('/oauth/initiate', groupMeController.initiateOAuth);
 
+// Implicit grant callback (no auth) - MOVED HERE to make it public
+router.get('/callback', groupMeController.handleGroupMeImplicitCallback);
+
 // Add token save endpoint (requires authentication)
 router.post('/token', auth, groupMeController.saveGroupMeToken);
 
@@ -41,9 +44,6 @@ router.post('/groups/:groupId/messages', groupMeController.sendMessage);
 
 // Webhook for incoming GroupMe messages
 router.post('/webhook', groupMeController.handleWebhook);
-
-// Implicit grant callback (no auth)
-router.get('/callback', groupMeController.handleGroupMeImplicitCallback);
 
 interface GroupMeMessage {
   attachments: any[];

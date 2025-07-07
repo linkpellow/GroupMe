@@ -924,6 +924,8 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
   console.log('=== GROUPME IMPLICIT CALLBACK DEBUG ===');
   console.log('Request query:', req.query);
   console.log('Request cookies:', req.cookies);
+  console.log('Request URL:', req.url);
+  console.log('Request path:', req.path);
   
   const { access_token, state } = req.query as { access_token?: string; state?: string };
   
@@ -964,7 +966,22 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     const encryptedToken = encrypt(access_token);
     
     // Update user with encrypted GroupMe token
-    const user = await User.findByIdAndUpdate<IUser>(
+    const user = await User.findById<IUser>(
+      userId,
+      null,
+      { lean: true }
+    );
+
+    if (!user) {
+      console.error('User not found in database:', userId);
+      res.status(404).send('User not found');
+      return;
+    }
+    
+    console.log('User found:', userId);
+    
+    // Update user document
+    await User.findByIdAndUpdate(
       userId,
       {
         $set: {
@@ -974,12 +991,6 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
       },
       { new: true }
     );
-
-    if (!user) {
-      console.error('User not found in database:', userId);
-      res.status(404).send('User not found');
-      return;
-    }
     
     // Also persist token in GroupMeConfig so front-end can pick it up via /config API
     await GroupMeConfig.findOneAndUpdate(
@@ -991,6 +1002,7 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     console.log('Token saved successfully for user:', userId);
     
     // Redirect to success page
+    console.log('Redirecting to success page');
     res.redirect('/integrations/groupme/success');
     return;
   } catch (err) {
