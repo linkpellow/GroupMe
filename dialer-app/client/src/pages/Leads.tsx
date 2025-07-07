@@ -78,12 +78,14 @@ const DISPOSITION_COLORS = {
 };
 
 // Helper functions
+const safe = (v: string | null | undefined): string => (v ?? '');
+
 const formatPhoneNumber = (phone: string | undefined | null) => {
   if (!phone) {
     console.warn('[Leads.tsx] formatPhoneNumber received null or undefined phone value.');
     return ''; // Return empty string if phone is null or undefined
   }
-  const cleaned = phone.replace(/\D/g, '');
+  const cleaned = safe(phone).replace(/\D/g, '');
   const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
   if (match) {
     return '(' + match[1] + ') ' + match[2] + '-' + match[3];
@@ -93,10 +95,10 @@ const formatPhoneNumber = (phone: string | undefined | null) => {
 
 const formatHeight = (height: string | undefined | null) => {
   if (!height) return '';
-  if (height.includes("'")) {
+  if (safe(height).includes("'")) {
     return height;
   }
-  const totalInches = parseInt(height);
+  const totalInches = parseInt(safe(height));
   const feet = Math.floor(totalInches / 12);
   const inches = totalInches % 12;
   return `${feet}'${inches}"`;
@@ -105,10 +107,10 @@ const formatHeight = (height: string | undefined | null) => {
 const formatDate = (dateString: string | undefined | null) => {
   if (!dateString) return '';
   try {
-    if (dateString.includes('/')) {
+    if (safe(dateString).includes('/')) {
       return dateString;
     }
-    const [year, month, day] = dateString.split('-');
+    const [year, month, day] = safe(dateString).split('-');
     if (year && month && day) {
       return `${month}/${day}/${year}`;
     }
@@ -124,7 +126,7 @@ const formatDate = (dateString: string | undefined | null) => {
 
 const formatEmail = (email: string | undefined | null) => {
   if (!email) return '';
-  if (email.length > 25) {
+  if (safe(email).length > 25) {
     const atIndex = email.indexOf('@');
     if (atIndex !== -1) {
       const username = email.substring(0, atIndex);
@@ -2071,23 +2073,23 @@ export default function Leads() {
               title="Click to copy"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.email, toast, 'Email');
+                copyToClipboard(safe(lead.email), toast, 'Email');
               }}
             >
-              {formatEmail(lead.email)}
+              {formatEmail(safe(lead.email))}
             </div>
           </div>
           <div className="grid-item">
             <div
               className="text-content value phone"
-              data-phone={(lead.phone || '').replace(/[^\d]/g, '')}
+              data-phone={safe(lead.phone).replace(/[^\\d]/g, '')}
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.phone, toast, 'Phone');
+                copyToClipboard(safe(lead.phone), toast, 'Phone');
               }}
               title="Click to copy"
             >
-              {formatPhoneNumber(lead.phone)}
+              {formatPhoneNumber(safe(lead.phone))}
             </div>
           </div>
           <div className="grid-item">
@@ -2095,11 +2097,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.zipcode, toast, 'Zipcode');
+                copyToClipboard(safe(lead.zipcode), toast, 'Zipcode');
               }}
               title="Click to copy"
             >
-              {lead.zipcode}
+              {safe(lead.zipcode)}
             </div>
           </div>
           <div className="grid-item">
@@ -2107,12 +2109,12 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                const dobDisplay = formatDate(lead.dob);
+                const dobDisplay = formatDate(safe(lead.dob));
                 copyToClipboard(dobDisplay, toast, 'DOB');
               }}
               title="Click to copy"
             >
-              {formatDate(lead.dob)}
+              {formatDate(safe(lead.dob))}
             </div>
           </div>
           <div className="grid-item">
@@ -2120,11 +2122,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.height, toast, 'Height');
+                copyToClipboard(safe(lead.height), toast, 'Height');
               }}
               title="Click to copy"
             >
-              {formatHeight(lead.height)}
+              {formatHeight(safe(lead.height))}
             </div>
           </div>
           <div className="grid-item">
@@ -2132,11 +2134,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.weight, toast, 'Weight');
+                copyToClipboard(safe(lead.weight), toast, 'Weight');
               }}
               title="Click to copy"
             >
-              {lead.weight}
+              {safe(lead.weight)}
             </div>
           </div>
           <div className="grid-item">
@@ -2144,11 +2146,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.gender, toast, 'Gender');
+                copyToClipboard(safe(lead.gender), toast, 'Gender');
               }}
               title="Click to copy"
             >
-              {lead.gender}
+              {safe(lead.gender)}
             </div>
           </div>
           <div className="grid-item">
@@ -2156,12 +2158,12 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.state, toast, 'State');
+                copyToClipboard(safe(lead.state), toast, 'State');
               }}
               title="Click to copy"
             >
-              <img src={`/states/${lead.state}.png`} alt={lead.state} style={{ height: '24px', maxWidth: '100%' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
-              <span style={{ display: 'none' }}>{lead.state}</span>
+              <img src={`/states/${safe(lead.state)}.png`} alt={safe(lead.state)} style={{ height: '24px', maxWidth: '100%' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+              <span style={{ display: 'none' }}>{safe(lead.state)}</span>
             </div>
           </div>
           <div className="grid-item">
@@ -2198,7 +2200,7 @@ export default function Leads() {
         <div className="notes-section">
           <NotesEditor
             leadId={lead._id}
-            initialNotes={lead.notes || ''}
+            initialNotes={safe(lead.notes)}
             className="notes-textarea"
             style={{ resize: 'vertical', minHeight: '140px' }}
             onSaveSuccess={refetch}
