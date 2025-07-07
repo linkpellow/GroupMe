@@ -52,17 +52,32 @@ authApi.interceptors.response.use(
       error.config?.url?.includes('/oauth/callback') || 
       error.config?.url?.includes('/oauth/status') ||
       error.config?.url?.includes('/oauth/initiate') ||
-      error.config?.url?.includes('/groupme/oauth');
+      error.config?.url?.includes('/groupme/oauth') ||
+      error.config?.url?.includes('/groupme/token') ||
+      error.config?.url?.includes('/groupme/callback');
     
     console.log('Is OAuth-related endpoint:', isOAuthRelatedEndpoint, 'URL:', error.config?.url);
     
-    if (error.response?.status === 401 && !isOAuthRelatedEndpoint) {
+    // Check if this is a page refresh
+    const isRefresh = document.referrer === window.location.href;
+    const currentPath = window.location.pathname;
+    
+    if (error.response?.status === 401 && !isOAuthRelatedEndpoint && !isRefresh && currentPath !== '/login') {
       console.warn('Non-OAuth 401 error detected - logging out user');
       // Handle unauthorized access for non-OAuth endpoints
       localStorage.removeItem('token'); // Use correct token key
+      
+      // Store the current URL to redirect back after login
+      sessionStorage.setItem('redirect_after_login', window.location.pathname);
+      
       window.location.href = '/login';
     } else if (error.response?.status === 401) {
-      console.log('OAuth-related 401 error - NOT logging out user');
+      console.log('OAuth-related 401 error or refresh - NOT logging out user');
+      console.log('Context:', {
+        isOAuthEndpoint: isOAuthRelatedEndpoint,
+        isRefresh,
+        currentPath
+      });
     }
     
     return Promise.reject(error);

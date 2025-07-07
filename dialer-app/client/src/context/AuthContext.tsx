@@ -386,6 +386,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.__checkAuthCount = 0;
       }
 
+      // Check if there's a stored redirect URL from a previous session
+      const redirectUrl = sessionStorage.getItem('redirect_after_login');
+      if (redirectUrl) {
+        console.log('Found stored redirect URL:', redirectUrl);
+        // Clear the stored URL
+        sessionStorage.removeItem('redirect_after_login');
+        // Navigate to the stored URL after a short delay to allow context to update
+        setTimeout(() => {
+          navigate(redirectUrl);
+        }, 100);
+      }
+
       // Don't navigate here - let the Login component handle navigation
       return { success: true };
     } catch (error) {

@@ -96,17 +96,39 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401) {
       console.warn('Authentication error - token may be invalid');
 
-      // Clear invalid token
+      // Check if this is an OAuth-related endpoint
+      const isOAuthRelatedEndpoint = 
+        error.config?.url?.includes('/oauth/') || 
+        error.config?.url?.includes('/groupme/oauth') ||
+        error.config?.url?.includes('/groupme/token') ||
+        error.config?.url?.includes('/groupme/callback');
+      
+      // Only clear token and redirect if:
+      // 1. Not already on login page
+      // 2. Not an OAuth-related endpoint
+      // 3. Not during a page refresh (check referrer)
       const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register') {
-        console.log('Clearing invalid token from localStorage');
+      const isRefresh = document.referrer === window.location.href;
+      
+      if (currentPath !== '/login' && !isOAuthRelatedEndpoint && !isRefresh) {
+        console.log('Clearing invalid token from localStorage and redirecting to login');
         localStorage.removeItem('token');
         localStorage.removeItem('user_data');
 
-        // Optional: redirect to login page
+        // Store the current URL to redirect back after login
+        sessionStorage.setItem('redirect_after_login', window.location.pathname);
+
+        // Redirect to login page
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
+      } else {
+        console.log('Not redirecting to login because:', {
+          currentPath,
+          isLoginPage: currentPath === '/login',
+          isOAuthEndpoint: isOAuthRelatedEndpoint,
+          isRefresh
+        });
       }
     }
 
