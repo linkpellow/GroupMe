@@ -214,10 +214,22 @@ const GroupMeSettings = () => {
   const fetchGroups = async () => {
     try {
       const response = await axios.get('/api/groupme/groups');
-      const fetchedGroups = response.data.map((group: any) => ({
-        id: group.id,
-        name: group.name,
-      }));
+      
+      // Check if the response has the success wrapper format
+      let fetchedGroups = [];
+      if (response.data && response.data.success && response.data.data) {
+        // Handle success wrapper format
+        fetchedGroups = response.data.data.map((group: any) => ({
+          id: group.groupId || group.id,
+          name: group.groupName || group.name,
+        }));
+      } else if (Array.isArray(response.data)) {
+        // Handle direct array format
+        fetchedGroups = response.data.map((group: any) => ({
+          id: group.groupId || group.id,
+          name: group.groupName || group.name,
+        }));
+      }
 
       setGroups(fetchedGroups.length > 0 ? fetchedGroups : [{ id: '', name: '' }]);
 

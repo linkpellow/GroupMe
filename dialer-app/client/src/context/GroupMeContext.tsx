@@ -144,16 +144,30 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
     setIsLoading(true);
     try {
       const response = await axiosInstance.get("/api/groupme/groups");
-      if (response.data && response.data.success && response.data.data.groups) {
-        setGroups(response.data.data.groups);
-        // If no group is active and groups are fetched, select the first one by default
-        // This was causing the immediate switch to message view, let GroupMeChat handle selection
-        // if (!activeGroupId && response.data.data.groups.length > 0) {
-        //   setActiveGroupId(response.data.data.groups[0].groupId);
-        // }
-      } else {
-        setGroups([]);
+      console.log("GroupMeContext: Groups response received:", response.data);
+      
+      // Handle different response formats
+      let groupsData = [];
+      
+      if (response.data && response.data.success && response.data.data) {
+        // Handle wrapped response format
+        groupsData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        // Handle direct array format
+        groupsData = response.data;
       }
+      
+      // Map the data to ensure consistent format
+      const formattedGroups = groupsData.map((group: any) => ({
+        groupId: group.groupId || group.id,
+        groupName: group.groupName || group.name,
+        image_url: group.image_url,
+        last_message: group.last_message,
+        messages_count: group.messages_count
+      }));
+      
+      console.log("GroupMeContext: Formatted groups:", formattedGroups);
+      setGroups(formattedGroups);
     } catch (err) {
       console.error("Error fetching GroupMe groups:", err);
       setError("Failed to load GroupMe groups.");
@@ -161,7 +175,7 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [config, activeGroupId]); // activeGroupId removed as it might cause loop if we auto-set here
+  }, [config, axiosInstance]);
 
   const fetchMessages = useCallback(
     async (groupId: string) => {
