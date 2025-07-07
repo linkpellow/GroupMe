@@ -79,7 +79,6 @@ const DISPOSITION_COLORS = {
 };
 
 // Helper functions
-const safe = (v: string | null | undefined): string => (v ?? '');
 
 const formatPhoneNumber = (phone: string | undefined | null) => {
   if (!phone) {
@@ -2099,11 +2098,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safe(lead.zipcode), toast, 'Zipcode');
+                copyToClipboard(safeStr(lead.zipcode), toast, 'Zipcode');
               }}
               title="Click to copy"
             >
-              {safe(lead.zipcode)}
+              {safeStr(lead.zipcode)}
             </div>
           </div>
           <div className="grid-item">
@@ -2111,12 +2110,12 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                const dobDisplay = formatDate(safe(lead.dob));
+                const dobDisplay = formatDate(safeStr(lead.dob));
                 copyToClipboard(dobDisplay, toast, 'DOB');
               }}
               title="Click to copy"
             >
-              {formatDate(safe(lead.dob))}
+              {formatDate(safeStr(lead.dob))}
             </div>
           </div>
           <div className="grid-item">
@@ -2124,11 +2123,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safe(lead.height), toast, 'Height');
+                copyToClipboard(safeStr(lead.height), toast, 'Height');
               }}
               title="Click to copy"
             >
-              {formatHeight(safe(lead.height))}
+              {formatHeight(safeStr(lead.height))}
             </div>
           </div>
           <div className="grid-item">
@@ -2136,11 +2135,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safe(lead.weight), toast, 'Weight');
+                copyToClipboard(safeStr(lead.weight), toast, 'Weight');
               }}
               title="Click to copy"
             >
-              {safe(lead.weight)}
+              {safeStr(lead.weight)}
             </div>
           </div>
           <div className="grid-item">
@@ -2148,11 +2147,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safe(lead.gender), toast, 'Gender');
+                copyToClipboard(safeStr(lead.gender), toast, 'Gender');
               }}
               title="Click to copy"
             >
-              {safe(lead.gender)}
+              {safeStr(lead.gender)}
             </div>
           </div>
           <div className="grid-item">
@@ -2160,12 +2159,12 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(safe(lead.state), toast, 'State');
+                copyToClipboard(safeStr(lead.state), toast, 'State');
               }}
               title="Click to copy"
             >
-              <img src={`/states/${safe(lead.state)}.png`} alt={safe(lead.state)} style={{ height: '24px', maxWidth: '100%' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
-              <span style={{ display: 'none' }}>{safe(lead.state)}</span>
+              <img src={`/states/${safeStr(lead.state)}.png`} alt={safeStr(lead.state)} style={{ height: '24px', maxWidth: '100%' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+              <span style={{ display: 'none' }}>{safeStr(lead.state)}</span>
             </div>
           </div>
           <div className="grid-item">
@@ -2202,7 +2201,7 @@ export default function Leads() {
         <div className="notes-section">
           <NotesEditor
             leadId={lead._id}
-            initialNotes={safe(lead.notes)}
+            initialNotes={safeStr(lead.notes)}
             className="notes-textarea"
             style={{ resize: 'vertical', minHeight: '140px' }}
             onSaveSuccess={refetch}
