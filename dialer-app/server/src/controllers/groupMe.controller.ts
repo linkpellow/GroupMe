@@ -529,6 +529,7 @@ const getUserGroupMeService = async (userId: string): Promise<GroupMeService | n
     const user = await User.findById<IUser>(userId).select('groupMe.accessToken');
 
     if (!user?.groupMe?.accessToken) {
+      console.log(`No GroupMe access token found for user ${userId}`);
       return null;
     }
 
@@ -537,6 +538,10 @@ const getUserGroupMeService = async (userId: string): Promise<GroupMeService | n
     let accessToken: string;
     try {
       accessToken = decrypt(user.groupMe.accessToken);
+      if (!accessToken || accessToken === 'undefined') {
+        console.error(`Invalid GroupMe token for user ${userId}`);
+        return null;
+      }
     } catch (decryptErr) {
       console.error(
         `Failed to decrypt GroupMe token for user ${userId}. Token will be treated as invalid.`,
@@ -549,9 +554,8 @@ const getUserGroupMeService = async (userId: string): Promise<GroupMeService | n
     }
 
     // Create new service instance for this user
-    const service = new GroupMeService(accessToken);
-
     try {
+      const service = new GroupMeService(accessToken);
       await service.initialize();
 
       // Cache the service instance

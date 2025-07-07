@@ -21,6 +21,20 @@ const GroupMeCallbackPage: React.FC = () => {
       console.log('Hash:', window.location.hash);
       console.log('Search params:', window.location.search);
       
+      // FIRST THING: Restore auth token before any API calls
+      try {
+        const backupToken = sessionStorage.getItem('groupme_auth_token_backup');
+        if (backupToken) {
+          console.log('GroupMeCallbackPage: Restoring auth token from backup');
+          localStorage.setItem('token', backupToken);
+          // Keep the backup until we're sure everything worked
+        } else {
+          console.warn('No backup token found in sessionStorage');
+        }
+      } catch (storageError) {
+        console.error('Error accessing sessionStorage:', storageError);
+      }
+      
       // Collect debug info
       const debugData = {
         url: window.location.href,
@@ -33,21 +47,6 @@ const GroupMeCallbackPage: React.FC = () => {
       setDebugInfo(JSON.stringify(debugData, null, 2));
       
       try {
-        // First, ensure we have the user's auth token restored
-        // This needs to happen BEFORE any API calls to prevent 401 errors
-        try {
-          const backupToken = sessionStorage.getItem('groupme_auth_token_backup');
-          if (backupToken) {
-            console.log('GroupMeCallbackPage: Restoring auth token from backup');
-            localStorage.setItem('token', backupToken);
-            // Keep the backup until we're sure everything worked
-          } else {
-            console.warn('No backup token found in sessionStorage');
-          }
-        } catch (storageError) {
-          console.error('Error accessing sessionStorage:', storageError);
-        }
-        
         // Extract and process the access token from the URL hash
         const success = await groupMeOAuthService.handleImplicitCallback();
         

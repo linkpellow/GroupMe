@@ -68,6 +68,12 @@ export class GroupMeService extends EventEmitter {
 
   constructor(token: string) {
     super();
+    // Validate token before using it
+    if (!token || token === 'undefined') {
+      console.error('Invalid GroupMe token provided');
+      throw new Error('Invalid GroupMe token');
+    }
+    
     this.token = token;
     this.api = axios.create({
       baseURL: 'https://api.groupme.com/v3',

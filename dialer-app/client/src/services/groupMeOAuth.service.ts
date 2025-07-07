@@ -49,12 +49,12 @@ authApi.interceptors.response.use(
     // Include ALL OAuth-related endpoints in the exclusion list
     // This prevents users from being logged out during the OAuth flow
     const isOAuthRelatedEndpoint = 
-      error.config?.url?.includes('/oauth/callback') || 
-      error.config?.url?.includes('/oauth/status') ||
-      error.config?.url?.includes('/oauth/initiate') ||
+      error.config?.url?.includes('/oauth/') || 
       error.config?.url?.includes('/groupme/oauth') ||
       error.config?.url?.includes('/groupme/token') ||
-      error.config?.url?.includes('/groupme/callback');
+      error.config?.url?.includes('/groupme/callback') ||
+      error.config?.url?.includes('/groupme/config') ||
+      error.config?.url?.includes('api.groupme.com');
     
     console.log('Is OAuth-related endpoint:', isOAuthRelatedEndpoint, 'URL:', error.config?.url);
     
