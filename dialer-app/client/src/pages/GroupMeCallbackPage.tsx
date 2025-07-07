@@ -6,6 +6,7 @@ import { groupMeOAuthService } from '../services/groupMeOAuth.service';
 /**
  * This component handles the GroupMe OAuth callback.
  * It extracts the access_token from the URL hash and sends it to the server.
+ * Then it notifies the parent window and closes itself.
  */
 const GroupMeCallbackPage: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -37,10 +38,25 @@ const GroupMeCallbackPage: React.FC = () => {
             // Continue anyway - user can log in again if needed
           }
           
-          // Redirect to the chat page after a short delay
-          setTimeout(() => {
-            navigate('/chat');
-          }, 2000);
+          // Check if this window was opened by another window
+          if (window.opener && !window.opener.closed) {
+            try {
+              // Notify the parent window about the successful connection
+              console.log('Notifying parent window about successful connection');
+              window.opener.postMessage({ type: 'GROUPME_CONNECTED', success: true }, '*');
+              
+              // Close this window after a short delay
+              setTimeout(() => {
+                window.close();
+              }, 1500);
+            } catch (e) {
+              console.error('Error communicating with parent window:', e);
+              // If communication fails, just show success message
+            }
+          } else {
+            // If no parent window, provide a button to go back to the main app
+            console.log('No parent window found, showing navigation options');
+          }
         } else {
           console.error('GroupMeCallbackPage: Failed to save token');
           setStatus('error');
@@ -57,7 +73,11 @@ const GroupMeCallbackPage: React.FC = () => {
   }, [navigate]);
 
   const handleRetry = () => {
-    navigate('/chat');
+    if (window.opener) {
+      window.close();
+    } else {
+      navigate('/leads');
+    }
   };
 
   return (
@@ -86,8 +106,10 @@ const GroupMeCallbackPage: React.FC = () => {
             <AlertIcon />
             GroupMe connected successfully!
           </Alert>
-          <Text mb={4}>Redirecting you back to the chat...</Text>
-          <Spinner size="sm" />
+          <Text mb={4}>This window will close automatically.</Text>
+          <Button colorScheme="blue" onClick={() => window.close()}>
+            Close Window
+          </Button>
         </>
       )}
 
@@ -99,7 +121,7 @@ const GroupMeCallbackPage: React.FC = () => {
           </Alert>
           <Text mb={4}>{errorMessage}</Text>
           <Button colorScheme="blue" onClick={handleRetry}>
-            Return to Chat
+            {window.opener ? 'Close Window' : 'Return to App'}
           </Button>
         </>
       )}
