@@ -38,6 +38,7 @@ import webhookRoutes from './routes/webhook.routes';
 import documentsRoutes from './routes/documents.routes';
 import textdripRoutes from './routes/textdrip.routes';
 import dialCountsRoutes from './routes/dialCounts.routes';
+import testRoutes from './routes/test.routes';
 
 // Comment out routes for files confirmed missing from ./routes/ directory
 // import clientRoutes from './routes/clients.routes';
@@ -314,6 +315,12 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/textdrip', textdripRoutes);
 app.use('/api/dial-counts', dialCountsRoutes);
+
+// Register test routes only in non-production environments for security
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/test', testRoutes);
+  console.log('DEV-ONLY: Test routes registered at /api/test');
+}
 
 // Comment out app.use for missing routes only
 // app.use('/api/clients', clientRoutes);

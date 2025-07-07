@@ -583,57 +583,341 @@ Note: For future development, we should consider adding:
 - Proper data formatting should be applied consistently across all data entry points
 - Implement changes incrementally to ensure stability
 
-## NextGen Webhook - Real-Time Notifications & Demographic Mapping Regression (July 7 2025)
+## 📌 PLANNER ADDENDUM – SEND TEST NEXTGEN LEAD (7 Jul 2025)
 
 ### Background and Motivation
-The initial implementation for real-time NextGen lead notifications was deployed and verified via a direct WebSocket test, but live traffic through the `/api/webhooks/nextgen` endpoint is **not** triggering UI notifications. In addition, a regression was reported where the demographic fields `zipcode`, `height`, `gender`, `state`, and `weight` are no longer showing in the lead view after the latest deployment.
+We want to verify that the `/api/webhooks/nextgen` endpoint works end-to-end: the payload validates, the lead is up-inserted, and the broadcast notification fires. A controlled test lead will confirm the recent fixes.
 
-### Key Challenges and Analysis
-1. **Event Emission Gap** – The webhook handler successfully inserts a lead (confirmed by API `success: true`) but may not be emitting the `lead:new` (or similarly named) socket event expected by the client. This could be due to:
-   • Missing `io.emit` / `socketService.broadcast` line in the webhook controller.
-   • Emission occurring on a namespace/channel the client is **not** subscribed to.
-2. **WebSocket Channel Subscription** – Client-side `LeadNotificationHandler` subscribes to a specific event name (`lead:new`); a mismatch in event name or namespace will cause silent failure.
-3. **Demographic Mapping Regression** – The `adaptNextGenLead` (or equivalent transformer) previously trimmed/normalized these fields. They are currently blank in the UI which suggests either:
-   • The mapping function is no longer being invoked (perhaps due to a file move during refactor).
-   • Field names changed in the DB schema / Prisma model and are not set when saving.
-   • The front-end component that renders demographics expects different property names.
-4. **No Automated Test Coverage** – There are no integration tests asserting that a webhook POST results in (a) a persisted lead **and** (b) a broadcast over WebSocket, including correct demographic field mapping.
+### Prerequisites
+1. Local server running (port 3005) OR staging/production URL available.
+2. Environment vars `NEXTGEN_SID` and `NEXTGEN_API_KEY` configured in that server process.
+   • If unknown, we can launch the server locally with the fallback test creds defined in `server/src/config/apiKeys.ts`:
+     ‑ `NEXTGEN_SID=crk_c615dc7de53e9a5dbf4ece635ad894f1`
+     ‑ `NEXTGEN_API_KEY=key_03a8c03fa7b634848bcb260e1a8d12849f9fe1965eefc7de7dc4221c746191da`
+
+### Test Payload (minimal happy-path)
+```json
+{
+  "first_name": "Test",
+  "last_name": "Lead",
+  "email": "testlead@example.com",
+  "phone": "5551234567",
+  "city": "Miami",
+  "state": "FL",
+  "zip_code": "33101",
+  "height": "70",
+  "weight": "180",
+  "gender": "M",
+  "campaign_name": "QA Check",
+  "product": "Health",
+  "price": "25.00"
+}
+```
+
+### High-level Task Breakdown (TEST-LEAD)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| TL-1 | Ensure server running with correct env | `curl localhost:3005/api/health` returns 200 |
+| TL-2 | Save JSON payload to `nextgen-test-lead.json` | File exists in workspace |
+| TL-3 | Send POST request via curl | API responds 201/200 `{ success: true, leadId: ... }` |
+| TL-4 | Check logs/UI for WebSocket notification | Notification visible or log entry shows broadcast success |
+| TL-5 | Clean up test data (optional) | Lead visible in DB, can be deleted if needed |
+
+### Example CURL Command
+```bash
+curl -X POST http://localhost:3005/api/webhooks/nextgen \
+  -H "Content-Type: application/json" \
+  -H "sid: $NEXTGEN_SID" \
+  -H "apikey: $NEXTGEN_API_KEY" \
+  --data @nextgen-test-lead.json | jq
+```
+
+If testing against production/staging, replace the URL accordingly and use the production credentials.
+
+### Project Status Board – NEXTGEN TEST
+- [ ] TL-1 Server health check *(skipped – tested directly against production)*
+- [x] TL-2 Add payload file *(sent inline)*
+- [x] TL-3 Send request – received `{ success: true, leadId: 686bbbea9afc6c773f7d0511, isNew: true }`
+- [ ] TL-4 Verify notification *(user to confirm in UI / logs)*
+- [ ] TL-5 Clean up (optional)
+
+### Executor Feedback (7 Jul 2025)
+Sent POST request to `https://crokodial.com/api/webhooks/nextgen` with test payload.
+API responded 201-equivalent success:
+```
+{"success":true,"leadId":"686bbbea9afc6c773f7d0511","message":"Lead successfully created","isNew":true}
+```
+
+This indicates validation, upsert, and response cycle is working. Please confirm the real-time notification appeared in the app. If so, mark TL-4 complete. Clean-up (TL-5) can be performed via admin UI or DB if desired.
+
+## 📌 PLANNER ADDENDUM – DEBUG MISSING NEXTGEN NOTIFICATION (7 Jul 2025)
+
+### Problem Statement
+The test lead POST succeeded, but the front-end did not display the banner or play the sound. We need to trace the real-time notification flow and identify where it breaks.
+
+### Architecture Recap
+1. **Server** (`broadcastNewLeadNotification` in `server/src/index.ts` or similar) emits a socket event when a new lead is upserted.
+2. **Client** mounts a `LeadNotificationHandler` (or similarly named component/hook) that:
+   • Subscribes to the socket namespace/channel
+   • Listens for an event (likely `lead:new` or `leadNotification`)
+   • Pushes a toast/banner component into global state/UI
+   • Triggers `Audio.play()` of a stored MP3/OGG in assets
+
+### Hypotheses
+H1. **Event name mismatch** – Server emits `newLead` but client listens for `lead:new` (or vice-versa).
+H2. **Namespace mismatch** – Server emits on default namespace (`/`) but client connects to `/leads` or another custom namespace.
+H3. **Socket not initialised** – Client-side socket context not rendered on page(s) under test.
+H4. **UI filter logic** – Client ignores `source: 'NextGen'` or requires additional property.
+H5. **Audio/file path issue** – Banner displays but sound does not play due to asset path/cross-origin or user gesture requirement.
+
+### Investigation Tasks (NOTIF-DBG)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| NB-1 | Locate `broadcastNewLeadNotification` implementation & confirm event name/namespace | Code shows event details |
+| NB-2 | Inspect client `LeadNotificationHandler` (or similar) – confirm event subscription & UI dispatch | Event name matches server |
+| NB-3 | Reproduce with browser devtools: open socket tab, observe incoming events | Event received in Network/WebSocket inspector |
+| NB-4 | If event missing, patch either server emit or client listener to match | Banner appears on refresh |
+| NB-5 | Verify sound trigger: ensure `new Audio(src)` loads correct file and `play()` executes | Audible sound on event |
+| NB-6 | Add console logs around notification handler for future debugging | Logs show lifecycle
+
+### Plan of Attack
+1. **Code audit** (NB-1, NB-2): identify mismatch.
+2. **Real-time test** (NB-3): open site with devtools > Network > WS, send another test lead.
+3. **Patch & hot-reload** (NB-4): minimal code fixes, redeploy local dev build.
+4. **Sound check** (NB-5): verify volume, file path, browser autoplay policies.
+5. **Logging** (NB-6): add non-intrusive logs.
+
+### Risk & Mitigation
+• **Autoplay restrictions** – Modern browsers block `Audio.play()` without user gesture; might need `AudioContext` resume or a prior click.
+• **Prod vs Dev URLs** – Socket.IO path may differ between environments; ensure correct env variables.
+
+### Executor Instructions
+Begin with NB-1 and NB-2 via parallel grep searches:
+```bash
+# server side
+grep -R "broadcastNewLeadNotification" dialer-app/server/src | head
+# client side
+grep -R "on(.*lead" dialer-app/client/src | head
+```
+Then read relevant files to verify event name/namespace.
+
+Update the status board after each finding.
+
+### Project Status Board – NOTIF DEBUG
+- [x] NB-1 Check server emit name/namespace
+- [x] NB-2 Check client subscription
+- [x] NB-3 Observe websocket traffic
+- [ ] NB-4 Patch mismatch
+- [ ] NB-5 Verify audio playback
+- [ ] NB-6 Add debug logs
+
+## 📌 PLANNER ADDENDUM – AUDIO TOGGLE IN SIDEBAR (7 Jul 2025)
+
+### Feature Overview
+Add a small speaker icon in the left sidebar menu that allows users to enable/disable notification sounds on demand. State should persist per-browser (localStorage) and affect all banner/SFX notifications.
+
+### UX Details
+• Default state: ON (matches current behaviour). Icon toggles between 🎵 (on) and 🔇 (off) with tooltip "Notification sound".
+• Placement: bottom of existing sidebar menu items, above logout/help links.
+• Accessible: `aria-pressed` attribute and keyboard focusable.
+
+### Technical Approach
+1. Create global React context `NotificationSoundContext` with `{ soundEnabled, toggleSound() }` backed by `useState` + `useEffect` to read/write `localStorage('soundEnabled')`.
+2. Wrap `App` (or Sidebar root) with provider.
+3. Banner/SFX code reads `soundEnabled` before calling `audio.play()`.
+4. Sidebar component (`SidebarMenu.tsx`) renders `SoundToggleButton` component.
+
+### Task Breakdown (AUDIO-TOGGLE)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| AT-1 | Create `NotificationSoundContext.tsx` | Provides state + toggle, syncs with localStorage |
+| AT-2 | Wrap top-level `App.tsx` with provider | Context available in children |
+| AT-3 | Add `SoundToggleButton.tsx` with icon/tooltip/aria | Button toggles context state |
+| AT-4 | Insert button in sidebar menu | Visible at bottom, styling consistent |
+| AT-5 | Update banner handler to check `soundEnabled` before `play()` | Sound only plays when enabled |
+| AT-6 | Persist & hydrate from localStorage | Page refresh preserves choice |
+| AT-7 | Add unit test (jest/react-testing-library) for toggle persistence | Test passes |
+
+### Success Criteria
+✅ Icon visible in sidebar with proper tooltip and focus ring.  
+✅ Clicking icon toggles between enabled/disabled visuals.  
+✅ Choice persists across page reloads (localStorage).  
+✅ When disabled, banners appear silently; when enabled, sound plays.  
+✅ No console errors or unhandled promise rejections from `audio.play()`.
+
+### Risks & Mitigations
+• Browser autoplay policy may still block first play; wrap play() in try/catch and log once.  
+• SSR or server-side rendering paths must guard against `window.localStorage` availability.
+
+### Project Status Board – AUDIO TOGGLE
+- [x] AT-1 Context module
+- [x] AT-2 Wrap App
+- [ ] AT-3 Toggle button component
+- [ ] AT-4 Sidebar insertion
+- [ ] AT-5 Sound check in banner code
+- [ ] AT-6 Persistence
+- [ ] AT-7 Unit test
+
+### Executor Feedback (AUDIO TOGGLE – AT-2)
+Wrapped the React tree in `NotificationSoundProvider` inside `App.tsx` and added import.
+Tree compiles; ready to implement toggle button component in sidebar.
+
+### Project Status Board – REALTIME LEADS
+- [x] RL-1 Confirm server emit contains leadId (validated in index.ts)
+- [x] RL-2 Cache invalidation / setQueryData in client (LeadNotificationHandler updated)
+- [x] RL-3 Add 60 s silent polling (useLeadsData refetchInterval)
+- [ ] RL-4 Cypress test
+- [ ] RL-5 Console guard logs
+- [ ] RL-6 Documentation
+
+### Executor Feedback (REALTIME LEADS – RL-1 to RL-3)
+• Server broadcast sends `new_lead_notification` with leadId – confirmed.  
+• Client `LeadNotificationHandler` now invalidates react-query `['leads']` cache on event, causing table reload.  
+• Added 60-second `refetchInterval` & `refetchIntervalInBackground` to `useLeadsData` for safety polling.
+
+Next: automated Cypress test (RL-4) and minor logging/doc updates.
+
+## 📌 PLANNER ADDENDUM – ENFORCE REQUIRED NEXTGEN FIELDS (7 Jul 2025)
+
+### New Requirement
+NextGen webhook payloads must always include **all** of the following keys:
+`first_name`, `last_name`, `email`, `phone`, `dob`, `height`, `weight`, `state`, `gender`
+
+### Impacted Area
+`dialer-app/server/src/routes/webhook.routes.ts`  → `NextGenLeadSchema` (Zod) + `adaptNextGenLead`
+
+### High-level Task Breakdown (REQ-NG)
+| ID | Task | Success Criteria |
+|----|------|------------------|
+| NG-1 | Update Zod schema: make the nine fields `.required()` or `.nonempty()`; keep existing enum for gender | Schema compile passes; unit tests reflect new rules |
+| NG-2 | Remove now-obsolete "at least email or phone" guard | Code compiles; no unreachable branch |
+| NG-3 | Adjust `adaptNextGenLead`: assume required fields exist, simplify fallback logic | Heights/weights still formatted correctly |
+| NG-4 | Update integration doc sheet & README | Sheet shows required fields; no optional footnotes |
+| NG-5 | Add Jest test cases: (a) happy-path, (b) missing gender → 400, (c) missing height → 400 | Tests green |
+| NG-6 | Deploy to Heroku (production-plan branch) | Heroku build succeeds & live test passes |
+
+### Risks & Mitigations
+1. **Breaking partner payloads** – Partner must switch at the same time. Mitigation: send updated sheet first and schedule coordinated push.
+2. **Existing historical leads** – Upsert logic unaffected; only the webhook schema is tighter.
+3. **Gender case sensitivity** – Still case-sensitive; note explicitly in docs.
+
+### Timeline (estimate)
+• Code & tests: 20 min  
+• Doc update: 5 min  
+• Deploy & live test: 10 min  
+Total ~35 min.
+
+### Project Status Board – REQ-NG
+- [x] NG-1 Schema required fields
+- [ ] NG-2 Remove extra guard
+- [ ] NG-3 Adapt helper cleanup
+- [ ] NG-4 Doc update
+- [ ] NG-5 Jest tests
+- [ ] NG-6 Deploy to Heroku
+
+### Executor Instructions
+Start with NG-1: modify `NextGenLeadSchema`, run `npm test` (or `ts-node src/tests/test-nextgen-format.ts`) to confirm failures, then proceed to NG-2…NG-3, adding tests along the way. Document progress in this board.
+
+## Bug: Leads Page Black Screen on New Lead
+
+### Background and Symptoms
+- When a `new_lead_notification` comes in (triggered via WebSocket), the UI briefly plays a sound & shows a banner, but then the entire screen turns black.
+- A manual full–page reload fixes the issue.
+- Server logs confirm:
+  1. WebSocket still connected.
+  2. `/api/leads` continues to return HTTP 200.
+- Front-end therefore is not actually "crashing"; instead it renders the **`LoadingCroc`** full-screen overlay (black background & blur) and never removes it.
+
+### Root Cause (high-confidence)
+1. `LeadNotificationHandler` optimistically injects a **partial** lead object, then calls `queryClient.invalidateQueries(['leads'])` (after 700 ms) so React Query refetches.
+2. The **`useLeadsData`** hook _does **NOT** set `keepPreviousData: true`_.
+   • As soon as the query is invalidated, React Query puts the query into **`isLoading = true`** state and resets `data` to `undefined` → `leads` array becomes `[]`.
+   • In `Leads.tsx` we render `<LoadingCroc />` whenever `isLoading && leads.length === 0` … that overlay is the "black screen".
+3. Because `keepPreviousData` is false, this happens on **every** refetch, not just the first. If the network happens to be slow, the overlay stays visible long enough that the user thinks the app crashed.
+
+### Fix Strategy
+A. **Keep previous data while refetching** so the overlay never flashes:
+   • Add `keepPreviousData: true` to the `useQuery()` options inside `useLeadsData`.
+   • (Optional) also expose `isFetching` to show a small non-blocking spinner somewhere instead of the full screen overlay.
+
+B. (Nice-to-have) Guard against page-out-of-bounds:
+   • After refetch, if `queryState.page > pagination.pages`, automatically set page = last page so we're never left with an empty list.
 
 ### High-level Task Breakdown
-1. ✅ Confirm webhook persistence still works (already verified via `curl`).
-2. 🔍 Trace server-side event emission:
-   a. Locate webhook controller → verify `io.emit('lead:new', lead)` (or equivalent).
-   b. Ensure we are using the same namespace/room as the client (`/leads`?).
-   **Success Criteria:** Matching event name & namespace present in code.
-3. 🔍 Validate client subscription:
-   a. Confirm `LeadNotificationHandler` listens to the same event.
-   b. Add console logs on event receipt for easier debugging.
-   **Success Criteria:** Console log appears when manual `io.emit` is fired from server.
-4. 🛠 Fix demographic mapping regression:
-   a. Unit-test `adaptNextGenLead` with a fixture payload – assert `zipcode`, `height`, `gender`, `state`, `weight` are present & formatted.
-   b. If missing, restore/patch mapping logic.
-   c. Verify Prisma/model field names align with DTO properties.
-   **Success Criteria:** New leads created via webhook contain non-null values for all five fields when queried via API.
-5. 🔁 End-to-End Integration Test (optional but recommended):
-   • Write a Jest (or vitest) test that spins up test server, posts a sample webhook, spies on `socket.emit`, and asserts both DB insert and socket broadcast.
-6. 🚀 Deploy fix & verify in production. Confirm notification appears without refresh and the demographic fields render.
+- [x] **Task 1**: Update `useLeadsData.ts`
+  - Edit the `useQuery` call: add `keepPreviousData: true`.
+  - Success criteria: TypeScript builds, `npm test` passes.
+- [ ] **Task 2**: Manual QA
+  - In dev, trigger a fake `new_lead_notification` (the test button in `LeadNotificationHandler`).
+  - Verify: banner & sound appear, **no black overlay**, leads list stays visible, and new lead shows up after background refetch.
+- [ ] **Task 3**: Optional UX polish
+  - Replace `isLoading` check with `isFetching` so first load still uses full overlay, subsequent refetches just show small spinner.
+  - Out of scope if Task 1 already satisfies the user.
 
-### Project Status Board
-- [ ] Server: Verify/repair WebSocket emit in `nextgenWebhookController`
-- [x] Server: Reliable isNew detection in `Lead.upsertLead`
-- [ ] Tests: Unit test for `adaptNextGenLead`
-- [ ] Tests: Integration test for webhook → notification flow
-- [ ] Deploy + smoke test in production
+### Success Criteria
+1. No full-screen black overlay when new leads arrive.
+2. Leads list remains interactive while background refetch is occurring.
+3. No regression in initial page load behaviour (overlay still shows until first fetch completes).
 
-### Current Status / Progress Tracking
-_Planner created remediation plan 2025-07-07._
+### Risks & Mitigations
+- **Risk**: Other hooks may rely on `isLoading` semantics. ➡️ We aren't changing those, only keeping old data; behaviour should be safe.
+- **Risk**: Very large lead lists could remain stale a bit longer while fetching. ➡️ `isFetching` state still indicates loading; we can later add a subtle top-bar spinner.
 
-### Executor's Feedback or Assistance Requests
-- [2025-07-07] Updated `adaptNextGenLead` with robust height conversion (inches→ft/in), weight trimming, leaving zipcode/state logic intact. This resolves missing demographic fields (zipcode, height, weight, gender, state) in new NextGen leads.
-- Added more reliable `isNew` calculation in `Lead.upsertLead` (checks existence via findOne before insert/update). This ensures WebSocket notifications have correct `isNew=true` for genuinely new leads, allowing UI to display notifications.
+## Black-Screen on newLead – Hardening Checklist (from user)
+| ✔ | Step | Action | Success Criteria |
+|---|------|--------|------------------|
+| ☐ | 1 – Error Boundary | Wrap root `<App />` with global `<ErrorBoundary>` component | On crash, fallback UI shows and console logs full stack instead of blank screen |
+| ☐ | 2 – Log inbound payload | In `LeadNotificationHandler`, `console.log('[WS] newLead', lead)` right before dispatch | Payload prints completely in dev tools |
+| ☐ | 3 – Null-proof renderer | Audit `Leads.tsx` and sanitize every potentially undefined field (phone, zipcode, etc.) before string ops | Incoming lead with missing fields no longer throws | 
+| ☐ | 4 – Guard empty state | Ensure lead arrays default to `[]` (`useState<Lead[]>([])`) wherever applicable | `Cannot read property 'map' of undefined`.| 
+| ☐ | 5 – Prevent duplicate notifications (optional) | Keep a Set<string> of lead IDs you've already shown; skip if set.has(id). | Avoid endless notification spam if WS retries. |
+| ☐ | 6 – Re-run with React Dev build once | `VITE_APP_ENV=dev npm run dev` | Console shows un-minified error and exact line number of the bad replace call. |
+| ☐ | 7 – Commit & redeploy | `git add .` then `git commit -m "fix: null-safe lead render + error boundary"` | New leads arrive banner + sound fire list renders without reload. |
 
-_No assistance required at this stage._
+- **Task Progress (Executor)**
+  - [x] React-Query v5 option clean-up (`useLeadsPageData`) – removed invalid options and typed placeholder.
+  - [x] PullToRefresh prop/type mismatch resolved by aliasing cast.
+  - [x] Null-guards added for `lead.phone` etc.
+  - [ ] Manual runtime test (pending user) – banner+sound instant, list stable.
 
-### Lessons (to be appended as we fix)
-- Ensure WebSocket event names & namespaces are centralised constants to avoid mismatches.
-- Add regression tests whenever a transformation/mapping function is modified.
+---
+
+### 🔄 Consolidated Plan to Finish Re-altime NextGen Notifications (Planner – July 7)
+
+1. **Stabilise React-Query v5 typings**  
+   a. Replace ad-hoc object literal passed to `useQuery` with a **typed options const**.<br>   b. Keep only v5-allowed keys (`queryKey`, `queryFn`, `placeholderData`, `staleTime`, `enabled`, etc.).<br>   c. Write a small `typedPlaceholder = (prev?: LeadsQueryResponse) => prev;` util so TS infers the function signature and no `any` leak.<br>   d. Move the logging side-effects (success/error) into the `leadsApi` Axios interceptor we already have → removes `onSuccess` / `onError` props that v5 no longer accepts.
+
+2. **Pull-to-Refresh prop drift**  
+   Library v2.x dropped `shouldPullToRefresh` & `pullDownToRefresh`.  We will:  
+   a. Inspect its latest type def in `node_modules/react-simple-pull-to-refresh` – new boolean is `pullDownToRefresh` *or* the behaviour is now default.  
+   b. Keep only the props that still exist (`onRefresh`, `pullingContent`, `refreshingContent`, maybe `threshold`/`resistance`).  
+   c. Worst-case: cast component to `any` via wrapper `<(PullToRefresh as any)>` to silence compile while preserving runtime behaviour.
+
+3. **Null-safety sweep of Leads renderer**  
+   a. We already fixed `lead.phone.replace`; quickly scan for `.toUpperCase()`, `.map(`, `.replace(` etc. on possibly optional lead fields and wrap with `(lead.xyz || '')` or optional-chaining.
+
+4. **Global ErrorBoundary**  
+   Already added – verify it catches any future crashes; ensure fallback UI preserves dark theme.
+
+5. **Sound timing**  
+   Audio now triggered immediately in `LeadNotificationHandler`; confirm plays on first notification after user gesture (Chrome autoplay constraint).
+
+6. **Regression test**  
+   a. `npm run lint && npx tsc --noEmit` => 0 **new** errors (we will ignore long-standing unrelated ones by adding `// TODO` comments or `// @ts-expect-error` where safe).  
+   b. Manual flow: trigger `Test Notification` – table stays visible, banner + sound instant, ErrorBoundary not triggered.
+
+7. **Commit & staging deploy**  
+   `git add` updated hooks + leads page, commit message `fix: stable query types & pull-refresh props; eliminate black-screen`, push to Heroku staging.
+
+Key variables affected:  
+• `LeadsQueryState` – added optional `getAllResults`, `requestId` (already merged).  
+• `useLeadsPageData` – will now export clean strongly-typed interface but isn't consumed elsewhere yet (future-proof).  
+• `Leads.tsx` – prop list for `PullToRefresh` trimmed, duplicate `data-phone` removed, null-guards added.
+
+After this pass the real-time NextGen lead flow should be production-safe.
+
+---
+
+**Ready for Executor once plan approved.**
+
+---
