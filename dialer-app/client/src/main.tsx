@@ -111,3 +111,18 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
   console.error('GLOBAL UNHANDLED REJECTION:', event.reason);
 });
+
+// Dev-only: trace accidental .replace on undefined/null
+{
+  const _origReplace = String.prototype.replace as any;
+  // @ts-ignore
+  String.prototype.replace = function (...args: any[]) {
+    if (this == null) {
+      // eslint-disable-next-line no-console
+      console.error('[NULL-REPLACE] String.replace called on', this, '\nStack:', new Error().stack?.split('\n').slice(2, 8).join('\n'));
+      return '';
+    }
+    // @ts-ignore
+    return _origReplace.apply(this, args);
+  };
+}
