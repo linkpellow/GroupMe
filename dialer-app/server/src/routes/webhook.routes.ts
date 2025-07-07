@@ -57,6 +57,7 @@ const NextGenLeadSchema = z.object({
   last_name: z.string().optional(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
+  phone_number: z.string().optional(),
 
   // Location
   city: z.string().optional(),
@@ -67,7 +68,7 @@ const NextGenLeadSchema = z.object({
   // Demographics
   dob: z.string().optional(),
   age: z.number().optional(),
-  gender: z.enum(['M', 'F', 'Male', 'Female']).optional(),
+  gender: z.string().optional(),
   height: z.string().optional(),
   weight: z.string().optional(),
 
@@ -144,7 +145,7 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
 
     // Contact
     email: nextgenData.email,
-    phone: nextgenData.phone,
+    phone: nextgenData.phone ?? nextgenData.phone_number,
 
     // Location
     city: nextgenData.city?.trim(),
@@ -225,7 +226,7 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
     // Adapt the lead data
     const leadData = adaptNextGenLead(validationResult.data);
 
-    // Ensure we have minimum required data
+    // Ensure we have minimum required contact data
     if (!leadData.email && !leadData.phone) {
       logger.error('NextGen lead missing both email and phone', {
         nextgenId: leadData.nextgenId,
