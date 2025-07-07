@@ -1506,36 +1506,6 @@ router.get('/filters', auth, leadsController.getFilterOptions);
 router.patch('/:id/notes', auth, leadsController.updateLeadNotes);
 // ADD_NOTES_ROUTE_END
 
-// After the other routes, add this endpoint
-// GET /api/leads/recent
-router.get('/recent', auth, async (req: Request, res: Response) => {
-  try {
-    const since = req.query.since ? parseInt(req.query.since as string) : Date.now() - 300000;
-    const source = req.query.source as string;
-    
-    const sinceDate = new Date(since);
-    
-    const query: any = {
-      createdAt: { $gte: sinceDate }
-    };
-    
-    if (source) {
-      query.source = source;
-    }
-    
-    const recentLeads = await LeadModel.find(query)
-      .select('_id name source createdAt')
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean();
-    
-    return res.json(recentLeads);
-  } catch (error) {
-    console.error('Error fetching recent leads:', error);
-    return res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // --- Recent leads endpoint for WebSocket fallback polling ---
 // Public endpoint (no auth) so browser can poll when user not yet authenticated via JWT
 router.get('/recent', async (req: Request, res: Response) => {
