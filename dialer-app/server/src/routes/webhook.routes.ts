@@ -102,13 +102,22 @@ type NextGenLeadData = z.infer<typeof NextGenLeadSchema>;
 
 // Adapter to convert NextGen format to our Lead schema
 const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
-  // Format height where first digit is feet and remaining digits are inches
-  let formattedHeight = nextgenData.height;
-  if (nextgenData.height && nextgenData.height.length >= 2) {
-    const feet = nextgenData.height.charAt(0);
-    const inches = nextgenData.height.substring(1);
-    formattedHeight = `${feet}'${inches}"`;
+  // Convert numeric height in inches (e.g. "70") → `5'10"`. Fallback to raw string if parsing fails.
+  let formattedHeight: string | undefined = undefined;
+  if (nextgenData.height) {
+    const numeric = parseInt(nextgenData.height.replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(numeric) && numeric > 0) {
+      const feet = Math.floor(numeric / 12);
+      const inches = numeric % 12;
+      formattedHeight = `${feet}'${inches}"`;
+    } else {
+      // Keep original if parsing fails (e.g. already formatted or contains non-numeric)
+      formattedHeight = nextgenData.height.trim();
+    }
   }
+
+  // Normalize weight – trim and keep as-is (string) so UI can display
+  const formattedWeight = nextgenData.weight ? nextgenData.weight.trim() : undefined;
 
   // Format date of birth
   const formattedDob = nextgenData.dob ? new Date(nextgenData.dob).toLocaleDateString() : undefined;
@@ -147,7 +156,7 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
     dob: formattedDob,
     gender: formattedGender,
     height: formattedHeight,
-    weight: nextgenData.weight,
+    weight: formattedWeight,
 
     // Health
     tobaccoUser: nextgenData.tobacco_user,
