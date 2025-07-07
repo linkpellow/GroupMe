@@ -987,16 +987,22 @@ export const saveGroupMeToken = asyncHandler(async (req: AuthenticatedRequest, r
 
 // ... add new handler for GET /groupme/callback (implicit grant)
 export const handleGroupMeImplicitCallback = async (req: Request, res: Response): Promise<void> => {
-  console.log('=== GROUPME IMPLICIT CALLBACK DEBUG ===');
+  console.log('=== GROUPME CALLBACK DEBUG ===');
   console.log('Request query:', req.query);
   console.log('Request cookies:', req.cookies);
   console.log('Request URL:', req.url);
   console.log('Request path:', req.path);
   
-  // IMPORTANT: For implicit flow, GroupMe sends the token in the URL fragment (#access_token=...)
-  // Express can't access URL fragments, so we need to handle this differently
-  // Instead of looking for access_token in req.query, we'll return a page that extracts it from the URL hash
-  const { state } = req.query as { state?: string };
+  // Parse query parameters - look for both code and access_token
+  const { access_token, code, state } = req.query as { 
+    access_token?: string; 
+    code?: string;
+    state?: string 
+  };
+  
+  // Debug what we received
+  console.log('Received access_token:', access_token ? `${access_token.substring(0, 5)}... (length: ${access_token.length})` : 'none');
+  console.log('Received code:', code ? `${code.substring(0, 5)}... (length: ${code.length})` : 'none');
   
   if (!state) {
     console.error('GroupMe callback missing state', req.query);
@@ -1023,8 +1029,8 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     return;
   }
   
-  // Return an HTML page that will extract the token from the URL fragment and send it to the server
-  console.log('Returning HTML page that will extract token from URL fragment');
+  // Return an HTML page that will handle token exchange and extraction
+  console.log('Returning HTML page to handle OAuth completion');
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -1095,6 +1101,32 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
           max-height: 100px;
           overflow-y: auto;
         }
+        input {
+          padding: 10px;
+          width: 100%;
+          margin: 10px 0;
+          border-radius: 4px;
+          border: none;
+          box-sizing: border-box;
+        }
+        button {
+          background-color: #43B581;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: bold;
+        }
+        button:hover {
+          background-color: #3ca374;
+        }
+        .manual-entry {
+          margin-top: 20px;
+          display: none;
+          border-top: 1px solid rgba(255,255,255,0.1);
+          padding-top: 20px;
+        }
       </style>
     </head>
     <body>
@@ -1103,6 +1135,13 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
         <h1>Connecting GroupMe...</h1>
         <p class="message"><span class="spinner"></span> <span id="status">Processing your connection...</span></p>
         <div id="debug"></div>
+        
+        <div class="manual-entry" id="manualEntry">
+          <h3>Manual Token Entry</h3>
+          <p>If automatic connection fails, paste your GroupMe access token below:</p>
+          <input type="text" id="manualToken" placeholder="Paste GroupMe access token here">
+          <button id="submitManualToken">Connect</button>
+        </div>
       </div>
 
       <script>
@@ -1136,6 +1175,44 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
           return params;
         }
         
+        // Function to exchange code for token if code is present
+        async function exchangeCodeForToken(code) {
+          try {
+            log('Exchanging authorization code for access token');
+            
+            // Get the auth token from localStorage
+            const authToken = localStorage.getItem('token');
+            if (!authToken) {
+              throw new Error('No auth token found in localStorage');
+            }
+            
+            const response = await fetch('/api/groupme/exchange-code', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + authToken
+              },
+              body: JSON.stringify({ code })
+            });
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error('Failed to exchange code: ' + response.status + ' ' + errorText);
+            }
+            
+            const data = await response.json();
+            if (!data || !data.access_token) {
+              throw new Error('No access token received from code exchange');
+            }
+            
+            log('Successfully exchanged code for token (length: ' + data.access_token.length + ')');
+            return data.access_token;
+          } catch (error) {
+            log('Error exchanging code: ' + error.message);
+            return null;
+          }
+        }
+        
         // Function to send the token to the server
         async function sendTokenToServer(accessToken) {
           try {
@@ -1147,7 +1224,11 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
             
             log('Auth token found in localStorage (length): ' + authToken.length);
             
-            // Send the token to the server
+            // Validate the token before sending
+            if (!accessToken || accessToken === 'undefined' || accessToken === 'null') {
+              throw new Error('Invalid access token: ' + accessToken);
+            }
+            
             log('Sending GroupMe token to server (length): ' + accessToken.length);
             
             const response = await fetch('/api/groupme/token', {
@@ -1172,6 +1253,11 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
           }
         }
         
+        // Function to show manual entry form
+        function showManualEntry() {
+          document.getElementById('manualEntry').style.display = 'block';
+        }
+        
         // Main function to handle the callback
         async function handleCallback() {
           // Get parameters from URL fragment (hash) first
@@ -1187,21 +1273,38 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
           log('Hash params: ' + JSON.stringify(hashParams));
           log('Query params: ' + JSON.stringify(queryParams));
           
-          // Try to get access token from hash first (implicit flow)
-          let accessToken = hashParams.access_token;
+          // Try multiple approaches to get the token:
           
-          // If no token in hash, try query params (though this shouldn't happen in implicit flow)
-          if (!accessToken) {
-            log('No access_token in URL hash, checking query params');
-            accessToken = queryParams.access_token;
+          // 1. Try to get access_token from hash (implicit flow)
+          let accessToken = hashParams.access_token;
+          if (accessToken && accessToken !== 'undefined' && accessToken !== 'null') {
+            log('Found valid access_token in URL hash: ' + accessToken.substring(0, 5) + '...');
+          } else {
+            // 2. Try to get authorization code from query (code flow)
+            const code = queryParams.code;
+            if (code) {
+              log('Found authorization code in query params: ' + code.substring(0, 5) + '...');
+              // Exchange code for token
+              accessToken = await exchangeCodeForToken(code);
+            } else {
+              // 3. Check query params for access_token (some providers do this)
+              accessToken = queryParams.access_token;
+              if (accessToken && accessToken !== 'undefined' && accessToken !== 'null') {
+                log('Found access_token in query params: ' + accessToken.substring(0, 5) + '...');
+              } else {
+                log('No valid access token or code found in URL');
+                showManualEntry();
+                return false;
+              }
+            }
           }
           
           const statusEl = document.getElementById('status');
           
           if (!accessToken) {
-            statusEl.textContent = 'Error: No access token found in URL';
+            statusEl.textContent = 'Error: No valid access token found';
             statusEl.style.color = '#f04747';
-            log('No access_token found in URL hash or query params');
+            showManualEntry();
             return false;
           }
           
@@ -1239,13 +1342,60 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
             
             return true;
           } else {
-            statusEl.textContent = 'Error saving token. Please try again.';
+            statusEl.textContent = 'Error saving token. Please try manually.';
             statusEl.style.color = '#f04747';
             document.querySelector('.icon').textContent = '❌';
             document.querySelector('.spinner').style.display = 'none';
+            showManualEntry();
             return false;
           }
         }
+        
+        // Set up manual token submission
+        document.getElementById('submitManualToken').addEventListener('click', async () => {
+          const manualTokenInput = document.getElementById('manualToken');
+          const manualToken = manualTokenInput.value.trim();
+          
+          if (!manualToken) {
+            log('No manual token provided');
+            return;
+          }
+          
+          log('Using manually entered token (length: ' + manualToken.length + ')');
+          
+          const statusEl = document.getElementById('status');
+          statusEl.textContent = 'Saving manual token...';
+          
+          const success = await sendTokenToServer(manualToken);
+          
+          if (success) {
+            statusEl.textContent = 'GroupMe connected successfully!';
+            document.querySelector('.icon').textContent = '✅';
+            document.querySelector('h1').textContent = 'Connection Successful!';
+            
+            // Notify the opener window about successful connection
+            if (window.opener) {
+              try {
+                window.opener.postMessage({
+                  type: 'GROUPME_CONNECTED',
+                  success: true,
+                  timestamp: Date.now()
+                }, '*');
+                log('Success message sent to parent window');
+                
+                // Close this window after a short delay
+                setTimeout(() => {
+                  window.close();
+                }, 2000);
+              } catch (e) {
+                log('Error sending message to parent: ' + e.message);
+              }
+            }
+          } else {
+            statusEl.textContent = 'Error saving manual token.';
+            statusEl.style.color = '#f04747';
+          }
+        });
         
         // Run the callback handler when the page loads
         window.addEventListener('DOMContentLoaded', handleCallback);
@@ -1259,3 +1409,84 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     </html>
   `);
 };
+
+/**
+ * Exchange authorization code for access token
+ */
+export const exchangeCode = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  console.log('=== EXCHANGE AUTHORIZATION CODE DEBUG ===');
+  
+  const userId = req.user?.id;
+  const { code } = req.body;
+  
+  console.log('User ID:', userId);
+  console.log('Authorization code present:', !!code);
+  
+  if (!userId) {
+    console.error('No userId in request when exchanging code');
+    sendError(res, 401, 'User authentication required', null, 'AUTH_ERROR');
+    return;
+  }
+  
+  if (!code) {
+    console.error('No authorization code provided');
+    sendError(res, 400, 'Authorization code is required', null, 'INVALID_REQUEST');
+    return;
+  }
+  
+  try {
+    // Exchange code for token
+    console.log(`Exchanging authorization code for token - code length: ${code.length}`);
+    
+    const GROUPME_CLIENT_ID = process.env.GROUPME_CLIENT_ID;
+    const GROUPME_CLIENT_SECRET = process.env.GROUPME_CLIENT_SECRET;
+    const REDIRECT_URI = process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback';
+    
+    if (!GROUPME_CLIENT_ID) {
+      console.error('Missing GROUPME_CLIENT_ID environment variable');
+      sendError(res, 500, 'Missing GroupMe client configuration', null, 'CONFIG_ERROR');
+      return;
+    }
+    
+    // Make token exchange request
+    console.log('Making token exchange request to GroupMe API');
+    const axios = require('axios');
+    
+    try {
+      const tokenResponse = await axios.post('https://oauth.groupme.com/oauth/token', {
+        client_id: GROUPME_CLIENT_ID,
+        client_secret: GROUPME_CLIENT_SECRET, // May be optional with some providers
+        code: code,
+        redirect_uri: REDIRECT_URI,
+        grant_type: 'authorization_code'
+      });
+      
+      const { access_token } = tokenResponse.data;
+      
+      if (!access_token) {
+        console.error('No access_token in token exchange response');
+        sendError(res, 400, 'No access token in response', null, 'TOKEN_EXCHANGE_ERROR');
+        return;
+      }
+      
+      console.log(`Token exchange successful - access_token length: ${access_token.length}`);
+      
+      // Return the access token to the client
+      sendSuccess(res, { access_token });
+    } catch (exchangeError: any) {
+      console.error('Token exchange error:', exchangeError.message);
+      console.error('Response status:', exchangeError.response?.status);
+      console.error('Response data:', exchangeError.response?.data);
+      
+      sendError(res, 
+        exchangeError.response?.status || 500, 
+        'Failed to exchange code for token', 
+        exchangeError.response?.data || exchangeError.message,
+        'CODE_EXCHANGE_ERROR'
+      );
+    }
+  } catch (error: any) {
+    console.error('Error in exchangeCode:', error.message);
+    sendError(res, 500, 'Internal server error', error.message, 'SERVER_ERROR');
+  }
+});

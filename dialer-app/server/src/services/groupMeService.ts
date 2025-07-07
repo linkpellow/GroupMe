@@ -74,22 +74,39 @@ export class GroupMeService extends EventEmitter {
       throw new Error('No GroupMe token provided');
     }
     
-    // Remove 'undefined' string check and add better logging
+    // Add better logging and token validation
     if (token === 'undefined') {
       console.error('GroupMe token is the string "undefined", which is invalid');
       throw new Error('Invalid GroupMe token: "undefined" string received');
     }
     
-    console.log(`GroupMeService: Initializing with token (first 5 chars): ${token.substring(0, 5)}...`);
+    // Log token characteristics for debugging
+    console.log(`GroupMeService: Token validation - Length: ${token.length}, First 5 chars: ${token.substring(0, 5)}...`);
     
     this.token = token;
     this.api = axios.create({
       baseURL: 'https://api.groupme.com/v3',
       headers: {
         'X-Access-Token': token,
-        'Content-Type': 'application/json',
-      },
+        'Content-Type': 'application/json'
+      }
     });
+    
+    // Add response interceptor to detect API errors early
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        console.error('GroupMe API error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method
+          }
+        });
+        return Promise.reject(error);
+      }
+    );
 
     // Rate limiting interceptor
     this.api.interceptors.request.use(async (config) => {

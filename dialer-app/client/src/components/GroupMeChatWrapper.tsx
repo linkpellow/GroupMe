@@ -228,14 +228,29 @@ const GroupMeChatWrapper: React.FC<GroupMeChatProps> = (props) => {
         authUrl = authUrl.replace('login_dialog', 'authorize');
       }
 
-      // CRITICAL: Ensure we're using the implicit flow by adding response_type=token
-      // This makes GroupMe return the token directly in the URL fragment
-      console.log('Adding response_type=token to ensure implicit flow');
-      authUrl = authUrl + (authUrl.includes('?') ? '&' : '?') + 'response_type=token';
-
+      // CRITICAL: GroupMe's OAuth implementation doesn't properly follow the implicit flow
+      // It seems to ignore response_type=token, so we need a different approach
+      console.log('Configuring GroupMe OAuth URL with proper parameters');
+      
+      // Parse the URL to keep existing parameters
+      const urlObj = new URL(authUrl);
+      
+      // Ensure required parameters
+      urlObj.searchParams.set('client_id', urlObj.searchParams.get('client_id') || '');
+      urlObj.searchParams.set('redirect_uri', urlObj.searchParams.get('redirect_uri') || '');
+      urlObj.searchParams.set('state', urlObj.searchParams.get('state') || '');
+      
+      // Try code flow instead of token flow (GroupMe seems to prefer this)
+      // Remove response_type=token if present
+      if (urlObj.searchParams.has('response_type')) {
+        urlObj.searchParams.delete('response_type');
+      }
+      
       // Add cache-busting parameter to prevent using cached URL
-      authUrl = authUrl + '&_cb=' + Date.now();
-      console.log('Final auth URL with cache busting:', authUrl);
+      urlObj.searchParams.set('_cb', Date.now().toString());
+      
+      authUrl = urlObj.toString();
+      console.log('Final GroupMe OAuth URL:', authUrl);
 
       // Store OAuth state in sessionStorage
       try {
