@@ -70,11 +70,13 @@ export interface ILeadInput {
   // Textdrip integration
   textdripContactId?: string;
   timeZone?: string;
+  tenantId?: mongoose.Types.ObjectId;
 }
 
 export interface ILead extends ILeadInput, Document {
   createdAt: Date;
   updatedAt: Date;
+  tenantId: mongoose.Types.ObjectId;
 }
 
 // Extend the model with static methods
@@ -116,6 +118,7 @@ const leadSchema = new Schema<ILead>(
       default: '',
     },
     phone: { type: String, default: '' },
+    tenantId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     status: {
       type: String,
       required: true,
@@ -194,6 +197,9 @@ leadSchema.index({ disposition: 1 });
 leadSchema.index({ createdAt: -1 });
 leadSchema.index({ assignedTo: 1, createdAt: -1 });
 leadSchema.index({ timeZone: 1 });
+leadSchema.index({ source: 1, createdAt: -1 });
+// Compound index for multi-tenant queries
+leadSchema.index({ tenantId: 1, createdAt: -1 });
 
 // Add state and zipcode setters
 leadSchema.path('state').set(function (value: string) {
@@ -207,7 +213,7 @@ leadSchema.path('zipcode').set(function (value: string) {
 });
 
 // Update the updatedAt timestamp before saving
-leadSchema.pre('save', function (next) {
+leadSchema.pre('save', function (this: any, next) {
   this.updatedAt = new Date();
 
   // Ensure state and zipcode are properly set if they exist in the document

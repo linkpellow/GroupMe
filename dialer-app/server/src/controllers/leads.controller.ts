@@ -10,6 +10,7 @@ import { US_STATES, ALLOWED_DISPOSITIONS, PIPELINE_SOURCES } from '@shared/confi
 import { format as csvFormat } from '@fast-csv/format';
 import { Writable } from 'stream';
 import { sanitizeNotes } from '../utils/notesUtils';
+import { withTenant } from '../utils/tenantUtils';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -84,7 +85,10 @@ export const getLeads = async (req: ValidatedQuery, res: Response): Promise<void
     }
 
     // Build MongoDB query
-    const { filter, sort, skip, limit, page } = QueryBuilderService.buildLeadsQuery(validatedQuery);
+    const qbResult = QueryBuilderService.buildLeadsQuery(validatedQuery);
+    const { sort, skip, limit, page } = qbResult;
+    // Merge tenant filter into generated query
+    const filter = withTenant(req, qbResult.filter);
     // Get performance warnings
     const perfCheck = QueryBuilderService.validateQueryPerformance(validatedQuery);
     const allWarnings = [...perfCheck.warnings];
@@ -177,7 +181,7 @@ export const getLeadById = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     console.log('Looking up lead with valid ObjectId:', req.params.id);
-    const lead = await LeadModel.findById(req.params.id).populate('assignedTo', 'name email');
+    const lead = await LeadModel.findOne(withTenant(req, { _id: req.params.id })).populate('assignedTo', 'name email');
 
     if (!lead) {
       console.log('Lead not found for ID:', req.params.id);
@@ -251,7 +255,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response) => {
     } = req.body;
 
     // Get the current highest order
-    const query: any = {};
+    const query: any = { tenantId: req.user?.id };
     if (req.user?.role !== 'admin') {
       query.assignedTo = req.user?.id;
     }
@@ -276,6 +280,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response) => {
       disposition: disposition || '',
       notes: sanitizeNotes(notes || ''),
       source: source || 'Manual Entry',
+      tenantId: req.user?.id,
       assignedTo: req.user?.id,
       order: nextOrder,
     };
@@ -327,7 +332,7 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     // Check if lead exists before update
-    const existingLead = await LeadModel.findById(id);
+    const existingLead = await LeadModel.findOne(withTenant(req, { _id: id }));
     if (!existingLead) {
       console.log('Lead not found for update:', id);
       return res.status(404).json({ message: 'Lead not found' });
@@ -371,7 +376,7 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response) => {
 
     // Use findOneAndUpdate with upsert to ensure the update happens
     const updatedLead = await LeadModel.findOneAndUpdate(
-      { _id: id },
+      withTenant(req, { _id: id }),
       { $set: updateData },
       {
         new: true,
@@ -435,7 +440,7 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response) => {
 export const deleteLead = async (req: AuthenticatedRequest, res: Response) => {
   try {
     console.log('Deleting lead:', req.params.id);
-    const result = await LeadModel.findByIdAndDelete(req.params.id);
+    const result = await LeadModel.findOneAndDelete(withTenant(req, { _id: req.params.id }));
 
     if (!result) {
       console.log('Lead not found:', req.params.id);
