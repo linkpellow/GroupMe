@@ -243,15 +243,18 @@ leadSchema.statics.upsertLead = async function(payload) {
       query.email = payload.email;
     }
     
-    // Create update document
+    // Create a clean payload without status to avoid conflicts
+    const { status, ...cleanPayload } = payload;
+    
+    // Create update document - keep status only in setOnInsert to avoid conflicts
     const updateDoc = {
       $set: {
-        ...payload,
+        ...cleanPayload,
         updatedAt: new Date()
       },
       $setOnInsert: {
         createdAt: new Date(),
-        status: payload.status || 'New'
+        status: status || 'New'
       }
     };
     
@@ -266,6 +269,8 @@ leadSchema.statics.upsertLead = async function(payload) {
     // Determine if this was a new insert or an update
     const isNew = lead.createdAt && lead.updatedAt && 
                   lead.createdAt.getTime() === lead.updatedAt.getTime();
+    
+    console.log(`Lead ${isNew ? 'created' : 'updated'}: ${lead._id}, name: ${lead.name}, phone: ${lead.phone}`);
     
     return {
       lead,
