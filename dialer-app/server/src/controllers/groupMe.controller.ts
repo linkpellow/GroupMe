@@ -6,6 +6,9 @@ import crypto from 'crypto';
 import User, { IUser } from '../models/User';
 import { sendError, sendSuccess, asyncHandler, logRequest } from '../utils/controllerUtils';
 import { getEncryptionKey } from '../utils/secret';
+import { AuthenticatedRequest } from '../middleware/auth';
+import { encrypt } from '../utils/crypto';
+import axios from 'axios';
 
 // Extend Express Request type to include 'user'
 interface AuthenticatedRequest extends Request {
@@ -1029,6 +1032,169 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
     return;
   }
   
+  // If we received a code parameter directly, exchange it for a token
+  if (code && !access_token) {
+    console.log(`Received authorization code. Will exchange it server-side.`);
+    
+    try {
+      // Get the GroupMe client config
+      const GROUPME_CLIENT_ID = process.env.GROUPME_CLIENT_ID;
+      const GROUPME_CLIENT_SECRET = process.env.GROUPME_CLIENT_SECRET;
+      const REDIRECT_URI = process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback';
+      
+      if (!GROUPME_CLIENT_ID) {
+        console.error('Missing GROUPME_CLIENT_ID environment variable');
+        res.status(500).send('Server configuration error. Please contact support.');
+        return;
+      }
+      
+      console.log('Making token exchange request to GroupMe API');
+      
+      try {
+        const tokenResponse = await axios.post('https://oauth.groupme.com/oauth/token', {
+          client_id: GROUPME_CLIENT_ID,
+          client_secret: GROUPME_CLIENT_SECRET,
+          code: code,
+          redirect_uri: REDIRECT_URI,
+          grant_type: 'authorization_code'
+        });
+        
+        const exchangedToken = tokenResponse.data.access_token;
+        
+        if (!exchangedToken) {
+          console.error('No access_token in token exchange response');
+          res.status(400).send('Could not obtain access token from GroupMe. Please try again.');
+          return;
+        }
+        
+        console.log(`Token exchange successful - access_token length: ${exchangedToken.length}`);
+        
+        // Now save this token to the user's account
+        try {
+          const user = await User.findById(userId);
+          if (!user) {
+            console.error(`User ${userId} not found`);
+            res.status(404).send('User not found');
+            return;
+          }
+          
+          // Encrypt token before saving
+          const encryptedToken = encrypt(exchangedToken);
+          
+          // Set the token in user's groupMe field
+          user.groupMe = {
+            accessToken: encryptedToken,
+            tokenUpdatedAt: new Date(),
+          };
+          
+          // Save the user with the updated groupMe field
+          await user.save();
+          
+          console.log(`GroupMe token saved successfully for user ${userId}`);
+          
+          // Return success page
+          res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>GroupMe Connected</title>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <style>
+                body {
+                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                  background-color: #2C2F33;
+                  color: white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  height: 100vh;
+                  margin: 0;
+                  padding: 20px;
+                  text-align: center;
+                }
+                .card {
+                  background-color: #36393F;
+                  border-radius: 8px;
+                  padding: 30px;
+                  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                  max-width: 500px;
+                  width: 100%;
+                }
+                h1 {
+                  color: #43B581;
+                  margin-top: 0;
+                }
+                .icon {
+                  font-size: 48px;
+                  margin-bottom: 20px;
+                }
+                .message {
+                  margin-bottom: 20px;
+                }
+                button {
+                  background-color: #43B581;
+                  color: white;
+                  border: none;
+                  padding: 10px 20px;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                }
+                button:hover {
+                  background-color: #3ca374;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <div class="icon">✅</div>
+                <h1>GroupMe Connected!</h1>
+                <p class="message">Your GroupMe account has been successfully connected.</p>
+                <button onclick="window.close()">Close Window</button>
+                <script>
+                  // Notify the opener window about successful connection
+                  if (window.opener) {
+                    try {
+                      window.opener.postMessage({
+                        type: 'GROUPME_CONNECTED',
+                        success: true,
+                        timestamp: Date.now()
+                      }, '*');
+                      console.log('Success message sent to parent window');
+                      
+                      // Close this window after a short delay
+                      setTimeout(() => {
+                        window.close();
+                      }, 2000);
+                    } catch (e) {
+                      console.log('Error sending message to parent: ' + e.message);
+                    }
+                  }
+                </script>
+              </div>
+            </body>
+            </html>
+          `);
+        } catch (saveError: any) {
+          console.error('Failed to save GroupMe token:', saveError.message);
+          res.status(500).send('Failed to save GroupMe token: ' + saveError.message);
+        }
+      } catch (exchangeError: any) {
+        console.error('Token exchange error:', exchangeError.message);
+        console.error('Response status:', exchangeError.response?.status);
+        console.error('Response data:', exchangeError.response?.data);
+        
+        res.status(500).send('Failed to exchange code for token. Please try again.');
+      }
+      
+      return;
+    } catch (error: any) {
+      console.error('Error in code exchange flow:', error.message);
+      res.status(500).send('Internal server error');
+      return;
+    }
+  }
+  
   // Return an HTML page that will handle token exchange and extraction
   console.log('Returning HTML page to handle OAuth completion');
   res.send(`
@@ -1290,7 +1456,7 @@ export const handleGroupMeImplicitCallback = async (req: Request, res: Response)
               // 3. Check query params for access_token (some providers do this)
               accessToken = queryParams.access_token;
               if (accessToken && accessToken !== 'undefined' && accessToken !== 'null') {
-                log('Found access_token in query params: ' + accessToken.substring(0, 5) + '...');
+                log('Found access_token in query params: ' + access_token.substring(0, 5) + '...');
               } else {
                 log('No valid access token or code found in URL');
                 showManualEntry();
