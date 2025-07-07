@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNotification } from '../context/NotificationContext';
+import { useNotificationSound } from '../context/NotificationSoundContext';
 import { webSocketService } from '../services/websocketService';
 import { useQueryClient } from '@tanstack/react-query';
-import { safeStr } from '../utils/string';
+import { safeString } from '../utils/safeString';
 
 interface NewLeadNotification {
   type: 'new_lead_notification';
@@ -21,6 +22,7 @@ interface NewLeadNotification {
  */
 const LeadNotificationHandler: React.FC = () => {
   const { showNotification } = useNotification();
+  const { soundEnabled } = useNotificationSound();
   const queryClient = useQueryClient();
   const [recentNotifications] = useState<Set<string>>(new Set());
   const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -34,13 +36,13 @@ const LeadNotificationHandler: React.FC = () => {
   // Helper to build a fully-shaped placeholder Lead object so renderers never see undefined.
   const createPlaceholderLead = (leadId: string, name: string, source: string) => ({
     _id: leadId,
-    name,
+    name: safeString(name),
     firstName: name.split(' ')[0] || '',
     lastName: name.split(' ').slice(1).join(' '),
     email: '',
     phone: '',
     status: 'New Lead',
-    source,
+    source: safeString(source),
     createdAt: new Date().toISOString(),
   });
   
@@ -66,19 +68,16 @@ const LeadNotificationHandler: React.FC = () => {
         if (isNew && source.toLowerCase() === 'nextgen') {
           console.log('[LeadNotification] Showing notification for new NextGen lead:', name);
 
-          // Re-enabled audio playback
-          const audio = new Audio('/sounds/Cash app sound.mp3');
-          
-          // Configure audio & play immediately. If autoplay fails (Chrome), the
-          // existing Notification component will attempt a fallback on user
-          // interaction, so we ignore the rejection here.
-          audio.muted = false;
-          audio.volume = 0.3;
-          audio.preload = 'auto';
-          audio.currentTime = 0;
-          audio.play().catch((e) => {
-            console.warn('[Sound] Immediate play blocked, will rely on fallback:', e);
-          });
+          if (soundEnabled) {
+            const audio = new Audio('/sounds/Cash app sound.mp3');
+            audio.muted = false;
+            audio.volume = 0.3;
+            audio.preload = 'auto';
+            audio.currentTime = 0;
+            audio.play().catch((e) => {
+              console.warn('[Sound] Immediate play blocked:', e);
+            });
+          }
 
           // 1. Trigger banner/SFX
           showNotification(`New NextGen Lead! ${name}`, 'nextgen');
@@ -204,7 +203,7 @@ const LeadNotificationHandler: React.FC = () => {
       window.removeEventListener('message', handleWindowMessage);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [showNotification, recentNotifications, showDebug, queryClient]);
+  }, [showNotification, recentNotifications, showDebug, queryClient, soundEnabled]);
   
   // 2. Set up fallback polling mechanism when WebSocket is disconnected
   useEffect(() => {

@@ -34,6 +34,7 @@ import { useSidebarToggle } from '../context/SidebarToggleContext';
 import TripleChevronIcon from './icons/TripleChevronIcon';
 import { useCallCountsContext } from '../context/CallCountsContext';
 import DailyGoals from './DailyGoals';
+import SoundToggleButton from './SoundToggleButton';
 
 const Navigation: React.FC = () => {
   const { user, logout, refreshUserData } = useAuth();
@@ -568,6 +569,9 @@ const Navigation: React.FC = () => {
           </>
         )}
 
+        <Box position="absolute" bottom="10px" right="10px">
+          <SoundToggleButton compact={true} />
+        </Box>
         <DailyGoals />
       </Box>
 
