@@ -8,7 +8,7 @@ const router: Router = Router();
 
 // OAuth routes that DO NOT require authentication
 router.post('/oauth/callback', groupMeController.handleOAuthCallback);
-router.get('/oauth/status', auth, groupMeController.getConnectionStatus);
+router.get('/oauth/status', groupMeController.getConnectionStatus);
 router.post('/oauth/initiate', groupMeController.initiateOAuth);
 
 // Implicit grant callback (no auth) - MOVED HERE to make it public
