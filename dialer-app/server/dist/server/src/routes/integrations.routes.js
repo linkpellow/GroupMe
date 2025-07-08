@@ -6,9 +6,44 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
 const User_1 = __importDefault(require("../models/User"));
+const NextGenCredential_1 = __importDefault(require("../models/NextGenCredential"));
+const nextgenUtils_1 = require("../utils/nextgenUtils");
 const router = express_1.default.Router();
 // Apply auth middleware
 router.use(auth_1.authenticate);
+// -------------------- NextGen Credential Endpoints --------------------
+// GET /api/integrations/nextgen/credentials
+router.get('/nextgen/credentials', async (req, res) => {
+    try {
+        const tenantId = req.user._id;
+        const cred = await NextGenCredential_1.default.findOne({ tenantId, active: true }).lean();
+        if (!cred) {
+            return res.status(404).json({ connected: false });
+        }
+        res.json({ connected: true, sid: cred.sid, apiKey: cred.apiKey, createdAt: cred.createdAt });
+    }
+    catch (err) {
+        console.error('Error fetching NextGen credential', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+// POST /api/integrations/nextgen/rotate – generate new key pair
+router.post('/nextgen/credentials/rotate', async (req, res) => {
+    try {
+        const tenantId = req.user._id;
+        // Deactivate existing
+        await NextGenCredential_1.default.updateMany({ tenantId, active: true }, { $set: { active: false, rotatedAt: new Date() } });
+        // Create new cred
+        const sid = (0, nextgenUtils_1.generateSid)();
+        const apiKey = (0, nextgenUtils_1.generateApiKey)();
+        const cred = await NextGenCredential_1.default.create({ tenantId, sid, apiKey, active: true });
+        res.json({ sid: cred.sid, apiKey: cred.apiKey, createdAt: cred.createdAt });
+    }
+    catch (err) {
+        console.error('Error rotating NextGen credential', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
 // Get user's Calendly integration
 router.get('/calendly', async (req, res) => {
     try {

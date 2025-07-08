@@ -90,6 +90,12 @@
       <img src="/ANIMATION/HEADER LOGO REFRESH.gif" width="120" height="120" alt="Loading..." />
       <div id="preloader-footer">Crokodial™ CRM © 2025 All Rights Reserved</div>
     </div>
+    <script>
+      // Safety: remove preloader after 5s even if React fails to mount
+      setTimeout(function(){
+        var pre=document.getElementById('croc-preloader');
+        if(pre){pre.parentNode.removeChild(pre);} },5000);
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Calendly popup widget resources (no badge) -->

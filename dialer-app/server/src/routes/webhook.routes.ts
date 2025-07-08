@@ -232,46 +232,72 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
       });
     }
 
-    // Adapt the lead data
-    const leadData = adaptNextGenLead(validationResult.data);
+    // Adapt lead data (full) but we'll upsert minimal first for speed
+    const fullLeadData = adaptNextGenLead(validationResult.data);
 
-    // Ensure we have minimum required contact data
-    if (!leadData.email && !leadData.phone) {
+    if (!fullLeadData.email && !fullLeadData.phone) {
       logger.error('NextGen lead missing both email and phone', {
-        nextgenId: leadData.nextgenId,
+        nextgenId: fullLeadData.nextgenId,
       });
-
       return res.status(400).json({
         success: false,
         message: 'Lead must have either email or phone',
       });
     }
 
-    // Upsert the lead
-    const { lead, isNew } = await (Lead as any).upsertLead(leadData);
+    // Build minimal payload for fast upsert
+    const minimal = {
+      nextgenId: fullLeadData.nextgenId,
+      firstName: fullLeadData.firstName,
+      lastName: fullLeadData.lastName,
+      name: fullLeadData.name,
+      email: fullLeadData.email,
+      phone: fullLeadData.phone,
+      source: 'NextGen' as const,
+      disposition: 'New Lead' as const,
+      status: 'New' as const,
+    };
+
+    const { lead, isNew } = await (Lead as any).upsertLead(minimal);
     leadId = lead._id.toString();
+
+    // Async update with heavy fields (non-blocking)
+    setImmediate(async () => {
+      try {
+        await Lead.updateOne({ _id: leadId }, { $set: fullLeadData });
+      } catch (e) {
+        console.error('Async enrich lead failed', e);
+      }
+    });
 
     // Log success
     logger.info('NextGen lead processed successfully', {
       leadId,
-      nextgenId: leadData.nextgenId,
+      nextgenId: fullLeadData.nextgenId,
       isNew,
       duration: Date.now() - startTime,
     });
+
+    // Compute processing time
+    const processMs = Date.now() - startTime;
 
     // Broadcast notification if available
     if (typeof broadcastNewLeadNotification === 'function' && leadId) {
       try {
         broadcastNewLeadNotification({
           leadId,
-          name: leadData.name,
+          name: fullLeadData.name,
           source: 'NextGen',
           isNew,
+          processMs,
         });
       } catch (broadcastError) {
         logger.error('Failed to broadcast lead notification', broadcastError);
       }
     }
+
+    // Expose timing header
+    res.set('X-Process-Time', processMs.toString());
 
     // Send success response
     res.status(isNew ? 201 : 200).json({
@@ -279,6 +305,7 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
       leadId,
       message: `Lead successfully ${isNew ? 'created' : 'updated'}`,
       isNew,
+      processMs,
     });
   } catch (error: any) {
     logger.error('NextGen webhook error', {

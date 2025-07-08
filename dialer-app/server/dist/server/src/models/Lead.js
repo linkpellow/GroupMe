@@ -32,8 +32,12 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
+const User_1 = __importDefault(require("./User"));
 // Policy document schema
 const policyDocumentSchema = new mongoose_1.Schema({
     clientId: { type: String, required: true },
@@ -56,6 +60,7 @@ const leadSchema = new mongoose_1.Schema({
         default: '',
     },
     phone: { type: String, default: '' },
+    tenantId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     status: {
         type: String,
         required: true,
@@ -131,6 +136,12 @@ leadSchema.index({ disposition: 1 });
 leadSchema.index({ createdAt: -1 });
 leadSchema.index({ assignedTo: 1, createdAt: -1 });
 leadSchema.index({ timeZone: 1 });
+leadSchema.index({ source: 1, createdAt: -1 });
+// Compound index for multi-tenant queries
+leadSchema.index({ tenantId: 1, createdAt: -1 });
+// Compound indexes for fast upsert lookups
+leadSchema.index({ tenantId: 1, phone: 1 });
+leadSchema.index({ tenantId: 1, email: 1 });
 // Add state and zipcode setters
 leadSchema.path('state').set(function (value) {
     console.log('Setting state:', value);
@@ -160,11 +171,28 @@ leadSchema.pre('save', function (next) {
  */
 leadSchema.statics.upsertLead = async function (payload) {
     try {
+        // Ensure tenantId – fallback to first admin user if missing (legacy global webhook)
+        if (!payload.tenantId) {
+            try {
+                const adminUser = await User_1.default.findOne({ role: 'admin' }).select('_id').lean();
+                if (adminUser) {
+                    payload.tenantId = adminUser._id;
+                }
+            }
+            catch (e) {
+                console.error('Failed to lookup admin user for tenantId fallback', e);
+            }
+        }
+        if (!payload.tenantId) {
+            throw new Error('tenantId is required for lead upsert');
+        }
         if (!payload.phone && !payload.email) {
             throw new Error('Either phone or email is required for lead upsert');
         }
-        // Build lookup query
-        const query = {};
+        // Build lookup query – must include tenantId for strict multi-tenancy
+        const query = {
+            tenantId: payload.tenantId,
+        };
         if (payload.phone)
             query.phone = payload.phone;
         if (!payload.phone && payload.email)

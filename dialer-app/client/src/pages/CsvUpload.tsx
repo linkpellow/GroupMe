@@ -105,7 +105,7 @@ const CsvUpload: React.FC = () => {
       });
 
       // Use the vendor-aware import endpoint
-      const response = await axiosInstance.post('/api/leads/import-csv', formData, {
+      const response = await axiosInstance.post('/api/csv-upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

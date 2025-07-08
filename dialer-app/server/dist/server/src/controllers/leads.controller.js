@@ -13,6 +13,7 @@ const queryBuilder_service_1 = require("../services/queryBuilder.service");
 const queryConfig_1 = require("@shared/config/queryConfig");
 const format_1 = require("@fast-csv/format");
 const notesUtils_1 = require("../utils/notesUtils");
+const tenantFilter_1 = require("../utils/tenantFilter");
 // Helper function to format lead data as JSON
 const formatLeadAsJson = (lead) => {
     const formattedLead = {
@@ -73,7 +74,13 @@ const getLeads = async (req, res) => {
             validatedQuery.limit = 10000; // Set a reasonable max limit
         }
         // Build MongoDB query
-        const { filter, sort, skip, limit, page } = queryBuilder_service_1.QueryBuilderService.buildLeadsQuery(validatedQuery);
+        const qbResult = queryBuilder_service_1.QueryBuilderService.buildLeadsQuery(validatedQuery);
+        const { sort, skip, limit, page } = qbResult;
+        // Build tenant or legacy filter so old leads (no tenantId) still appear
+        const tenantFilter = req.user?.role === 'admin'
+            ? { $or: [{ tenantId: req.user?._id }, { tenantId: { $exists: false } }] }
+            : { tenantId: req.user?._id };
+        const filter = { $and: [qbResult.filter, tenantFilter] };
         // Get performance warnings
         const perfCheck = queryBuilder_service_1.QueryBuilderService.validateQueryPerformance(validatedQuery);
         const allWarnings = [...perfCheck.warnings];
@@ -163,7 +170,7 @@ const getLeadById = async (req, res) => {
             return res.status(400).json({ message: 'Invalid lead ID format' });
         }
         console.log('Looking up lead with valid ObjectId:', req.params.id);
-        const lead = await Lead_1.default.findById(req.params.id).populate('assignedTo', 'name email');
+        const lead = await Lead_1.default.findOne((0, tenantFilter_1.withTenant)(req, { _id: req.params.id })).populate('assignedTo', 'name email');
         if (!lead) {
             console.log('Lead not found for ID:', req.params.id);
             return res.status(404).json({ message: 'Lead not found' });
@@ -213,7 +220,7 @@ const createLead = async (req, res) => {
         }
         const { name, email, phone, status, height, weight, gender, state, city, zipcode, dob, firstName, lastName, disposition, notes, source, } = req.body;
         // Get the current highest order
-        const query = {};
+        const query = { tenantId: req.user?.id };
         if (req.user?.role !== 'admin') {
             query.assignedTo = req.user?.id;
         }
@@ -237,6 +244,7 @@ const createLead = async (req, res) => {
             disposition: disposition || '',
             notes: (0, notesUtils_1.sanitizeNotes)(notes || ''),
             source: source || 'Manual Entry',
+            tenantId: req.user?.id,
             assignedTo: req.user?.id,
             order: nextOrder,
         };
@@ -285,7 +293,7 @@ const updateLead = async (req, res) => {
             state,
         });
         // Check if lead exists before update
-        const existingLead = await Lead_1.default.findById(id);
+        const existingLead = await Lead_1.default.findOne((0, tenantFilter_1.withTenant)(req, { _id: id }));
         if (!existingLead) {
             console.log('Lead not found for update:', id);
             return res.status(404).json({ message: 'Lead not found' });
@@ -333,7 +341,7 @@ const updateLead = async (req, res) => {
         console.log('Fields being updated:', Object.keys(updateData));
         console.log('Update values:', updateData);
         // Use findOneAndUpdate with upsert to ensure the update happens
-        const updatedLead = await Lead_1.default.findOneAndUpdate({ _id: id }, { $set: updateData }, {
+        const updatedLead = await Lead_1.default.findOneAndUpdate((0, tenantFilter_1.withTenant)(req, { _id: id }), { $set: updateData }, {
             new: true,
             upsert: false,
             runValidators: true,
@@ -392,7 +400,7 @@ exports.updateLead = updateLead;
 const deleteLead = async (req, res) => {
     try {
         console.log('Deleting lead:', req.params.id);
-        const result = await Lead_1.default.findByIdAndDelete(req.params.id);
+        const result = await Lead_1.default.findOneAndDelete((0, tenantFilter_1.withTenant)(req, { _id: req.params.id }));
         if (!result) {
             console.log('Lead not found:', req.params.id);
             return res.status(404).json({ message: 'Lead not found' });
@@ -832,7 +840,7 @@ const updateLeadNotes = async (req, res) => {
             return res.status(400).json({ message: 'Notes must be provided as a string' });
         }
         const now = new Date();
-        const updatedLead = await Lead_1.default.findOneAndUpdate({ _id: id }, { $set: { notes: notes, updatedAt: now } }, { new: true, runValidators: true, upsert: false }).lean();
+        const updatedLead = await Lead_1.default.findOneAndUpdate((0, tenantFilter_1.withTenant)(req, { _id: id }), { $set: { notes: notes, updatedAt: now } }, { new: true, runValidators: true, upsert: false }).lean();
         if (!updatedLead) {
             return res.status(404).json({ message: 'Lead not found' });
         }

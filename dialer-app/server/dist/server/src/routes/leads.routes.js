@@ -540,8 +540,13 @@ router.post('/upload', auth_1.auth, upload.single('file'), async (req, res) => {
         global.currentUploadFilename = null;
     }
 });
-// New improved CSV import using vendor-aware parser
-router.post('/import-csv', upload.single('file'), async (req, res) => {
+// DEPRECATED – allow only admin; others get 410
+router.post('/import-csv', auth_1.auth, upload.single('file'), async (req, res) => {
+    if (req.user?.role !== 'admin') {
+        return res.status(410).json({
+            error: 'This endpoint is deprecated. Please use /api/csv-upload instead.',
+        });
+    }
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });

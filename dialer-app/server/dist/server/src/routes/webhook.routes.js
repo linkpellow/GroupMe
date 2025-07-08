@@ -56,27 +56,33 @@ const logger = winston_1.default.createLogger({
         }),
     ],
 });
-// Middleware to verify NextGen credentials
-const verifyNextGenAuth = (req, res, next) => {
-    const { sid, apikey } = req.headers;
-    if (!process.env.NEXTGEN_SID || !process.env.NEXTGEN_API_KEY) {
-        logger.error('NextGen credentials not configured in environment');
-        return res.status(500).json({
-            success: false,
-            message: 'Server configuration error',
-        });
+// Middleware to verify NextGen credentials (per-tenant)
+const NextGenCredential_1 = __importDefault(require("../models/NextGenCredential"));
+const verifyNextGenAuth = async (req, res, next) => {
+    try {
+        const { sid, apikey } = req.headers;
+        if (!sid || !apikey) {
+            return res.status(401).json({ success: false, message: 'Missing creds' });
+        }
+        // Look up active credential
+        const cred = await NextGenCredential_1.default.findOne({ sid, apiKey: apikey, active: true }).lean();
+        if (!cred) {
+            // Legacy env-var fallback for admin tenant
+            if (sid === process.env.NEXTGEN_SID && apikey === process.env.NEXTGEN_API_KEY) {
+                req.tenantId = process.env.ADMIN_TENANT_ID || null;
+                return next();
+            }
+            logger.warn('Invalid NextGen credentials attempted', { sid: sid.substring(0, 5) + '...', ip: req.ip });
+            return res.status(401).json({ success: false, message: 'Bad creds' });
+        }
+        // Attach tenantId for controller to use in upsert
+        req.tenantId = cred.tenantId;
+        return next();
     }
-    if (sid !== process.env.NEXTGEN_SID || apikey !== process.env.NEXTGEN_API_KEY) {
-        logger.warn('Invalid NextGen credentials attempted', {
-            sid: sid?.toString().substring(0, 5) + '...',
-            ip: req.ip,
-        });
-        return res.status(401).json({
-            success: false,
-            message: 'Bad creds',
-        });
+    catch (err) {
+        logger.error('verifyNextGenAuth error', err);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
-    next();
 };
 // Zod schema for NextGen webhook payload
 const NextGenLeadSchema = zod_1.z.object({
@@ -94,7 +100,8 @@ const NextGenLeadSchema = zod_1.z.object({
     zip_code: zod_1.z.string().optional(),
     street_address: zod_1.z.string().optional(),
     // Demographics
-    dob: zod_1.z.string().optional(),
+    dob: zod_1.z.string().optional(), // preferred
+    date_of_birth: zod_1.z.string().optional(), // some vendors send this
     age: zod_1.z.number().optional(),
     gender: zod_1.z.string().optional(),
     height: zod_1.z.string().optional(),
@@ -140,8 +147,8 @@ const adaptNextGenLead = (nextgenData) => {
     }
     // Normalize weight – trim and keep as-is (string) so UI can display
     const formattedWeight = nextgenData.weight ? nextgenData.weight.trim() : undefined;
-    // Format date of birth
-    const formattedDob = nextgenData.dob ? new Date(nextgenData.dob).toLocaleDateString() : undefined;
+    // Keep DOB as provided (MM/DD/YY) so UI can parse consistently
+    const formattedDob = (nextgenData.dob || nextgenData.date_of_birth)?.trim();
     // Format gender (capitalize first letter)
     let formattedGender = undefined;
     if (nextgenData.gender) {
@@ -225,48 +232,73 @@ router.post('/nextgen', verifyNextGenAuth, async (req, res) => {
                 errors: validationResult.error.errors,
             });
         }
-        // Adapt the lead data
-        const leadData = adaptNextGenLead(validationResult.data);
-        // Ensure we have minimum required contact data
-        if (!leadData.email && !leadData.phone) {
+        // Adapt lead data (full) but we'll upsert minimal first for speed
+        const fullLeadData = adaptNextGenLead(validationResult.data);
+        if (!fullLeadData.email && !fullLeadData.phone) {
             logger.error('NextGen lead missing both email and phone', {
-                nextgenId: leadData.nextgenId,
+                nextgenId: fullLeadData.nextgenId,
             });
             return res.status(400).json({
                 success: false,
                 message: 'Lead must have either email or phone',
             });
         }
-        // Upsert the lead
-        const { lead, isNew } = await Lead_1.default.upsertLead(leadData);
+        // Build minimal payload for fast upsert
+        const minimal = {
+            nextgenId: fullLeadData.nextgenId,
+            firstName: fullLeadData.firstName,
+            lastName: fullLeadData.lastName,
+            name: fullLeadData.name,
+            email: fullLeadData.email,
+            phone: fullLeadData.phone,
+            source: 'NextGen',
+            disposition: 'New Lead',
+            status: 'New',
+        };
+        const { lead, isNew } = await Lead_1.default.upsertLead(minimal);
         leadId = lead._id.toString();
+        // Async update with heavy fields (non-blocking)
+        setImmediate(async () => {
+            try {
+                await Lead_1.default.updateOne({ _id: leadId }, { $set: fullLeadData });
+            }
+            catch (e) {
+                console.error('Async enrich lead failed', e);
+            }
+        });
         // Log success
         logger.info('NextGen lead processed successfully', {
             leadId,
-            nextgenId: leadData.nextgenId,
+            nextgenId: fullLeadData.nextgenId,
             isNew,
             duration: Date.now() - startTime,
         });
+        // Compute processing time
+        const processMs = Date.now() - startTime;
         // Broadcast notification if available
         if (typeof index_1.broadcastNewLeadNotification === 'function' && leadId) {
             try {
                 (0, index_1.broadcastNewLeadNotification)({
                     leadId,
-                    name: leadData.name,
+                    name: fullLeadData.name,
                     source: 'NextGen',
                     isNew,
+                    processMs,
                 });
             }
             catch (broadcastError) {
                 logger.error('Failed to broadcast lead notification', broadcastError);
             }
         }
+        // Expose timing header
+        res.set('X-Process-Time', processMs.toString());
         // Send success response
         res.status(isNew ? 201 : 200).json({
             success: true,
             leadId,
             message: `Lead successfully ${isNew ? 'created' : 'updated'}`,
             isNew,
+            processMs,
         });
     }
     catch (error) {

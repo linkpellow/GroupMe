@@ -202,7 +202,9 @@ leadSchema.index({ timeZone: 1 });
 leadSchema.index({ source: 1, createdAt: -1 });
 // Compound index for multi-tenant queries
 leadSchema.index({ tenantId: 1, createdAt: -1 });
-
+// Compound indexes for fast upsert lookups
+leadSchema.index({ tenantId: 1, phone: 1 });
+leadSchema.index({ tenantId: 1, email: 1 });
 // Add state and zipcode setters
 leadSchema.path('state').set(function (value: string) {
   console.log('Setting state:', value);
@@ -258,8 +260,10 @@ leadSchema.statics.upsertLead = async function(payload) {
       throw new Error('Either phone or email is required for lead upsert');
     }
 
-    // Build lookup query
-    const query: { phone?: string; email?: string } = {};
+    // Build lookup query – must include tenantId for strict multi-tenancy
+    const query: { tenantId: mongoose.Types.ObjectId; phone?: string; email?: string } = {
+      tenantId: payload.tenantId,
+    } as any;
     if (payload.phone) query.phone = payload.phone;
     if (!payload.phone && payload.email) query.email = payload.email;
 

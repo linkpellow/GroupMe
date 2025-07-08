@@ -1095,3 +1095,87 @@ These updates have been added to the Master Task Board:
 - [x] **LDB-1a** Modify overlay condition in `Leads.tsx`
 
 Executor should start with **RTN-1a**: add logs, reproduce with devtools, and capture findings before code patch.
+
+## 📌 PLANNER ADDENDUM – TENANT-AWARE CSV UPLOAD (Step 1 for External Beta)
+
+### Background and Motivation
+External beta testers must be able to bulk-import leads, but every new lead **must** carry the tester’s `tenantId` so that tenants are strictly isolated.  The current CSV import endpoints (`/api/leads/upload`, `/api/leads/import-csv`, etc.) pre-date multi-tenancy and create leads **without** a `tenantId`, which surfaces them to the admin tenant and breaks isolation.
+
+### Current State (as of 8 Jul 2025)
+• `dialer-app/server/src/routes/leads.routes.ts` exposes three CSV endpoints (`/upload`, `/import-csv`, `/import-csv-now`).  None inject `tenantId` and two of them are unauthenticated.<br/>
+• The React page `client/src/pages/CsvUpload.tsx` posts to `/api/leads/import-csv`.<br/>
+• `LeadModel` requires `tenantId` → any new import will now **throw** unless `requireTenantId=false` in schema or admin inserts manually.<br/>
+• `withTenant(req, filter)` helper exists for reads/updates, but no equivalent write helper.
+
+### High-Level Design
+1. **Server**: introduce a dedicated authenticated route **`POST /api/csv-upload`** (separate router file) that wraps the existing vendor-aware parser and ensures **every** lead (created or upserted) includes:
+   – `tenantId = req.user._id` (or admin override via body in future).<br/>
+   – `assignedTo = req.user._id` for initial ownership.
+2. **Client**: point the CSV uploader page to the new endpoint.  Keep payload identical so no UI changes besides URL.
+3. **Backward compatibility**: mark the old `/api/leads/import-csv` as deprecated – respond *410 Gone* for non-admin or transparently proxy for admin to avoid sudden prod failures.
+4. **Tests / QA**: upload sample CSV as two different users → ensure each only sees their own leads; verify that the documents have `tenantId` set via direct DB query.
+
+### Risks & Mitigations
+• Legacy scripts or cron jobs may still hit old endpoints → mitigate by leaving admin-only proxy route until we refactor all callers.<br/>
+• Schema validation errors if `tenantId` missing in deep call-stacks → centralise **all** create/update operations through `LeadModel.upsertLead` where possible.<br/>
+• Large files (50 MB limit) – reuse existing streaming parser and maintain batch size.
+
+### Success Criteria
+✅  Uploading a CSV as user A inserts/updates leads with `tenantId=userA._id` and they are invisible to user B.<br/>
+✅  Creating/updating leads inside the upload obeys per-tenant ownership rules (`withTenant` for lookups).<br/>
+✅  UI shows success toast, refreshes list in <1 s as before.<br/>
+✅  Jest integration test passes and manual QA validated.
+
+### Task Breakdown (see Project Status Board)
+• CSV-1 → Create `csvUpload.routes.ts` with auth + multer.<br/>
+• CSV-2 → Inject `tenantId` & `assignedTo` on *all* lead creations/updates.<br/>
+• CSV-3 → Reuse `parseVendorCSV`; prefer `LeadModel.upsertLead` to centralise logic.<br/>
+• CSV-4 → Mount router in `server/src/index.ts` *before* static file handler.<br/>
+• CSV-5 → Change `CsvUpload.tsx` to POST `/api/csv-upload` + adjust path constant.
+• CSV-6 → Add integration test (supertest + Mongo in-memory) for tenant stamping.
+• CSV-7 → Respond 410 on old `/api/leads/import-csv` for agents; proxy for admin.
+• CSV-8 → Manual QA in browser; confirm isolation.
+• CSV-9 → Update README / docs.
+
+*Planner note:*  No code should be changed until **CSV-1** task is moved to *in_progress* by the Executor.
+
+## 📌 PLANNER ADDENDUM – REAL-TIME NEXTGEN LEAD LATENCY
+
+### Problem Statement
+Current end-to-end delay from `POST /api/webhooks/nextgen` to banner display is ~1 s–2 s in tests.  Goal: **< 1 second, ideally ~300 ms**.
+
+### Current Flow (timestamps approximate)
+1.  0 ms  – Webhook hits `/api/webhooks/nextgen` (Express).
+2.  20 ms – `adaptNextGenLead` heavy string/enum transforms.
+3.  45 ms – `LeadModel.upsertLead` (index search + write).
+4.  70 ms – `broadcastNewLeadNotification` via WS (tiny payload).
+5.  280 ms – Client receives event, waits React-Query invalidation.
+6.  650 ms – Axios `GET /api/leads?page=1…` returns; UI rerenders; banner shows.
+
+Biggest chunk = **client refetch**.  We can shave >350 ms by pushing the new lead directly into cache.
+
+### Optimisation Strategy
+A. **Server profiling** – log and expose X-Server-Process-Time header (FAST-1).  Ensure indexes (FAST-2) and move heavy formatting async (FAST-3).
+B. **Push Model** – include minimal lead doc in WS payload (FAST-4) and let client insert into cache (FAST-5) instead of refetch.
+C. **UI tweaks** – preload audio so first play isn’t delayed (FAST-6).
+D. **Validation** – automated latency harness (FAST-7).
+
+### Risks
+• Larger WS payload – still tiny (<2 KB).  Acceptable.
+• Cache divergence – background refetch on a timer still runs every 60 s; we can force one after 10 s to reconcile.
+
+### Task Matrix
+Refer to Project Status Board (FAST-1 … FAST-7) for granular steps and dependencies.
+
+*Planner note:* Executor should begin with FAST-1 (instrumentation) so we can quantify improvements after each optimisation.
+
+## Executor Feedback (REQ-NG – NG-6)
+
+- Status: **in_progress** – initiating deployment of `production-plan` branch to Heroku remote `crokodial`.
+- Local verification: `npm run build:server` succeeded (server TypeScript compiled, client Vite build produced assets).
+- Next steps:
+  1. Stage and commit all changes (`git add -A && git commit -m "feat: deploy production-plan updates"`).
+  2. Push to Heroku (`git push heroku production-plan:main`).
+  3. Monitor Heroku build logs to ensure build completes without errors.
+  4. Run smoke test against https://crokodial.com once dyno restarts.
+- Will update status board upon successful deploy or report build issues.

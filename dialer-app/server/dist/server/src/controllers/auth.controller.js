@@ -32,6 +32,23 @@ const register = async (req, res, next) => {
             username: email, // Set username to email by default
             role: 'user', // Ensure new users get the user role
         });
+        // Create unique NextGen SID & API-Key for real-time lead integration
+        try {
+            const { generateSid, generateApiKey } = require('../utils/nextgenUtils');
+            const NextGenCredential = require('../models/NextGenCredential').default;
+            const sid = generateSid();
+            const apiKey = generateApiKey();
+            await NextGenCredential.create({
+                tenantId: user._id,
+                sid,
+                apiKey,
+                active: true,
+            });
+            console.log('Generated NextGen creds for new user', user.email, sid);
+        }
+        catch (credErr) {
+            console.error('Failed to generate NextGen credential for user', credErr);
+        }
         // Generate token
         const token = (0, exports.generateToken)(user._id.toString());
         console.log('Generated token for new user:', {

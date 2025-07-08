@@ -42,7 +42,7 @@ import testRoutes from './routes/test.routes';
 
 // Comment out routes for files confirmed missing from ./routes/ directory
 // import clientRoutes from './routes/clients.routes';
-// import csvUploadRoutes from './routes/csvUpload.routes';
+import csvUploadRoutes from './routes/csvUpload.routes';
 // import notesRoutes from './routes/notes.routes';
 // import usersRoutes from './routes/users.routes';
 
@@ -249,6 +249,7 @@ export const broadcastNewLeadNotification = (leadData: {
   name: string;
   source: string;
   isNew: boolean;
+  processMs?: number;
 }) => {
   const notification = {
     type: 'new_lead_notification',
@@ -348,6 +349,7 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/textdrip', textdripRoutes);
 app.use('/api/dial-counts', dialCountsRoutes);
+app.use('/api/csv-upload', csvUploadRoutes);
 
 // Register test routes only in non-production environments for security
 if (process.env.NODE_ENV !== 'production') {

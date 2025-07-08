@@ -4,12 +4,11 @@
   "version": "0.0.0",
   "scripts": {
     "dev:prep": "kill-port 5173 || true",
-    "dev": "npm run dev:prep && cross-env ROLLUP_NO_NATIVE=1 ROLLUP_WASM=true vite",
-    "dev:wasm": "cross-env ROLLUP_NO_NATIVE=1 ROLLUP_WASM=true vite --port 5173 --host 0.0.0.0",
-    "dev:bare": "vite --port 5173 --host 0.0.0.0",
-    "build": "rimraf dist && cross-env ROLLUP_NO_NATIVE=1 ROLLUP_WASM=true vite build",
+    "dev": "npm run dev:prep && ROLLUP_NO_NATIVE=1 vite",
+    "dev:bare": "ROLLUP_NO_NATIVE=1 vite --port 5173 --host 0.0.0.0",
+    "build": "rimraf dist && ROLLUP_NO_NATIVE=1 vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "start": "npm run dev:prep && cross-env ROLLUP_NO_NATIVE=1 ROLLUP_WASM=true vite --port 5173 --host 0.0.0.0",
+    "start": "npm run dev:prep && ROLLUP_NO_NATIVE=1 vite --port 5173 --host 0.0.0.0",
     "preview": "vite preview",
     "rebuild": "rm -rf node_modules package-lock.json && npm install"
   },
@@ -39,7 +38,7 @@
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-image-crop": "^11.0.7",
-    "react-quill": "^2.0.0",
+    "react-quill": "^0.0.2",
     "react-refresh": "^0.17.0",
     "react-resizable": "^3.0.5",
     "react-router-dom": "^6.30.0",
@@ -50,6 +49,7 @@
     "tailwindcss": "^3.4.1"
   },
   "devDependencies": {
+    "@rollup/rollup-darwin-arm64": "^4.44.2",
     "@rollup/wasm-node": "4.44.1",
     "@types/node": "^22.13.14",
     "@types/react": "^18.2.56",
@@ -66,9 +66,9 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "kill-port": "^2.0.1",
     "rimraf": "^5.0.5",
-    "rollup": "4.44.1",
+    "rollup": "2.79.1",
     "typescript": "^5.8.3",
-    "vite": "^4.5.2"
+    "vite": "^7.0.2"
   },
   "server": {
     "proxy": {

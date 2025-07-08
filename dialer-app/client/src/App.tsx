@@ -233,6 +233,15 @@ function App() {
     setPasscodeValidated(true);
   };
 
+  // Remove global pre-loader overlay once React bootstraps
+  useEffect(() => {
+    const pre = document.getElementById('croc-preloader');
+    if (pre) {
+      pre.classList.add('fade-out');
+      setTimeout(() => pre.remove(), 400);
+    }
+  }, []);
+
   // INTENTIONALLY THROW AN ERROR TO TEST THE ERROR BOUNDARY
   // if (process.env.NODE_ENV === 'development') {
   //   throw new Error('This is a test error to verify the ErrorBoundary component.');

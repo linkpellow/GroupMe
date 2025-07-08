@@ -32,6 +32,17 @@ const LeadNotificationHandler: React.FC = () => {
   const notificationCountRef = useRef<number>(0);
   
   const POLL_MS = 3000; // 3-second fallback interval
+
+  // Preload notification audio once
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    if (!audioRef.current) {
+      const audio = new Audio('/sounds/Cash app sound.mp3');
+      audio.preload = 'auto';
+      audio.volume = 0.3;
+      audioRef.current = audio;
+    }
+  }, []);
   
   // Helper to build a fully-shaped placeholder Lead object so renderers never see undefined.
   const createPlaceholderLead = (leadId: string, name: string, source: string) => ({
@@ -68,15 +79,13 @@ const LeadNotificationHandler: React.FC = () => {
         if (isNew && source.toLowerCase() === 'nextgen') {
           console.log('[LeadNotification] Showing notification for new NextGen lead:', name);
 
-          if (soundEnabled) {
-            const audio = new Audio('/sounds/Cash app sound.mp3');
-            audio.muted = false;
-            audio.volume = 0.3;
-            audio.preload = 'auto';
-            audio.currentTime = 0;
-            audio.play().catch((e) => {
-              console.warn('[Sound] Immediate play blocked:', e);
-            });
+          if (soundEnabled && audioRef.current) {
+            try {
+              audioRef.current.currentTime = 0;
+              audioRef.current.play();
+            } catch (e) {
+              console.warn('[Sound] play blocked', e);
+            }
           }
 
           // 1. Trigger banner/SFX
@@ -107,8 +116,10 @@ const LeadNotificationHandler: React.FC = () => {
             }
           });
           
-          // 3. Immediately invalidate leads query so list refreshes without delay
-          queryClient.invalidateQueries({ queryKey: ['leads'] });
+          // 3. Schedule a silent background refresh after 10 s instead of immediate refetch
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+          }, 10000);
           
           // Increment counter
           notificationCountRef.current++;
