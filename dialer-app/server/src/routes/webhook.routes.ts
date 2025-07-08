@@ -74,7 +74,8 @@ const NextGenLeadSchema = z.object({
   street_address: z.string().optional(),
 
   // Demographics
-  dob: z.string().optional(),
+  dob: z.string().optional(), // preferred
+  date_of_birth: z.string().optional(), // some vendors send this
   age: z.number().optional(),
   gender: z.string().optional(),
   height: z.string().optional(),
@@ -129,7 +130,7 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
   const formattedWeight = nextgenData.weight ? nextgenData.weight.trim() : undefined;
 
   // Keep DOB as provided (MM/DD/YY) so UI can parse consistently
-  const formattedDob = nextgenData.dob ? nextgenData.dob.trim() : undefined;
+  const formattedDob = (nextgenData.dob || (nextgenData as any).date_of_birth)?.trim();
 
   // Format gender (capitalize first letter)
   let formattedGender = undefined;
