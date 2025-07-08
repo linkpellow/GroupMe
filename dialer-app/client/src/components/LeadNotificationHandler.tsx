@@ -107,10 +107,8 @@ const LeadNotificationHandler: React.FC = () => {
             }
           });
           
-          // 3. Schedule invalidate after 700 ms to ensure DB commit is visible for all pages
-          setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ['leads'] });
-          }, 700);
+          // 3. Immediately invalidate leads query so list refreshes without delay
+          queryClient.invalidateQueries({ queryKey: ['leads'] });
           
           // Increment counter
           notificationCountRef.current++;
