@@ -36,6 +36,7 @@ import { FaSms } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import axiosInstance from '../api/axiosInstance';
 import GroupMeSettings from '../components/GroupMeSettings';
+import NextGenCredentialCard from '../components/NextGenCredentialCard';
 
 interface Integration {
   name: string;
@@ -672,7 +673,8 @@ const Integrations: React.FC = () => {
   ];
 
   return (
-    <Container maxW="container.xl" pt="120px" pb="60px">
+    <Container maxW="6xl" py={8}>
+      <NextGenCredentialCard />
       <Box textAlign="center" mb={10}>
         <Heading as="h1" size="xl" fontWeight="bold" mb={4}>
           Integrations
