@@ -10,7 +10,7 @@ import { US_STATES, ALLOWED_DISPOSITIONS, PIPELINE_SOURCES } from '@shared/confi
 import { format as csvFormat } from '@fast-csv/format';
 import { Writable } from 'stream';
 import { sanitizeNotes } from '../utils/notesUtils';
-import { withTenant } from '../utils/tenantUtils';
+import { withTenant } from '../utils/tenantFilter';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -945,7 +945,7 @@ export const updateLeadNotes = async (req: AuthenticatedRequest, res: Response) 
     const now = new Date();
 
     const updatedLead = await LeadModel.findOneAndUpdate(
-      { _id: id },
+      withTenant(req, { _id: id }),
       { $set: { notes: notes, updatedAt: now } },
       { new: true, runValidators: true, upsert: false }
     ).lean();
