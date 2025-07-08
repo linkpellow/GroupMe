@@ -8,7 +8,7 @@ export interface NextGenCred {
 
 export const fetchNextGenCred = async (): Promise<NextGenCred | null> => {
   try {
-    const res = await axiosInstance.get('/api/integrations/nextgen/credentials');
+    const res = await axiosInstance.get('/integrations/nextgen/credentials');
     if (res.data.connected === false) return null;
     return res.data as NextGenCred;
   } catch (err) {
@@ -18,6 +18,6 @@ export const fetchNextGenCred = async (): Promise<NextGenCred | null> => {
 };
 
 export const rotateNextGenCred = async (): Promise<NextGenCred> => {
-  const res = await axiosInstance.post('/api/integrations/nextgen/credentials/rotate');
+  const res = await axiosInstance.post('/integrations/nextgen/credentials/rotate');
   return res.data as NextGenCred;
 }; 
