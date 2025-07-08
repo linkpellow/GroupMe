@@ -484,4 +484,14 @@ process.on('SIGUSR2', () => {
     gracefulShutdown('SIGUSR2');
     // ts-node-dev expects the process to exit; it will handle the restart
 });
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+    startServer();
+}
+else {
+    // In Jest tests, avoid opening network listeners to keep tests fast and leak-free.
+    // Stub out broadcast functions so importing files don’t throw.
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    exports.broadcastNewLeadNotification = () => { };
+}
+// Export Express app for supertest
+exports.default = app;
