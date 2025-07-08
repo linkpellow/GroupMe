@@ -89,10 +89,11 @@ export const getLeads = async (req: ValidatedQuery, res: Response): Promise<void
     const { sort, skip, limit, page } = qbResult;
 
     // Build tenant or legacy filter so old leads (no tenantId) still appear
-    const tenantOrLegacy = {
-      $or: [{ tenantId: req.user?._id }, { tenantId: { $exists: false } }],
-    };
-    const filter = { $and: [qbResult.filter, tenantOrLegacy] } as any;
+    const tenantFilter = req.user?.role === 'admin'
+      ? { $or: [{ tenantId: req.user?._id }, { tenantId: { $exists: false } }] }
+      : { tenantId: req.user?._id };
+
+    const filter = { $and: [qbResult.filter, tenantFilter] } as any;
     // Get performance warnings
     const perfCheck = QueryBuilderService.validateQueryPerformance(validatedQuery);
     const allWarnings = [...perfCheck.warnings];
