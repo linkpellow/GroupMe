@@ -241,3 +241,48 @@ During pre-deployment test run (`npm test` in `dialer-app/server`) the following
 - [ ] Add `export default app;` in `server/src/index.ts`.
 - [ ] Rerun `npm test` until all suites pass (or skip legacy ones).
 - [ ] Update Project Status Board once tests pass.
+
+---
+## 🔄 Production Rollback & Hot-Fix Plan (11 Jul 2025)
+
+### Current State
+1. **Production** is healthy on commit **05eca7202** (rollback branch `hotfix/rollback`).
+2. **Local dev** still suffers from:
+   • Over-strict `envLoader` regex (rejects `mongodb://` URIs)
+   • Vite failing on Macs due to missing native Rollup binary.
+3. Temporary workarounds (manual `.env.local`, one-off Rollup stubs) exist only on the developer laptop — **not committed**.
+
+### Objectives
+A. Ship a minimal hot-fix that:
+   1. Relaxes Mongo URI check (prefix match only).
+   2. Removes fragile Rollup native hack by either
+      – setting `ROLLUP_NO_NATIVE=1`, **or**
+      – generating cross-platform stubs in `postinstall`.
+B. Preserve the stable production commit until the hot-fix passes CI & manual smoke tests.
+C. Restore dev-experience parity on macOS ARM, Intel, and Linux.
+
+### High-Level Task Breakdown
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| HF-1 | Branch `hotfix/envLoader-rollup` off `05eca7202` | Branch created | pending | none |
+| HF-2 | Patch `server/src/config/envLoader.ts` – prefix check | `mongodb://` & `mongodb+srv://` both accepted; bad schemes rejected | pending | HF-1 |
+| HF-3 | Update root **package.json** `postinstall` to stub `rollup-linux-x64-gnu`, `rollup-darwin-x64`, `rollup-darwin-arm64` **OR** export `ROLLUP_NO_NATIVE=1` in client build scripts | `npm i && npm run dev` succeeds on macOS ARM | pending | HF-1 |
+| HF-4 | Add unit tests for envLoader validation (good & bad URIs) | `npm test` green | pending | HF-2 |
+| HF-5 | CI: run `npm run build` for server & client to catch rollup issues | GitHub Actions pass | pending | HF-3 |
+| HF-6 | Push branch & open PR | PR opened | pending | HF-2-HF-5 |
+| HF-7 | Code review & merge → `production-plan` | Merge `squash`ed | pending | HF-6 |
+| HF-8 | Heroku auto-deploy → verify `https://crokodial.com/api/health` & CSV upload UI | Response `{status:"ok"}` and CSV import works | pending | HF-7 |
+
+### Success Checklist
+- [ ] All Jest + TS tests pass locally & in CI.
+- [ ] `npm --workspace dialer-app/client run dev` works on macOS (no native rollup error).
+- [ ] `npm --workspace dialer-app/server run dev` accepts both local & Atlas Mongo URIs.
+- [ ] Production health-check OK after deploy.
+- [ ] Manual CSV upload works in production UI.
+
+### Notes & Decisions
+• Chose **prefix regex** to keep validation simple and future-proof.
+• Keeping Rollup stubs in `postinstall` (safer than relying on env var during Heroku build).
+• Will tag the rollback commit as `v1.0.0-stable` for easy reverts if needed.
+
+---

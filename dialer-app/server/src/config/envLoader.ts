@@ -104,12 +104,10 @@ if (!process.env.MONGODB_URI) {
 }
 
 const mongoUri = process.env.MONGODB_URI;
-// Basic pattern: mongodb+srv://<user>:<pass>@<host>/<db>
-const mongoRegex = /^mongodb\+srv:\/\/[^:@]+:[^@]+@[^/]+\/.+/;
-if (!mongoRegex.test(mongoUri)) {
-  console.error('\n\x1b[31m[FATAL ERROR] Invalid MONGODB_URI format.\x1b[0m');
+// Basic sanity: must start with mongodb:// or mongodb+srv://
+if (!/^mongodb(\+srv)?:\/\//.test(mongoUri)) {
+  console.error('\n\x1b[31m[FATAL ERROR] MONGODB_URI must start with mongodb:// or mongodb+srv://\x1b[0m');
   console.error('Value:', mongoUri);
-  console.error('Ensure it is fully URL-encoded and contains ":" between user and password and "@" before host.');
   process.exit(1);
 }
 // --------------------------------------------------------------------------
