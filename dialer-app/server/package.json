@@ -147,7 +147,11 @@
       "<rootDir>/__tests__/passcodeInvite.test.ts",
       "<rootDir>/__tests__/notesDeletion.test.ts",
       "<rootDir>/__tests__/nextgenLatency.test.ts",
-      "<rootDir>/__tests__/csvUpload.test.ts"
+      "<rootDir>/__tests__/csvUpload.test.ts",
+      "<rootDir>/dist/"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/dist/"
     ]
   }
 }
