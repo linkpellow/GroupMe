@@ -10,7 +10,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "start": "npm run dev:prep && ROLLUP_NO_NATIVE=1 vite --port 5173 --host 0.0.0.0",
     "preview": "vite preview",
-    "rebuild": "rm -rf node_modules package-lock.json && npm install"
+    "rebuild": "rm -rf node_modules package-lock.json && npm install",
+    "test": "echo \"(placeholder) client test suite – no tests defined.\" && exit 0"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",
