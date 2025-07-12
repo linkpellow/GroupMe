@@ -11,11 +11,11 @@
   "scripts": {
     "dev": "echo 'Please run \"npm run dev:server\" and \"npm run dev:client\" in separate terminals.'",
     "dev:server": "npm --workspace dialer-app/server run dev",
-    "dev:client": "npm --workspace dialer-app/client run dev",
+    "dev:client": "esbuild dialer-app/client/src/main.tsx --bundle --outfile=dialer-app/client/dist/bundle.js --servedir=dialer-app/client/public --watch",
     "build": "npm run build:shared && npm run build:server && npm run build:client",
     "build:shared": "npm --workspace dialer-app/shared run build",
     "build:server": "npm --workspace dialer-app/server run build",
-    "build:client": "npm --workspace dialer-app/client run build",
+    "build:client": "esbuild dialer-app/client/src/main.tsx --bundle --outfile=dialer-app/client/dist/bundle.js --minify --sourcemap",
     "start": "npm run start:server",
     "start:server": "node dialer-app/server/dist/server/src/index.js",
     "start:client": "npm --workspace dialer-app/client run start",
@@ -50,10 +50,6 @@
     "test:groupme": "npx jest test/test-groupme-oauth.test.js",
     "postinstall": "node scripts/create-rollup-stubs.js"
   },
-  "optionalDependencies": {
-    "@rollup/rollup-darwin-arm64": "*",
-    "@rollup/rollup-darwin-x64": "*"
-  },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix",
@@ -85,6 +81,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
+    "esbuild": "^0.25.6",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-jsx-a11y": "^6.10.2",

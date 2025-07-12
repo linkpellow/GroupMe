@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
+console.log('[ENV LOADER] Source file:', __filename);
 // This file is loaded first to ensure all environment variables
 // are available before any other module tries to access them.
 

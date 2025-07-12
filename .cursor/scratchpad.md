@@ -286,3 +286,92 @@ C. Restore dev-experience parity on macOS ARM, Intel, and Linux.
 • Will tag the rollback commit as `v1.0.0-stable` for easy reverts if needed.
 
 ---
+
+## 🚀 NextGen Webhook – Sub-100 ms Latency Initiative (12 Jul 2025)
+
+### Goal
+Cut end-to-end latency (NextGen webhook → lead visible in UI) to **≤ 100 ms P95**. Every second matters for reps responding to hot leads.
+
+### Current Observations
+‣ Live logs show ~450 ms average from webhook receipt to WebSocket broadcast. Most of that is synchronous DB work (full upsert & validation). Client then renders in <50 ms once it receives the socket.
+
+### Strategy Overview
+1. **Zero-Copy Ingest** – accept payload, push raw JSON to in-memory queue in ~5 ms. ACK 200 immediately.
+2. **Fast-Path Cache Injection** – server emits minimal lead stub (`id,name,phone,source,ts`) via WebSocket right after queuing so UI can render instantly.
+3. **Async Enrichment Worker** – background worker performs full validation, formatting & DB upsert.
+4. **UI Reconciliation** – when worker finishes it emits `lead_updated` to replace the placeholder.
+5. **Instrumentation** – add high-resolution `process.hrtime()` spans and Prometheus histogram.
+
+### High-Level Task Breakdown
+| ID | Description | Success Criteria | Status | Dependency |
+|----|-------------|------------------|--------|------------|
+| NL-1 | Instrument current latency with `process.hrtime.bigint()` and log trace ID | p95 & p99 values visible in Grafana | pending | — |
+| NL-2 | Implement Redis (or in-proc BullMQ) queue `nextgen_ingest` | webhook handler `queue.add` returns <10 ms | pending | NL-1 |
+| NL-3 | Emit `lead_stub` over WebSocket right after queuing | UI shows placeholder within 50 ms | pending | NL-2 |
+| NL-4 | Create worker `workers/nextgenWorker.ts` to do full upsert & enrichment | Worker throughput ≥200req/s | pending | NL-2 |
+| NL-5 | On worker completion emit `lead_updated` socket event | Placeholder replaced automatically | pending | NL-4 |
+| NL-6 | Update client `LeadNotificationHandler` to merge stub → full lead | No duplicate entries | pending | NL-3 |
+| NL-7 | End-to-end latency test (Jest + ws) must show p95 ≤100 ms | CI green | pending | NL-6 |
+| NL-8 | Rollout feature flag `USE_FAST_PATH` (env var) | Hot toggle possible | pending | NL-3-NL-6 |
+
+### Risks & Mitigations
+• DB eventual consistency – ensure placeholder filtered in exports until enrichment done.  
+• Queue saturation – set BullMQ concurrency & back-pressure alerts.  
+• Socket storm – batch `lead_updated` events if worker flushes too quickly.
+
+### Definition of Done
+- p95 ≤100 ms from webhook POST to visible card in UI (staging).  
+- No loss of leads under 200 RPS synthetic load.  
+- Feature flag off by default in production until one-week soak test passes.
+
+## 🔍 12 Jul 2025 – Context Snapshot (asked in Planner mode)
+
+### What we were just working on (last Executor actions)
+1. **Local-dev API startup crash**  
+   • Cleared old `dist/` and ts-node cache but `Invalid MONGODB_URI format` kept appearing → indicates **compiled JS with the old regex still somewhere on disk or in ts-node-dev cache**.  
+   • Started replacing strict regex with simple prefix check in `envLoader.ts` (already merged on `production-plan`).  
+   • Attempted to relaunch server with local URI `mongodb://127.0.0.1:27017/crokodial-dev` → still blocked by old compiled code, then (after code reload) progressed to **ECONNREFUSED** because no Mongo service running locally.
+
+2. **Client dev server crash**  
+   • Added cross-platform Rollup stub + `ROLLUP_NO_NATIVE=1` env to scripts.  
+   • Client still errors (`Cannot find module @rollup/rollup-darwin-arm64`) or exits with code 137 → means stub not present inside *workspace* `dialer-app/client/node_modules` or process killed by macOS memory pressure.
+
+3. **Memory logging**  
+   • Long-running production process shows stable RSS/heap – for reference only.
+
+### Immediate Pain Points
+| ID | Symptom | Root Cause (hypothesis) |
+|----|---------|-------------------------|
+| LDEV-1 | `Invalid MONGODB_URI format` despite relaxed code | ts-node-dev cache or stray `dist/` file still loaded early |
+| LDEV-2 | `ECONNREFUSED 127.0.0.1:27017` | No mongod running locally or wrong URI |
+| LDEV-3 | Client `@rollup/rollup-darwin-arm64` module not found / exit 137 | Stub not generated **inside client workspace** *and* Vite killed by OOM |
+
+### Proposed Minimal Fix Plan
+1. **Purge & Re-install Workspaces** (HF-clean)  
+   ```bash
+   rm -rf node_modules dialer-app/*/node_modules package-lock.json dialer-app/*/package-lock.json ~/.cache/ts-node ts-node-dev-cache
+   npm install               # will run root postinstall → generate all rollup stubs
+   npm --workspace dialer-app/client install   # guarantees stub inside client workspace
+   ```
+2. **Verify envLoader path** (HF-env)  
+   • Add `console.log('ENV LOADER SOURCE', __filename)` at top of `envLoader.ts` to confirm correct file is executed.  
+   • Run `npm --workspace dialer-app/server run dev` with **Atlas URI** for now to skip local mongod.
+3. **Run Mongo locally OR use Atlas** (HF-mongo)  
+   • Option A: `brew services start mongodb-community@6`  
+   • Option B: export `MONGODB_URI=<Atlas URI>`.
+4. **Launch dev servers**  
+   • `npm --workspace dialer-app/server run dev`  
+   • `npm --workspace dialer-app/client run dev`.
+
+### Success Criteria
+- LDEV-1: Startup log shows *prefix* error message if URI invalid, or proceeds to connect.
+- LDEV-2: API boots and reports `MongoDB connected`.
+- LDEV-3: Vite dev server stays running and opens at http://localhost:5173.
+
+### Next Tasks Queue
+1. **HF-clean** – Full reinstall & cache purge (unblocks everything).  *(Executor)*
+2. **HF-env** – Verify correct envLoader file executed.  *(Executor)*
+3. **HF-mongo** – Choose local mongod or Atlas string.  *(User or Executor)*
+4. Smoke-test CSV upload locally to ensure end-to-end.
+
+---
