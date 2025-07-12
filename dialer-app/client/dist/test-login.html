@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Login</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      label,
+      input,
+      button {
+        display: block;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+      input,
+      button {
+        padding: 8px;
+      }
+      button {
+        background: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      pre {
+        background: #f5f5f5;
+        padding: 10px;
+        overflow: auto;
+        max-height: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Test Direct API Login</h1>
+    <div>
+      <label for="email">Email:</label>
+      <input type="email" id="email" value="admin@crokodial.com" />
+    </div>
+    <div>
+      <label for="password">Password:</label>
+      <input type="password" id="password" value="admin123" />
+    </div>
+    <button id="loginButton">Login</button>
+    <div>
+      <h3>Status:</h3>
+      <pre id="status">Ready to test...</pre>
+    </div>
+    <div>
+      <h3>Result:</h3>
+      <pre id="result"></pre>
+    </div>
+
+    <script>
+      document
+        .getElementById("loginButton")
+        .addEventListener("click", async () => {
+          const statusEl = document.getElementById("status");
+          const resultEl = document.getElementById("result");
+
+          // Get values
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+
+          statusEl.textContent = "Sending request...";
+
+          try {
+            const startTime = Date.now();
+
+            // Use the fetch API directly - no timeout, no axios, completely native
+            const response = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ email, password }),
+            });
+
+            const endTime = Date.now();
+            const data = await response.json();
+
+            statusEl.textContent = `Request completed in ${endTime - startTime}ms with status ${response.status}`;
+            resultEl.textContent = JSON.stringify(data, null, 2);
+
+            // If successful, store token and redirect
+            if (response.ok && data.token) {
+              localStorage.setItem("token", data.token);
+              statusEl.textContent +=
+                "\nLogin successful! Token saved to localStorage.";
+
+              // Add a link to redirect to the app
+              const link = document.createElement("a");
+              link.href = "/";
+              link.textContent = "Go to app";
+              link.style.display = "block";
+              link.style.marginTop = "10px";
+              document.body.appendChild(link);
+            }
+          } catch (error) {
+            statusEl.textContent = `Request failed: ${error.message}`;
+            console.error("Error:", error);
+          }
+        });
+    </script>
+  </body>
+</html>
