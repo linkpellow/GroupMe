@@ -48,8 +48,11 @@
     "ci:e2e": "start-server-and-test ci:servers http://localhost:5173 test:e2e",
     "postbuild": "echo '=== SERVER BUILD OUTPUT DIAGNOSIS ===' && echo 'Checking dialer-app/server/dist/:' && ls -la dialer-app/server/dist/ 2>/dev/null || echo 'dist/ directory not found' && echo 'Checking for index.js:' && ls -la dialer-app/server/dist/index.js 2>/dev/null || echo 'index.js not found' && echo '=== END DIAGNOSIS ==='",
     "test:groupme": "npx jest test/test-groupme-oauth.test.js",
-    "postinstall": "node -e \"const fs=require('fs'),p=require('path');['rollup-linux-x64-gnu','rollup-darwin-x64','rollup-darwin-arm64'].forEach(a=>{const d=p.join(__dirname,'node_modules','@rollup',a);fs.mkdirSync(d,{recursive:true});fs.writeFileSync(p.join(d,'index.js'),'module.exports=require(\\'rollup\\');\\n');fs.writeFileSync(p.join(d,'package.json'),JSON.stringify({name:'@rollup/'+a,version:'0.0.0'}));});\"",
-    "heroku-prebuild": "echo 'omit=optional' > .npmrc"
+    "postinstall": "node -e \"const fs=require('fs'),p=require('path');['rollup-linux-x64-gnu','rollup-darwin-x64','rollup-darwin-arm64'].forEach(a=>{const d=p.join(__dirname,'node_modules','@rollup',a);fs.mkdirSync(d,{recursive:true});fs.writeFileSync(p.join(d,'index.js'),'module.exports=require(\\'rollup\\');\\n');fs.writeFileSync(p.join(d,'package.json'),JSON.stringify({name:'@rollup/'+a,version:'0.0.0'}));});\""
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-darwin-arm64": "*",
+    "@rollup/rollup-darwin-x64": "*"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
