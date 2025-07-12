@@ -245,7 +245,7 @@ export const broadcastMessage = (message: object) => {
 };
 
 export const broadcastNewLeadNotification = (leadData: {
-  leadId: string;
+  leadId?: string; // may be undefined for pre-DB stub notifications
   name: string;
   source: string;
   isNew: boolean;
@@ -257,7 +257,7 @@ export const broadcastNewLeadNotification = (leadData: {
     timestamp: new Date().toISOString(),
   };
 
-  logger.info(`Broadcasting lead notification: ${leadData.name} (${leadData.leadId}), isNew=${leadData.isNew}, clients=${wss.clients.size}`);
+  logger.info(`Broadcasting lead notification: ${leadData.name} (${leadData.leadId || 'no-id'}), isNew=${leadData.isNew}, clients=${wss.clients.size}`);
 
   let sentCount = 0;
   wss.clients.forEach((client: ExtendedWebSocket) => {

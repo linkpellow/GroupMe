@@ -235,6 +235,17 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
     // Adapt lead data (full) but we'll upsert minimal first for speed
     const fullLeadData = adaptNextGenLead(validationResult.data);
 
+    // Broadcast minimal stub ASAP for instant UI feedback (no DB wait)
+    try {
+      broadcastNewLeadNotification({
+        name: fullLeadData.name,
+        source: 'NextGen',
+        isNew: true,
+      });
+    } catch (stubErr) {
+      logger.warn('Stub notification failed', stubErr);
+    }
+
     if (!fullLeadData.email && !fullLeadData.phone) {
       logger.error('NextGen lead missing both email and phone', {
         nextgenId: fullLeadData.nextgenId,
