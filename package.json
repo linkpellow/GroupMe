@@ -11,14 +11,14 @@
   "scripts": {
     "dev": "echo 'Please run \"npm run dev:server\" and \"npm run dev:client\" in separate terminals.'",
     "dev:server": "npm --workspace dialer-app/server run dev",
-    "dev:client": "esbuild dialer-app/client/src/main.tsx --bundle --outfile=dialer-app/client/public/bundle.js --servedir=dialer-app/client/public --watch",
+    "dev:client": "npm --workspace dialer-app/client run dev",
     "build": "npm run build:shared && npm run build:server && npm run build:client",
     "build:shared": "npm --workspace dialer-app/shared run build",
     "build:server": "npm --workspace dialer-app/server run build",
-    "build:client": "esbuild dialer-app/client/src/main.tsx --bundle --outfile=dialer-app/client/dist/bundle.js --minify",
+    "build:client": "npm --workspace dialer-app/client run build",
     "start": "npm run start:server",
     "start:server": "node dialer-app/server/dist/server/src/index.js",
-    "start:client": "node -e \"require('http').createServer((req, res) => require('fs').createReadStream(require('path').join('dialer-app/client/public', req.url === '/' ? 'index.html' : req.url)).pipe(res)).listen(5173)\"",
+    "start:client": "npm --workspace dialer-app/client run start",
     "clean": "rm -rf node_modules package-lock.json dialer-app/*/node_modules dialer-app/*/package-lock.json && npm install",
     "kill-ports": "kill-port 3005 5173 || true",
     "reset": "npm run kill-ports && npm run clean",
@@ -49,6 +49,10 @@
     "postbuild": "echo '=== SERVER BUILD OUTPUT DIAGNOSIS ===' && echo 'Checking dialer-app/server/dist/:' && ls -la dialer-app/server/dist/ 2>/dev/null || echo 'dist/ directory not found' && echo 'Checking for index.js:' && ls -la dialer-app/server/dist/index.js 2>/dev/null || echo 'index.js not found' && echo '=== END DIAGNOSIS ==='",
     "test:groupme": "npx jest test/test-groupme-oauth.test.js",
     "postinstall": "node scripts/create-rollup-stubs.js"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-darwin-arm64": "*",
+    "@rollup/rollup-darwin-x64": "*"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -81,7 +85,6 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.35.1",
     "@typescript-eslint/parser": "^8.35.1",
-    "esbuild": "^0.25.6",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-jsx-a11y": "^6.10.2",
