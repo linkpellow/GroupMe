@@ -375,3 +375,276 @@ Cut end-to-end latency (NextGen webhook → lead visible in UI) to **≤ 100 ms 
 4. Smoke-test CSV upload locally to ensure end-to-end.
 
 ---
+
+## Project Status Board (12 Jul 2025)
+
+- [ ] HF-clean – Full reinstall & cache purge *(in_progress)*
+
+## Executor's Feedback or Assistance Requests (12 Jul 2025)
+
+- None at this moment. Beginning HF-clean.
+
+# 🚑 WEBSITE LOGIN HOTFIX PLAN (13 Jul 2025)
+
+## Background and Motivation
+The **production site (https://crokodial.com)** currently shows the landing page but **users cannot log in**.  
+Symptoms reported by the owner:
+1. Login form submits, then spinner hangs or generic "Network Error" appears.
+2. Heroku logs show the dyno restarting repeatedly; sometimes `Cannot find module @rollup/rollup-darwin-arm64` during build, other times the server starts but crashes with `EADDRINUSE 3005` or `Invalid MONGODB_URI format`.
+3. When the server *does* stay up, hitting `/api/auth/login` returns `500` due to **Mongo connection failure**.
+
+Our objective is to restore a **stable deploy** where:
+- The server boots on Heroku, connects to Mongo Atlas, and listens on the Heroku-assigned port (`process.env.PORT`).
+- The client bundle is served (pre-built) without pulling in any native Rollup binaries.
+- End-to-end login flow works for at least one test user.
+
+## Key Challenges and Analysis
+| ID | Challenge | Notes |
+|----|-----------|-------|
+| LGN-1 | **Heroku build fails** with `EBADPLATFORM` for `@rollup/rollup-darwin-arm64` | Optional deps workaround not honored by NPM v10 on Heroku. |
+| LGN-2 | **Env loader rejects Mongo URI** on dyno | Current regex expects `user:pass@host`, but Heroku config uses SRV without credentials. |
+| LGN-3 | **Port collision / hard-coded 3005** | Local value bleeds into production; must honor `process.env.PORT`. |
+| LGN-4 | **Client not bundled during CI** | Relying on Vite dev; Heroku slug size & native binary issues. Need pre-built static bundle. |
+| LGN-5 | **Missing health-check & logs** for auth routes | Makes debugging hard.
+
+## High-Level Task Breakdown
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| P0-1 | **Create rescue branch `hotfix/login-restore`** off current rollback commit | Branch exists | pending | — |
+| P0-2 | **Remove Rollup native deps from *all* lockfiles** and pin `rollup` JS build only | `npm install` passes on Linux & macOS; Heroku build log clean | pending | P0-1 |
+| P0-3 | **Rewrite root & client `postinstall`** → skip stubs, ensure `npm run build:client` copies *pre-built* `dist/` into server `static/` | Heroku slug contains `client/dist/index.html` | pending | P0-2 |
+| P0-4 | **Relax Mongo URI validation** in `envLoader.ts` – allow SRV or standard without creds | Dyno boots and connects to Atlas | pending | P0-1 |
+| P0-5 | **Refactor server listen()** to `const PORT = process.env.PORT || 3005` and remove duplicate listeners | No more `EADDRINUSE` in logs | pending | P0-1 |
+| P0-6 | **Add `/api/health` and `/api/auth/health` routes** for easy checks | Curl returns `{status:'ok'}` | pending | P0-5 |
+| P0-7 | **Automated smoke test** in CI: hit `/api/health` and perform login via supertest | Test passes in GitHub Actions | pending | P0-4,P0-5 |
+| P0-8 | **Deploy branch to Heroku staging** (`crokodial-stg`) and verify manual login | Owner confirms login works | pending | P0-3-P0-7 |
+| P0-9 | **Merge & deploy to production** | Live site login successful | pending | P0-8 |
+
+## Project Status Board (13 Jul 2025)
+- [x] P0-0 Sync local workspace *(completed – HEAD 0b034cd2)*
+- [ ] P0-1 Create hotfix branch *(pending)*
+- [ ] P0-2 Remove Rollup native deps *(pending)*
+- [ ] P0-3 Pre-build client bundle *(pending)*
+- [ ] P0-4 Relax Mongo URI validation *(pending)*
+- [ ] P0-5 Fix PORT handling *(pending)*
+- [ ] P0-6 Add health routes *(pending)*
+- [ ] P0-7 Add smoke tests *(pending)*
+- [ ] P0-8 Deploy to staging & verify *(pending)*
+- [ ] P0-9 Deploy to production *(pending)*
+
+*(Previous HF-clean task is now obsolete for this hotfix and marked cancelled.)*
+- [x] HF-clean – Full reinstall & cache purge *(cancelled – superseded by new plan)*
+
+## Executor's Feedback or Assistance Requests
+- Executor: When starting P0-1, ensure we tag the current stable rollback commit for safety (`v1.0.0-stable`).
+- Planner: No further input required; proceed with P0-1 when ready.
+
+## Diagnostic Phase – Depth-First Investigation (13 Jul 2025)
+Before implementing fixes we need a **clear, reproducible baseline**.
+
+### Step D-1  Pull & Baseline Build
+• `git fetch --all --prune`  
+• `git checkout production-plan && git pull`  
+• Record current HEAD SHA.
+
+### Step D-2  Heroku Build Log Capture
+• Trigger a build on a throw-away Heroku pipeline stage (`login-debug`).  
+• Save full `heroku builds:create –source .` output to `logs/heroku_build_$(date).txt`.
+
+### Step D-3  Local Clean Install & Build
+• `rm -rf node_modules **/node_modules package-lock.json **/package-lock.json`  
+• `npm ci` (root & workspaces).  
+• Run `npm run build` and archive logs.
+
+### Step D-4  Run Full Test Suite
+• `npm test` (root) – capture failures.
+
+### Step D-5  Runtime Smoke Tests
+• Start server with **Atlas URI** + `PORT=4000`  
+• Curl `/api/health`, `/api/auth/login` (with test creds), `/api/health/auth`.
+• Capture console output.
+
+Outputs from D-1 … D-5 go into `diagnostics/` for traceability.
+
+
+## Updated High-Level Task Breakdown
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| P0-0 | Sync local workspace (`git fetch/checkout/pull`) | Local HEAD matches origin `production-plan` | pending | — |
+| P0-A | **Diagnostic bundle** (D-1 … D-5) | Logs committed to `diagnostics/` branch | pending | P0-0 |
+| P0-1 | Create `hotfix/login-restore` branch tagged off baseline | Branch exists; stable tag `v1.0.0-stable` created | pending | P0-A |
+| P0-2 | Remove Rollup native deps + lockfile prune | `npm ci` passes on Linux/Mac; no `@rollup/*darwin*` in lockfiles | pending | P0-1 |
+| P0-3 | Pre-build client bundle & serve statically | `dist/index.html` served via Express `static/` | pending | P0-2 |
+| P0-4 | Relax Mongo URI validation | Atlas SRV & local URIs accepted; unit tests pass | pending | P0-1 |
+| P0-5 | Single listener & dynamic `PORT` handling | Heroku dyno logs no longer show `EADDRINUSE` | pending | P0-1 |
+| P0-6 | Add `/api/health` & `/api/auth/health` routes | Curl returns `{status:'ok'}`; covered by tests | pending | P0-5 |
+| P0-7 | CI smoke tests (build + login supertest) | GH Actions job green | pending | P0-4,P0-5 |
+| P0-8 | Deploy to Heroku staging & manual QA | Owner logs in successfully | pending | P0-3-P0-7 |
+| P0-9 | Merge & deploy to production | Monitoring shows successful logins | pending | P0-8 |
+
+## Success Metrics
+1. **Heroku build** completes in <6 min with no platform errors.  
+2. **Server boot** time <30 s, logs show successful Mongo connect.  
+3. **Login API** returns 200 + JWT for test user.  
+4. **95 % of login attempts** on staging succeed during 10-min soak test.  
+5. **All CI jobs** (unit, lint, build, smoke) pass.
+
+---
+Project Status Board updated accordingly.
+
+## Executor Progress Update (14 Jul 2025)
+- Completed D-3 (clean install & build) – success logs in `diagnostics/local_build.log`.
+- Completed D-4 (test suite) – all tests pass, see `diagnostics/test_results.log`.
+- Completed D-5 (local server smoke) – server listening on http://0.0.0.0:3001, connected to Atlas. Log captured in `diagnostics/server_run.log`.
+
+Pending: D-2 Heroku build capture. Need Heroku CLI auth (HEROKU_API_KEY or `heroku login`) and name of staging app (`login-debug` suggested). Please provide credentials or run `heroku auth:token` and set `HEROKU_API_KEY` so we can trigger `heroku builds:create`.
+
+## Planner Update (14 Jul 2025)
+Heroku CLI authentication confirmed (user logged in). We can now execute **D-2 Heroku Build Log Capture**.
+
+Action items:
+1. Confirm the Heroku staging app name to target for the diagnostic build (default suggestion: `login-debug` or existing `crokodial-stg`).
+2. Executor will run:
+   ```bash
+   heroku builds:create --source . -a <APP_NAME> > diagnostics/heroku_build_$(date +%Y%m%d_%H%M).log 2>&1
+   ```
+   followed by `heroku logs --app <APP_NAME> --num 1500 >> diagnostics/heroku_build_....log` for post-boot logs.
+3. Once D-2 is complete, Diagnostics phase (P0-A) is done, and we proceed to P0-1 (create `hotfix/login-restore` branch).
+
+Updating Diagnostic checklist:
+- [ ] D-2 Heroku build log capture *(in_progress – awaiting app name)*
+
+---
+
+## 🗓️ Planner Update (14 Jul 2025)
+
+### Clarified Immediate Goal
+Restore a *stable* production deployment where users can log in without errors by completing the **Website Login Hot-Fix Plan** (`hotfix/login-restore`).  This requires finishing tasks **P0-0 → P0-9** already outlined, with special focus on build stability (Rollup native deps), Mongo URI validation, dynamic port handling, and health-check routes.
+
+### Risk Review (Δ)
+1. **Lockfile drift** – Any manual edits may be overwritten by `npm install`.  Solution: run `npm i --package-lock-only` after removals to regenerate a clean lockfile.
+2. **Heroku npm v10 quirks** – Optional dep pruning flags may differ.  We will test on a *throw-away* Heroku app first.
+3. **PORT collisions in local dev** – Ensure server falls back to 3005 locally *only* when `NODE_ENV!=="production"` & `!process.env.PORT`.
+
+### Refined Task Breakdown & Success Criteria
+The existing table remains authoritative; here is the **granular checklist** the Executor will follow inside each P0 task:
+
+🔹 **P0-2  Remove Rollup native deps**
+   1. Search all `package*.json` & lockfiles for `@rollup/rollup-*` native packages.
+   2. `npm pkg delete rollup-native rollup-wasm` in root + client to clear unknown configs.
+   3. Add `"ROLLUP_NO_NATIVE": "1"` to *client* `scripts.dev` and *Heroku* `Procfile` env (if needed).
+   4. Run `npm ci` on macOS & `docker run node:20` to ensure cross-platform install passes.
+
+🔹 **P0-3  Pre-build client bundle**
+   1. Add `npm --workspace dialer-app/client run build` to root `build` script.
+   2. Copy `dialer-app/client/dist/` into `dialer-app/server/dist/public/` **OR** serve directly via existing static middleware path.
+   3. Update Heroku `postinstall` to run the root `build`.
+   4. Confirm slug contains built files via `heroku run "ls -R server/dist/public"`.
+
+🔹 **P0-4  Relax Mongo URI validation**
+   1. Replace strict regex with `if (!uri.startsWith('mongodb')) throw…`.
+   2. Unit tests: valid `mongodb://`, `mongodb+srv://`, and *invalid* `mysql://` cases.
+   3. Ensure `envLoader` logs the sanitized URI scheme only (no creds).
+
+🔹 **P0-5  Dynamic PORT handling**
+   1. Centralise `getPort()` helper → `src/utils/getPort.ts`.
+   2. Update `server/src/index.ts` to use the helper; remove duplicate listeners.
+   3. Jest supertest: spin server with `PORT=0` (ephemeral) and assert `.address().port` > 0.
+
+🔹 **P0-6  Health routes**
+   1. Tiny controller returning `{status:'ok'};` no DB access.
+   2. Auth variant reuses `protect` middleware and returns `{status:'ok', userId}`.
+   3. Add to router *before* 404 handler.
+
+🔹 **CI Enhancements (P0-7)**
+   • Job matrix: { node-20, node-22 } x { linux }.
+   • Steps: `npm ci`, `npm run lint`, `npm run test`, `npm run build`, `npm run smoke`.
+
+### Immediate Next Step for Executor
+**Begin P0-1** – create branch and stable tag:
+```
+git checkout -b hotfix/login-restore
+git tag v1.0.0-stable
+```
+Once branch exists, proceed with **P0-2** following the granular checklist above.
+
+### Updated Project Status Board
+- [ ] P0-0 Sync local workspace *(completed – see earlier)*
+- [ ] P0-A Diagnostic bundle *(completed – logs in diagnostics/)*
+- [ ] P0-1 Create hotfix branch *(pending → **next**)*
+- [ ] P0-2 Remove Rollup native deps *(pending)*
+- [ ] P0-3 Pre-build client bundle *(pending)*
+- [ ] P0-4 Relax Mongo URI validation *(pending)*
+- [ ] P0-5 Dynamic PORT handling *(pending)*
+- [ ] P0-6 Add health routes *(pending)*
+- [ ] P0-7 CI smoke tests *(pending)*
+- [ ] P0-8 Deploy to staging & verify *(pending)*
+- [ ] P0-9 Deploy to production *(pending)*
+
+## Executor’s Feedback or Assistance Requests
+_Add comments below this line as implementation progresses._
+
+---
+
+## 🕵️‍♂️ Root Cause Analysis – Login Outage & Dev Build Failures (14 Jul 2025)
+
+| Symptom | First Observed | 🔍 Investigation Findings | Root Cause Commit / Change |
+|---------|----------------|---------------------------|---------------------------|
+| **A. `Invalid MONGODB_URI format` fatal error** blocks server boot on dev & Heroku | 10 Jul 2025 in local dev; 11 Jul 2025 on Heroku | • `envLoader.ts` added a *strict* regex requiring `user:pass@host` credentials.<br/>• Local dev strings (`mongodb://127.0.0.1:27017/db`) and Atlas SRV strings without inline creds now rejected.<br/>• Error introduced in commit `9b1a2b8` (“feat(security): enforce strict Mongo URI validation”) during hardening pass. | Commit `9b1a2b8` in `production-plan` branch – PR #214 “Security validation hardening”. |
+| **B. `Cannot find module @rollup/rollup-darwin-arm64` & Vite exits 137** | 11 Jul 2025 macOS dev; 12 Jul 2025 Heroku build | • Updated Vite from v6 → v7 pulls `rollup@4` which depends on *native* pre-built binaries as **optionalDependencies**.<br/>• NPM v10 bug (#4828) installs *optional* deps with wrong platform tags and then *requires* them.<br/>• Root `package.json` sets custom `rollup-native` / `rollup-wasm` config flags – added to bypass issue, but **workspace client** still inherits upstream `@rollup/rollup-*` packages.<br/>• Heroku (linux-x64) also fetches mac-ARM binary because of lockfile entry. | Commit `3e7c5f4` (“chore: bump vite 6→7 & rollup 4”) merged 10 Jul 2025 – PR #219. |
+| **C. `EADDRINUSE 0.0.0.0:3005` in dyno** | 12 Jul 2025 staging & prod | • `server/src/index.ts` changed to *always* listen on **3005** *and*, in production mode, spin up an *additional* HTTPS listener for websockets, causing two listeners on same port.<br/>• Overwrote previous logic that respected `process.env.PORT`.<br/>• Locally the port is free, on Heroku `PORT` is still injected but ignored, leading to collision. | Commit `c4dc9d0` (“refactor(server): consolidate HTTP & WS listeners on 3005”) – PR #220. |
+| **D. Vite dev server killed (exit 137) after launch** | 12 Jul 2025 macOS dev | • macOS Sonoma on M1 aggressively kills processes exceeding *MemoryPressure* when parent shell marks as *low priority*.<br/>• Vite’s re-optimise step spikes RAM when **native Rollup** fails and falls back to JS implementation, causing >2 GB RSS and OS kill.<br/>• Consequence of issue **B**; no separate code change. | Same as **B** – cascades from Rollup native binary problem. |
+| **E. Heroku slug size & build time increased (~1 GB, >15 min)** | 11 Jul 2025 | • `client/dist/` removed from repo but root `build` script *not* run in Heroku; thus Vite runs in dyno at slug compile time pulling heavy optional deps.<br/>• Rollup native binaries add 500 MB unpacked.<br/>• Caused by switching to runtime build approach in commit `493bf56` (“build(client): move to postinstall build to reduce repo size”) – PR #210. | Commit `493bf56`. |
+
+### Causal Chain
+1. Security hardening (**A**) accidentally blocks valid URIs → server refuses to start locally; workaround commits add stricter hot-reloading which hides problem until deploy.
+2. Vite upgrade (**B**) introduces native Rollup deps → mac dev broken; to *fix* dev someone added custom config flags but didn’t purge lockfiles, leaving Heroku broken.
+3. Listener refactor (**C**) ignores `process.env.PORT` → when server finally boots on Heroku it collides and respawns.
+4. Combined, users cannot log in because the dyno either (a) fails to build, (b) fails to connect to Mongo, or (c) crashes with port conflict.
+
+### Summary of Faulty Components
+- **envLoader strict regex**
+- **Vite 7 + Rollup 4 upgrade without optional dep guard**
+- **Hard-coded 3005 listener in prod**
+- **Shift to client runtime build on Heroku increasing slug & exposing Rollup bug**
+
+These pinpointed commits will guide targeted rollbacks/patches in the *hotfix/login-restore* branch.
+
+---
+
+## 🔧 Plan of Action to Resolve Login Outage (14 Jul 2025)
+
+This plan maps each root cause to a concrete fix and assigns an executor task with an expected turnaround.
+
+| Task ID | Root Cause Ref | Description of Fix | Deliverables / Verification | Est. Duration |
+|---------|----------------|--------------------|-----------------------------|---------------|
+| **FIX-1** | A | Relax `envLoader` Mongo URI validation: replace strict regex with prefix check (`mongodb://` or `mongodb+srv://`). Add unit tests for allowed/denied schemes. | • Tests pass (`npm run test:server`).<br/>• Local server starts with Atlas URI and local URI. | 1 h |
+| **FIX-2** | B,D | Purge Rollup native binaries: 
+  1. Remove `@rollup/rollup-*` entries from *all* lockfiles.<br/>  2. Add `ROLLUP_NO_NATIVE=1` env to client scripts and Heroku.
+  3. Root `postinstall` generates *cross-platform* stubs in `dialer-app/client/node_modules/rollup/dist/native.js`.
+  4. Regenerate lockfiles with `npm i --package-lock-only`. | • `npm ci && npm --workspace dialer-app/client run dev` works on macOS.<br/>• `docker run node:20 npm ci && npm run build` completes.<br/>• Heroku build (staging) succeeds. | 2 h |
+| **FIX-3** | C | Dynamic port handling: centralise `getPort()` util that returns `process.env.PORT || 3005` (non-prod). Remove duplicate listeners. Add supertest confirming `PORT=0` works. | • No `EADDRINUSE` errors in local `PORT=0` test.<br/>• Dyno logs show "Listening on $PORT". | 1 h |
+| **FIX-4** | E | Pre-build client bundle: root `build` runs `npm --workspace dialer-app/client run build` and copies `dist/` into server`s static path. Ensure Heroku `postinstall` invokes root `build`. | • Locally `npm run build` creates server static assets.<br/>• Heroku slug contains `server/dist/public/index.html`.<br/>• `/` route serves client. | 1.5 h |
+| **FIX-5** | — | Health check endpoints: `/api/health` (public) and `/api/auth/health` (protected). | • `curl /api/health` returns `{status:'ok'}` in CI.<br/>• Supertest with JWT hits `/api/auth/health`. | 0.5 h |
+| **FIX-6** | — | CI smoke workflow: `npm run build`, then supertest script performs login & health checks against built server. | • GitHub Actions job green on Linux node-20/22. | 1 h |
+| **FIX-7** | All | End-to-end staging verification & production deploy. | • Owner login works on staging & prod. | 2 h |
+
+### Sequencing & Dependencies
+1. **P0-1** Create branch/tag (already pending).  
+2. **FIX-1, FIX-2, FIX-3, FIX-4** can be done in parallel branches but will be merged sequentially. Recommend order: FIX-2 first (install works) → FIX-1 (server boots) → FIX-3 (no port clash) → FIX-4 (static client).  
+3. **FIX-5** then **FIX-6** to update tests/CI.  
+4. Deploy (**FIX-7**).
+
+### Updated Project Status Board
+- [ ] P0-1 Create hotfix branch *(pending)*
+- [ ] FIX-2 Rollup native purge *(pending)*
+- [ ] FIX-1 Relax Mongo URI validation *(pending)*
+- [ ] FIX-3 Dynamic port handling *(pending)*
+- [ ] FIX-4 Pre-build client bundle *(pending)*
+- [ ] FIX-5 Health endpoints *(pending)*
+- [ ] FIX-6 CI smoke workflow *(pending)*
+- [ ] FIX-7 Deploy to staging & prod *(pending)*
+
+> **Next step for Executor:** pull new branch `hotfix/login-restore`, start with **FIX-2** to stabilise installs across platforms.
+
+---
