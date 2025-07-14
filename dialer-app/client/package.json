@@ -47,7 +47,8 @@
     "react-toastify": "^11.0.5",
     "socket.io-client": "^4.8.1",
     "styled-components": "^6.1.16",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "@rollup/wasm-node": "^4.44.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
