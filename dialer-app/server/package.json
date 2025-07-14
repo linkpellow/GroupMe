@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev:prep": "kill-port 3005 || true",
-    "dev": "npm run dev:prep && nodemon --watch src --ext ts --exec \"node --loader ts-node/esm src/index.ts\"",
+    "dev": "npm run dev:prep && nodemon --watch src --ext ts --exec \"node -r ts-node/register/transpile-only src/index.ts\"",
     "start": "node dist/server/src/index.js",
     "build": "rimraf dist && tsc",
     "postbuild": "mkdir -p dist/server && cp .env.example dist/server/.env.example && echo 'Server build completed (client pre-built; no vite build)'",
