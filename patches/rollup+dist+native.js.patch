@@ -1,0 +1,2 @@
+// Force Rollup to always use the WASM build; bypass native binary lookup entirely
+module.exports = require('./wasm.cjs'); 
