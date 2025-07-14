@@ -48,7 +48,7 @@
     "socket.io-client": "^4.8.1",
     "styled-components": "^6.1.16",
     "tailwindcss": "^3.4.1",
-    "@rollup/wasm-node": "^4.44.1"
+    "@rollup/wasm-node": "^3.29.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
@@ -58,7 +58,7 @@
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
-    "@vitejs/plugin-react": "^4.5.0",
+    "@vitejs/plugin-react": "^4.6.0",
     "cross-env": "^7.0.3",
     "esbuild": "^0.25.4",
     "eslint": "^8.57.0",
@@ -66,9 +66,8 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "kill-port": "^2.0.1",
     "rimraf": "^5.0.5",
-    "rollup": "2.79.1",
     "typescript": "^5.8.3",
-    "vite": "^7.0.2"
+    "vite": "^6.1.0"
   },
   "server": {
     "proxy": {
