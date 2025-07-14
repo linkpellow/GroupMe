@@ -5,7 +5,6 @@
   "private": true,
   "workspaces": [
     "dialer-app/shared",
-    "dialer-app/client",
     "dialer-app/server"
   ],
   "scripts": {
@@ -49,10 +48,6 @@
     "postbuild": "echo '=== SERVER BUILD OUTPUT DIAGNOSIS ===' && echo 'Checking dialer-app/server/dist/:' && ls -la dialer-app/server/dist/ 2>/dev/null || echo 'dist/ directory not found' && echo 'Checking for index.js:' && ls -la dialer-app/server/dist/index.js 2>/dev/null || echo 'index.js not found' && echo '=== END DIAGNOSIS ==='",
     "test:groupme": "npx jest test/test-groupme-oauth.test.js",
     "postinstall": "echo 'Skipping client stubs'"
-  },
-  "optionalDependencies": {
-    "@rollup/rollup-darwin-arm64": "*",
-    "@rollup/rollup-darwin-x64": "*"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
