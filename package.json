@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "echo 'Please run \"npm run dev:server\" and \"npm run dev:client\" in separate terminals.'",
     "dev:server": "npm --workspace dialer-app/server run dev",
-    "dev:client": "npm --workspace dialer-app/client run dev",
+    "dev:client": "echo 'Client dev-server disabled (pre-built dist served by backend). No action.'",
     "build": "npm run build:shared && npm run build:server && npm run build:client",
     "build:shared": "npm --workspace dialer-app/shared run build",
     "build:server": "npm --workspace dialer-app/server run build",

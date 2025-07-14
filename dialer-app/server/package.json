@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev:prep": "kill-port 3005 || true",
-    "dev": "npm run dev:prep && ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "npm run dev:prep && nodemon --watch src --ext ts --exec \"node --loader ts-node/esm src/index.ts\"",
     "start": "node dist/server/src/index.js",
     "build": "rimraf dist && tsc",
     "postbuild": "mkdir -p dist/server && cp .env.example dist/server/.env.example && echo 'Server build completed (client pre-built; no vite build)'",
@@ -121,8 +121,8 @@
     "rimraf": "^5.0.5",
     "supertest": "^6.3.4",
     "ts-jest": "^29.1.2",
+    "nodemon": "^3.1.0",
     "ts-node": "^10.9.1",
-    "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.2"
   },
   "engines": {
