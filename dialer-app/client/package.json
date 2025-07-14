@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "scripts": {
     "dev:prep": "kill-port 5173 || true",
-    "dev": "npm run dev:prep && ROLLUP_NO_NATIVE=1 vite",
-    "dev:bare": "ROLLUP_NO_NATIVE=1 vite --port 5173 --host 0.0.0.0",
-    "build": "rimraf dist && ROLLUP_NO_NATIVE=1 vite build",
+    "dev": "npm run dev:prep && vite --host 0.0.0.0",
+    "dev:bare": "vite --port 5173 --host 0.0.0.0",
+    "build": "rimraf dist && vite build",
+    "start": "npm run dev:prep && vite --port 5173 --host 0.0.0.0",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "start": "npm run dev:prep && ROLLUP_NO_NATIVE=1 vite --port 5173 --host 0.0.0.0",
     "preview": "vite preview",
     "rebuild": "rm -rf node_modules package-lock.json && npm install",
     "test": "echo \"(placeholder) client test suite – no tests defined.\" && exit 0"
@@ -57,7 +57,7 @@
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
-    "@vitejs/plugin-react": "^4.6.0",
+    "@vitejs/plugin-react": "^3.3.2",
     "cross-env": "^7.0.3",
     "esbuild": "^0.25.4",
     "eslint": "^8.57.0",
@@ -66,7 +66,7 @@
     "kill-port": "^2.0.1",
     "rimraf": "^5.0.5",
     "typescript": "^5.8.3",
-    "vite": "^6.1.0"
+    "vite": "^4.5.2"
   },
   "server": {
     "proxy": {
