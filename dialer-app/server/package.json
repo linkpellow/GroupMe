@@ -11,7 +11,7 @@
     "dev": "npm run dev:prep && ts-node-dev --respawn --transpile-only src/index.ts",
     "start": "node dist/server/src/index.js",
     "build": "rimraf dist && tsc",
-    "postbuild": "cd ../client && npm run build && echo 'Build completed successfully' && mkdir -p ../server/dist/server && cp ../server/.env.example ../server/dist/server/.env.example",
+    "postbuild": "mkdir -p dist/server && cp .env.example dist/server/.env.example && echo 'Server build completed (client pre-built; no vite build)'",
     "clean": "rm -rf dist node_modules package-lock.json && npm install && npm run build",
     "rebuild": "npm run clean && npm run build",
     "lint": "eslint . --ext .ts",
