@@ -46,9 +46,9 @@
     "seed:admin": "cd dialer-app/server && npm run seed:admin",
     "ci:servers": "concurrently -k -s first -n SERVER,CLIENT \"npm run start:server\" \"npm run start:client\"",
     "ci:e2e": "start-server-and-test ci:servers http://localhost:5173 test:e2e",
-    "postbuild": "echo '=== SERVER BUILD OUTPUT DIAGNOSIS ===' && echo 'Checking dialer-app/server/dist/:' && ls -la dialer-app/server/dist/ 2>/dev/null || echo 'dist/ directory not found' && echo 'Checking for index.js:' && ls -la dialer-app/server/dist/index.js 2>/dev/null || echo 'index.js not found' && echo '=== END DIAGNOSIS ==='",
-    "test:groupme": "npx jest test/test-groupme-oauth.test.js",
-    "postinstall": "patch-package || true"
+    "postbuild": "echo '=== SERVER BUILD OUTPUT DIAGNOSIS ===' && echo 'Checking dialer-app/server/dist/:' && ls -la dialer-app/server/dist/ 2>/dev/null || echo 'dist/ directory not found' && echo 'Checking for index.js:' && ls -la dialer-app/server/dist/server/src/index.js 2>/dev/null || echo 'index.js not found' && echo '=== END DIAGNOSIS ==='",
+    "heroku-postbuild": "npm run build",
+    "test:groupme": "npx jest test/test-groupme-oauth.test.js"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -90,8 +90,14 @@
     "jest": "^29.7.0",
     "kill-port": "^2.0.1",
     "nock": "^13.4.0",
-    "patch-package": "^8.0.0",
+    "@rollup/wasm-node": "^4.45.0",
+    "rollup": "npm:@rollup/wasm-node@^4.45.0",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "vite": {
+      "rollup": "@rollup/wasm-node@^4.45.0"
+    }
   },
   "dependencies": {
     "@sentry-internal/tracing": "^7.120.3",

@@ -648,3 +648,153 @@ This plan maps each root cause to a concrete fix and assigns an executor task wi
 > **Next step for Executor:** pull new branch `hotfix/login-restore`, start with **FIX-2** to stabilise installs across platforms.
 
 ---
+
+## 🧭 Planner Refresh – Outstanding Work (15 Jul 2025)
+
+After today’s progress the following gaps remain before users can sign-in again:
+
+1. **Client bundler still pulling Vite 7 artefacts** – we deleted `node_modules` but never re-installed; `@vitejs/plugin-react@4` may also be incompatible with Vite 6.
+2. **Strict Mongo URI validation** still blocks dev/staging when URI lacks creds → server never boots.
+3. **Static port 3005** still hard-coded – causes `EADDRINUSE` on second restart & Heroku.
+4. **Health-check route & smoke tests** not yet added.
+5. **Heroku staging deploy** pending after fixes.
+
+### Immediate Next Slice (FIX-2c)
+Client side
+▪ Run fresh install in `dialer-app/client` so the downgraded deps take effect.
+▪ Downgrade `@vitejs/plugin-react` to a version matching Vite 6 (tentatively `^6.0.0` – adjust after npm view).
+▪ Run `npm run dev:bare` to confirm no rollup-native error & no OOM (exit code 137).
+
+### Server Slices
+• FIX-1 implementation – loosen regex in `envLoader.ts` to accept URIs without user:pass.
+• FIX-3 – replace hard-coded port with `process.env.PORT || 3005` & ensure clean shutdown.
+
+### Verification & Deploy
+1. Unit tests green (`npm run test`).
+2. Manual sign-in on localhost.
+3. Push branch → Heroku staging build, check `/api/health`.
+4. Promote to production.
+
+### Updated Project Status Board
+
+- [ ] FIX-2c  Fresh install & plugin-react downgrade @client (**in_progress**)
+- [ ] FIX-1    Relax Mongo URI validation
+- [ ] FIX-3    Dynamic port handling
+- [ ] FIX-5    Health endpoint & smoke tests
+- [ ] FIX-7    Staging → Production deploy
+
+---
+
+## 🧭 Planner Addendum – Fix Heroku build rejection (15 Jul 2025)
+
+Heroku build failed because:
+• `@rollup/wasm-node@^3.29.0` does not exist on npm – install step aborted before our pre-built dist could be used.
+• Client workspace remains in root `workspaces`, so Heroku installs its deps even though we serve pre-built files.
+
+Updated action plan
+| Task | Description | Owner | ETA |
+|------|-------------|-------|-----|
+| **FIX-2d** | Strip the unsupported deps from `dialer-app/client/package.json` (remove `@rollup/wasm-node`, `rollup` pin) and commit. | Exec | 10 min |
+| **FIX-2e** | Exclude client workspace from Heroku install: change root `package.json` `workspaces` to `["dialer-app/server","dialer-app/shared"]` (client can stay local via .npmrc if needed). | Exec | 15 min |
+| **FIX-1** | Relax Mongo URI regex in `envLoader.ts` (already inspected) – keep scheme check only. | Exec | 15 min |
+| **FIX-3** | Port handling: `const port = process.env.PORT || 3005` already present, but remove static host binding on Heroku path. | Exec | 10 min |
+| **Deploy-Staging** | Push branch → staging, verify `/api/health` + UI login. | Exec | 10 min |
+| **Deploy-Prod** | Promote if staging green. | Exec | 5 min |
+
+### Project Status Board (updated)
+- [ ] FIX-2d  Remove bad deps from client (**pending**)
+- [ ] FIX-2e  Exclude client from workspaces (**pending**)
+- [ ] FIX-1    Relax Mongo URI validation (**pending**)
+- [ ] FIX-3    Host/Port clean-up (**pending**)
+- [ ] Deploy-Staging (**blocked ➜ after fixes**)
+- [ ] Deploy-Prod (**blocked**)
+
+---
+
+## 🧾 Planner – Retrieve One-Time Passcodes (15 Jul 2025)
+
+Goal: provide the stakeholder a usable *invite / one-time* passcode so they can register or access the system immediately.
+
+### Where passcodes live
+• Mongo collection `passcodes` (`dialer-app/server/src/models/Passcode.ts`).  Fields: `code` (string), `isActive`, `maxUses`, `currentUses`, `expiresAt`, `description`.
+• Creation flow: POST `/api/auth/passcodes` (manual) or `/passcodes/generate` (random).  Controller logs but **does not** persist codes anywhere except Mongo.
+
+### Proposed retrieval options
+1. **DB script (preferred)**
+   ```bash
+   node - <<'NODE'
+   require('dotenv').config({ path: 'dialer-app/server/.env.local' });
+   const mongoose = require('mongoose');
+   const Passcode = require('./dialer-app/server/src/models/Passcode').default;
+   (async () => {
+     await mongoose.connect(process.env.MONGODB_URI);
+     const codes = await Passcode.find({ isActive: true }).select('code currentUses maxUses expiresAt').lean();
+     console.table(codes);
+     process.exit();
+   })();
+   NODE
+   ```
+   – Returns active, un-expired codes and remaining uses.
+2. **Generate a fresh code** (if none exist):
+   ```bash
+   curl -X POST https://<staging-api>/api/auth/passcodes/generate \
+        -H "Authorization: Bearer <admin-jwt>" \
+        -H 'Content-Type: application/json' \
+        -d '{"maxUses":5,"description":"urgent login"}'
+   ```
+
+### Immediate executor tasks (`FIX-8`)
+| ID | Description | Success criteria |
+|----|-------------|-------------------|
+| **FIX-8a** | Run one-off Node script (above) against staging DB and print codes | Terminal prints table of codes |
+| **FIX-8b** | If zero active codes, call generatePasscode endpoint with admin token | 8-char code returned |
+| **FIX-8c** | Send the first available/ new code to the stakeholder | Code posted in chat |
+
+After codes are delivered we continue with server fixes (Mongo URI regex, dynamic port) already tracked.
+
+---
+
+## 🛠️  Planner – Final Production-grade Path to Working Login (16 Jul 2025)
+
+### 🎯 Objective
+Users can hit https://crokodial.com, see the React UI, sign in with valid credentials, receive a JWT and load the dashboard – **with zero manual tweaks**.  Build & deploy must pass CI/CD on Heroku, installing *all* workspaces and compiling fresh assets (no legacy dist hacks).
+
+### 🔎 Gap Summary After Previous Hot-Fixes
+1. **Client build still broken** – we sidestepped by checking in `dist/`; that is not sustainable.  Vite 7⇄Rollup-native conflict persists on mac & npm 10.
+2. **`envLoader` strict Mongo regex** – still throws in some dev/prod permutations.
+3. **`src/index.ts` hard-coded `3005`** – causes `EADDRINUSE` on hot reload & violates Heroku port rules.
+4. **Residual `ts-node-dev` & cyclic-require dev crash** – cleanup half-done.
+5. **Root workspaces trimmed** – client excluded to dodge Rollup bug; we must restore it so CI builds fresh bundles.
+
+### 🪜 Step-by-Step Implementation Roadmap
+| ID | Area | Description | Deliverable / Verification |
+|----|------|-------------|-----------------------------|
+| **PG-1** | Client Deps | Replace fragile Vite 7 with stable **Vite 4.5.2** (Rollup 3) + `@vitejs/plugin-react` 3.3.x (compatible). Remove all Rollup native/wasm pins. | `npm run build:client` succeeds locally (mac ARM) **and** on Heroku CI (x64). |
+| **PG-2** | Workspaces | Re-add `dialer-app/client` to root `package.json` workspaces array. Re-enable `build:client` and prune placeholder scripts. | `npm run build` compiles shared→server→client in CI with no warnings. |
+| **PG-3** | Mongo URI Validation | In `envLoader.ts`: replace strict regex check with simple prefix guard `/^mongodb(\+srv)?:\/\//`. Provide unit tests in `server/__tests__/envLoader.test.ts`. | Tests pass & server accepts `mongodb://127…` and Atlas SRV URIs. |
+| **PG-4** | Dynamic Port | Update `server/src/index.ts` to use `const PORT = Number(process.env.PORT ?? 3005)` and log accordingly. Add Jest unit test for helper. | Local dev picks 3005; Heroku binds dynamic port; no `EADDRINUSE` on reload. |
+| **PG-5** | Dev Workflow | Purge **all** `ts-node-dev` refs; keep `tsx watch` in dev script; ensure `kill-port` invoked via `npx`. Verify `npm run dev:server` hot-reloads cleanly. | Dev server restarts without crash or port clash 3x in a row. |
+| **PG-6** | Health & Smoke | Add `/api/health` route returning `{status:'ok'}`.  Write Cypress smoke test hitting `/` → login page & `/api/health` (200). | Test passes in CI (GitHub + Heroku review app). |
+| **PG-7** | CI / CD | Update Heroku buildpacks to Node 20.x; ensure `npm ci --ignore-scripts=false` in `heroku-postbuild` builds client. | Heroku staging build green; slug contains fresh `client/dist/`. |
+| **PG-8** | Production Deploy | Promote hotfix branch to production app `crokodial-api`. Verify via Cypress against `https://crokodial.com`. | Automated smoke passes; manual login by PM confirmed. |
+
+### ⏳ Estimated Timeline
+• PG-1 → PG-4 (code changes & unit tests): **2 h**  
+• PG-5 (dev workflow polish): **30 m**  
+• PG-6 (health + smoke): **45 m**  
+• PG-7 & PG-8 (CI, deploy, verification): **1 h**  
+Total ≈ **4 h** with parallel CI cycles.
+
+### 📋 Project Status Board Additions
+- [ ] PG-1 – Client deps downgraded & build OK
+- [ ] PG-2 – Workspaces restored & monorepo build OK
+- [ ] PG-3 – envLoader relaxed & tests green
+- [ ] PG-4 – Dynamic port committed & tested
+- [ ] PG-5 – Dev workflow stable
+- [ ] PG-6 – Health route + Cypress smoke
+- [ ] PG-7 – Heroku CI builds green
+- [ ] PG-8 – Production deploy & login verified
+
+Once all check-boxes are ticked we can declare “login is fully functional with modern, maintainable build”.
+
+---

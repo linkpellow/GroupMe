@@ -15,15 +15,19 @@ console.log('[ENV LOADER] Source file:', __filename);
  * exists on disk.
  */
 function locateEnvLocal(): string | undefined {
-  // 1) When executed via ts-node-dev, __dirname => dialer-app/server/src/config
-  //    -> ../../.env.local  => dialer-app/server/.env.local (desired)
+  // Candidate paths, tried in order, to support both dev (ts-node) and prod (dist) execution
   const candidateFiles = [
-    path.resolve(__dirname, '../../.env.local'),
-    path.resolve(__dirname, '../../../.env.local'),
+    path.resolve(__dirname, '../../.env.local'), // From src/config to server/
+    path.resolve(__dirname, '../../../../.env.local'), // From dist/server/src/config to server/
   ];
+
   for (const file of candidateFiles) {
-    if (fs.existsSync(file)) return file;
+    if (fs.existsSync(file)) {
+      console.log(`[ENV LOADER] Found .env.local at: ${file}`);
+      return file;
+    }
   }
+  console.log('[ENV LOADER] .env.local not found in candidate paths:', candidateFiles);
   return undefined;
 }
 
