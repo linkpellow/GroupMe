@@ -2,7 +2,7 @@ import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'ax
 import { getToken } from '../services/authToken.service';
 
 // Base URL for local development with correct path
-const baseURL = ''; // Empty base URL to use relative paths with the proxy
+const baseURL = import.meta.env.VITE_API_BASE || '/api';
 
 const axiosInstance = axios.create({
   baseURL,
