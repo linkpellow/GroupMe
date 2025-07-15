@@ -7,7 +7,7 @@ process.env.ROLLUP_NO_NATIVE = 'true';
 process.env.ROLLUP_WASM = 'true';
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   server: {
     port: 5173,
@@ -33,6 +33,7 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
+    'process.env.VITE_API_BASE': JSON.stringify(mode === 'production' ? '/api' : 'http://localhost:3005/api')
   },
   optimizeDeps: {
     exclude: ['debug'], // Exclude debug from optimization
@@ -61,4 +62,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
