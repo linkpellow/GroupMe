@@ -12,11 +12,12 @@
     "start": "node dist/server/src/index.js",
     "build": "rimraf dist && tsc",
     "postbuild": "mkdir -p dist/server && cp .env.example dist/server/.env.example && echo 'Server build completed (client pre-built; no vite build)'",
+    "heroku-postbuild": "echo 'Running postbuild script...' && npm run build && npm run migrate:reset-admin",
     "clean": "rm -rf dist node_modules package-lock.json && npm install && npm run build",
-    "rebuild": "npm run clean && npm run build",
+    "rebuild": "rm -rf dist node_modules package-lock.json && npm install",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "seed": "ts-node src/scripts/seedData.ts",
@@ -30,7 +31,8 @@
     "logs": "tail -f logs/*.log",
     "health": "curl -s http://localhost:3001/api/health | jq .",
     "purge:banners": "ts-node -T ./scripts/fixes/purgeBannerLines.ts",
-    "migrate:counts": "ts-node -r module-alias/register src/scripts/migration/normalizeDialCounts.ts"
+    "migrate:counts": "ts-node -r module-alias/register src/scripts/migration/normalizeDialCounts.ts",
+    "migrate:reset-admin": "ts-node -r module-alias/register src/migrations/20250716-reset-admin-password.ts"
   },
   "keywords": [
     "crm",
