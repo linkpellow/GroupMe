@@ -56,12 +56,10 @@ axiosInstance.interceptors.request.use(
       let url = config.url.startsWith('/') ? config.url.substring(1) : config.url;
 
       // Add /api/ prefix if not already present and not a full URL
-      if (!url.includes('://') && !url.startsWith('api/')) {
-        url = 'api/' + url;
+      if (!config.url.startsWith('/api/') && !config.url.includes('://')) {
+        const path = config.url.startsWith('/') ? config.url.substring(1) : config.url;
+        config.url = `/api/${path}`;
       }
-
-      // Always add leading slash for absolute path
-      config.url = '/' + url;
 
       // Log the normalized URL
       console.log(`Normalized URL: ${config.url}`);
