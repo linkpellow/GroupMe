@@ -9,7 +9,7 @@ import {
 } from '../controllers/documents.controller';
 import { authenticate } from '../middleware/auth';
 
-const router = Router();
+const router: Router = Router();
 
 // All routes require authentication
 router.use(authenticate);

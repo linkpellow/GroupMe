@@ -18,6 +18,7 @@ import Integrations from './pages/Integrations';
 import Clients from './pages/Clients';
 import GroupMePage from './pages/GroupMePage';
 import { NotificationProvider } from './context/NotificationContext';
+import { NotificationSoundProvider } from './context/NotificationSoundContext';
 import { NotesProvider } from './context/NotesContext';
 import Dialer from './components/Dialer';
 import DailyGoals from './components/DailyGoals';
@@ -27,8 +28,11 @@ import GroupMeOAuthCallback from './pages/GroupMeOAuthCallback';
 import NotesSyncer from './components/NotesSyncer';
 import { FollowUpProvider } from './context/FollowUpContext';
 import { FollowUpUIProvider } from './context/FollowUpUIContext';
-import TestLogin from './pages/TestLogin';
 import PreLoginPasscode from './components/PreLoginPasscode';
+import PageOne from './pages/PageOne';
+import PageTwo from './pages/PageTwo';
+import GroupMeCallbackPage from './pages/GroupMeCallbackPage';
+import LeadNotificationHandler from './components/LeadNotificationHandler';
 // Fix linter errors for error type guard and missing module
 // import { restoreDialerLayout } from './restore-dialer'; // Import the restore function
 
@@ -96,9 +100,12 @@ class ErrorBoundary extends React.Component<
   }
 
   // Reset error state when the location changes (navigation happens)
-  componentDidUpdate() {
+  componentDidUpdate(prevProps: { children: React.ReactNode }, prevState: { hasError: boolean }) {
     if (this.state.hasError && window.location.pathname !== '/login') {
-      this.setState({ hasError: false, errorInfo: '' });
+      // Only reset if the error state is currently true, to avoid loops
+      if (prevState.hasError !== this.state.hasError) {
+        this.setState({ hasError: false, errorInfo: '' });
+      }
     }
   }
 
@@ -226,6 +233,20 @@ function App() {
     setPasscodeValidated(true);
   };
 
+  // Remove global pre-loader overlay once React bootstraps
+  useEffect(() => {
+    const pre = document.getElementById('croc-preloader');
+    if (pre) {
+      pre.classList.add('fade-out');
+      setTimeout(() => pre.remove(), 400);
+    }
+  }, []);
+
+  // INTENTIONALLY THROW AN ERROR TO TEST THE ERROR BOUNDARY
+  // if (process.env.NODE_ENV === 'development') {
+  //   throw new Error('This is a test error to verify the ErrorBoundary component.');
+  // }
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
@@ -235,132 +256,160 @@ function App() {
               <NotesProvider>
                 <LeadProvider>
                   <ToastProvider>
-                    <NotificationProvider>
-                      <FollowUpProvider>
-                        <FollowUpUIProvider>
-                          <NotesSyncer />
-                          <DialerRestorer />
-                          <Routes>
-                            {!passcodeValidated ? (
-                              <Route path="*" element={<PreLoginPasscode onPasscodeValid={handlePasscodeValid} />} />
-                            ) : (
-                              <>
-                                <Route path="/login" element={<Login />} />
-                                <Route path="/" element={<Navigate to="/leads" />} />
-                                <Route path="/groupme/callback" element={<GroupMeOAuthCallback />} />
-                                <Route
-                                  path="/leads"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
-                                        <Leads />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/clients"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
+                    <NotificationSoundProvider>
+                      <NotificationProvider>
+                        <FollowUpProvider>
+                          <FollowUpUIProvider>
+                            <NotesSyncer />
+                            <DialerRestorer />
+                            {/* Global lead notification listener, wrapped in its own boundary */}
+                            <ErrorBoundary>
+                              <LeadNotificationHandler />
+                            </ErrorBoundary>
+                            <Routes>
+                              {!passcodeValidated ? (
+                                <Route path="*" element={<PreLoginPasscode onPasscodeValid={handlePasscodeValid} />} />
+                              ) : (
+                                <>
+                                  <Route path="/login" element={<Login />} />
+                                  <Route path="/" element={<Navigate to="/login" />} />
+                                  <Route path="/groupme/callback" element={<GroupMeOAuthCallback />} />
+                                  <Route path="/groupme/handle-callback" element={<GroupMeCallbackPage />} />
+                                  <Route
+                                    path="/leads"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <ErrorBoundary>
+                                            <Leads />
+                                          </ErrorBoundary>
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/clients"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                          <Clients />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/dialer"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/gmail"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                          <Gmail />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/groupme"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                          <GroupMePage />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/mass-text"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                          <MassText />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/spreadsheet"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                          <Spreadsheet />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/csv-upload"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                          <CsvUpload />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/integrations"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                          <Integrations />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/settings"
+                                    element={
+                                      <AuthenticatedRoute>
                                         <DailyGoals />
-                                        <Clients />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/dialer"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
-                                        <DailyGoals />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/gmail"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
-                                        <DailyGoals />
-                                        <Gmail />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/groupme"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
-                                        <DailyGoals />
-                                        <GroupMePage />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/mass-text"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
-                                        <DailyGoals />
-                                        <MassText />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/spreadsheet"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
-                                        <DailyGoals />
-                                        <Spreadsheet />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/csv-upload"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
-                                        <DailyGoals />
-                                        <CsvUpload />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/integrations"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <Layout>
-                                        <DailyGoals />
-                                        <Integrations />
-                                      </Layout>
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route
-                                  path="/settings"
-                                  element={
-                                    <AuthenticatedRoute>
-                                      <DailyGoals />
-                                      <Settings />
-                                    </AuthenticatedRoute>
-                                  }
-                                />
-                                <Route path="/test-login" element={<TestLogin />} />
-                              </>
-                            )}
-                          </Routes>
-                        </FollowUpUIProvider>
-                      </FollowUpProvider>
-                    </NotificationProvider>
+                                        <Settings />
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/page-one"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <PageOne />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/page-two"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <PageTwo />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                </>
+                              )}
+                            </Routes>
+                          </FollowUpUIProvider>
+                        </FollowUpProvider>
+                      </NotificationProvider>
+                    </NotificationSoundProvider>
                   </ToastProvider>
                 </LeadProvider>
               </NotesProvider>

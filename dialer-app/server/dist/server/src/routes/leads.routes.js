@@ -540,8 +540,13 @@ router.post('/upload', auth_1.auth, upload.single('file'), async (req, res) => {
         global.currentUploadFilename = null;
     }
 });
-// New improved CSV import using vendor-aware parser
-router.post('/import-csv', upload.single('file'), async (req, res) => {
+// DEPRECATED – allow only admin; others get 410
+router.post('/import-csv', auth_1.auth, upload.single('file'), async (req, res) => {
+    if (req.user?.role !== 'admin') {
+        return res.status(410).json({
+            error: 'This endpoint is deprecated. Please use /api/csv-upload instead.',
+        });
+    }
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -1276,4 +1281,27 @@ router.get('/filters', auth_1.auth, leadsController.getFilterOptions);
 // ADD_NOTES_ROUTE_START
 router.patch('/:id/notes', auth_1.auth, leadsController.updateLeadNotes);
 // ADD_NOTES_ROUTE_END
+// --- Recent leads endpoint for WebSocket fallback polling ---
+// Public endpoint (no auth) so browser can poll when user not yet authenticated via JWT
+router.get('/recent', async (req, res) => {
+    try {
+        const sinceMs = parseInt(req.query.since || '0', 10);
+        const sinceDate = new Date(isNaN(sinceMs) ? Date.now() - 5 * 60 * 1000 : sinceMs);
+        const filter = { createdAt: { $gt: sinceDate } };
+        if (req.query.source) {
+            filter.source = req.query.source;
+        }
+        // Return light payload to minimise bandwidth
+        const leads = await Lead_1.default.find(filter)
+            .select('_id name source createdAt')
+            .limit(50)
+            .sort({ createdAt: 1 })
+            .lean();
+        res.json(leads);
+    }
+    catch (error) {
+        console.error('[Leads] /recent error', error);
+        res.status(500).json({ message: 'Failed to fetch recent leads' });
+    }
+});
 exports.default = router;

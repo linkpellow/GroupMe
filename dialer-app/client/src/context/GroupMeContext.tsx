@@ -102,27 +102,62 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
   const webSocketRef = useRef<WebSocket | null>(null);
 
   const refreshConfig = useCallback(async () => {
-    console.log("GroupMeContext: refreshConfig called");
+    console.log("🔍 GroupMeContext: refreshConfig called");
     setLoading(true);
     setError(null);
+    
+    // Import and use our centralized auth token service
+    const authTokenService = await import('../services/authToken.service');
+    
+    // Get the current token from our service
+    const token = authTokenService.getToken();
+    
+    if (!token) {
+      console.warn('❌ GroupMeContext: No auth token found, cannot fetch config');
+      setConfig(null);
+      setLoading(false);
+      return;
+    }
+    
+    console.log('✅ GroupMeContext: Auth token found, fetching config');
+    
     try {
+      // Ensure the token is properly set in axios headers
+      axiosInstance.defaults.headers.common['Authorization'] = token.startsWith('Bearer ') 
+        ? token 
+        : `Bearer ${token}`;
+      
+      console.log('🔄 GroupMeContext: Making API call to /api/groupme/config');
+      
       const response = await axiosInstance.get("/api/groupme/config");
+      console.log('🔄 GroupMeContext: Config API response:', response.data);
+      
       if (response.data && response.data.accessToken) {
+        console.log('✅ GroupMeContext: accessToken found in response');
         setConfig(response.data);
         localStorage.setItem("groupme_config", JSON.stringify(response.data));
       } else {
+        console.log('⚠️ GroupMeContext: No accessToken in response data');
         const savedConfig = localStorage.getItem("groupme_config");
-        if (savedConfig) setConfig(JSON.parse(savedConfig));
-        else setConfig(null);
+        if (savedConfig) {
+          console.log('🔄 GroupMeContext: Loading config from localStorage');
+          setConfig(JSON.parse(savedConfig));
+        }
+        else {
+          console.log('⚠️ GroupMeContext: No saved config in localStorage');
+          setConfig(null);
+        }
       }
     } catch (err: any) {
       // Handle 401 gracefully - this is expected when GroupMe isn't connected
       if (err.response?.status === 401) {
-        console.log("GroupMeContext: No GroupMe config found (401) - this is normal if not connected");
+        console.log("⚠️ GroupMeContext: No GroupMe config found (401) - this is normal if not connected");
         setConfig(null);
         localStorage.removeItem("groupme_config");
       } else {
-        console.error("Error fetching GroupMe config:", err);
+        console.error("❌ GroupMeContext: Error fetching GroupMe config:", err);
+        console.error("❌ Response status:", err.response?.status);
+        console.error("❌ Response data:", err.response?.data);
         setError("Failed to load GroupMe configuration");
         const savedConfig = localStorage.getItem("groupme_config");
         if (savedConfig) setConfig(JSON.parse(savedConfig));
@@ -134,34 +169,110 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const refreshGroups = useCallback(async () => {
-    if (!config || !config.accessToken) {
-      // setError('Cannot refresh groups: Access token not available.'); // Potentially too noisy
-      console.log("GroupMeContext: refreshGroups - No token, skipping fetch.");
-      setGroups([]); // Clear groups if no token
+    // Check auth token first
+    const authTokenService = await import('../services/authToken.service');
+    const token = authTokenService.getToken();
+    
+    if (!token) {
+      console.warn('❌ GroupMeContext: No auth token found, cannot fetch groups');
+      setError('Authentication token not found. Please log in again.');
+      setGroups([]);
+      setIsLoading(false);
       return;
     }
-    console.log("GroupMeContext: refreshGroups called");
+    
+    // We'll try to fetch groups even if we don't have a config.accessToken
+    // The backend should handle the GroupMe token for us
+    if (!config) {
+      console.log("⚠️ GroupMeContext: No config but we have auth token, will try anyway");
+    } else if (!config.accessToken) {
+      console.log("⚠️ GroupMeContext: Config exists but no accessToken, will try anyway");
+    } else {
+      console.log("🔍 GroupMeContext: refreshGroups called with token:", config.accessToken ? "present" : "missing");
+      console.log("🔍 GroupMeContext: Config state:", {
+        hasToken: !!config.accessToken,
+        hasGroups: !!config.groups,
+        groupsCount: config.groups ? Object.keys(config.groups).length : 0
+      });
+    }
+    
+    // Ensure the token is properly set in axios headers
+    axiosInstance.defaults.headers.common['Authorization'] = token.startsWith('Bearer ') 
+      ? token 
+      : `Bearer ${token}`;
+    
+    console.log('✅ GroupMeContext: Auth token set on axiosInstance');
+    
     setIsLoading(true);
     try {
+      console.log("🔄 GroupMeContext: Making API call to /api/groupme/groups");
       const response = await axiosInstance.get("/api/groupme/groups");
-      if (response.data && response.data.success && response.data.data.groups) {
-        setGroups(response.data.data.groups);
-        // If no group is active and groups are fetched, select the first one by default
-        // This was causing the immediate switch to message view, let GroupMeChat handle selection
-        // if (!activeGroupId && response.data.data.groups.length > 0) {
-        //   setActiveGroupId(response.data.data.groups[0].groupId);
-        // }
+      console.log("✅ GroupMeContext: Groups API response:", response.data);
+      console.log("✅ GroupMeContext: Response status:", response.status);
+      console.log("✅ GroupMeContext: Response headers:", response.headers);
+      
+      // Handle different response formats
+      let groupsData = [];
+      
+      if (response.data && response.data.success && response.data.data) {
+        // Handle wrapped response format
+        console.log("✅ GroupMeContext: Using wrapped response format");
+        groupsData = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        // Handle direct array format
+        console.log("✅ GroupMeContext: Using direct array format");
+        groupsData = response.data;
       } else {
-        setGroups([]);
+        console.error("❌ GroupMeContext: Unexpected response format:", response.data);
+        throw new Error('Unexpected API response format');
       }
-    } catch (err) {
-      console.error("Error fetching GroupMe groups:", err);
+      
+      console.log("🔍 GroupMeContext: Raw groups data:", groupsData);
+      
+      if (!Array.isArray(groupsData) || groupsData.length === 0) {
+        console.warn("⚠️ GroupMeContext: No groups found or invalid data format");
+        setGroups([]);
+        return;
+      }
+      
+      // Map the data to ensure consistent format
+      const formattedGroups = groupsData.map((group: any) => {
+        // Add additional logging to see what fields are available
+        console.log("🔍 GroupMeContext: Raw group data fields:", Object.keys(group));
+        
+        const formatted = {
+          groupId: group.groupId || group.id || group.group_id,
+          groupName: group.groupName || group.name,
+          image_url: group.image_url,
+          last_message: group.last_message,
+          messages_count: group.messages_count
+        };
+        console.log("✅ GroupMeContext: Formatted group:", formatted);
+        return formatted;
+      });
+      
+      console.log("✅ GroupMeContext: All formatted groups:", formattedGroups);
+      
+      if (formattedGroups.length === 0) {
+        console.warn("⚠️ GroupMeContext: No groups after formatting");
+      }
+      
+      setGroups(formattedGroups);
+    } catch (err: any) {
+      console.error("❌ GroupMeContext: Error fetching GroupMe groups:", err);
+      if (err.response) {
+        console.error("❌ GroupMeContext: Error response:", {
+          status: err.response.status,
+          data: err.response.data,
+          headers: err.response.headers
+        });
+      }
       setError("Failed to load GroupMe groups.");
       setGroups([]);
     } finally {
       setIsLoading(false);
     }
-  }, [config, activeGroupId]); // activeGroupId removed as it might cause loop if we auto-set here
+  }, [config, axiosInstance]);
 
   const fetchMessages = useCallback(
     async (groupId: string) => {
@@ -407,11 +518,12 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
               received.code,
             );
             
-            // Handle JWT token mismatch
             if (received.code === "TOKEN_MISMATCH" || received.code === "INVALID_TOKEN") {
-              console.error("JWT token mismatch detected, clearing auth data");
-              clearAllAuthData();
-              window.location.href = "/login";
+              console.warn("JWT token mismatch detected (dev mode safeguard)");
+              if (process.env.NODE_ENV === "production") {
+                clearAllAuthData();
+                window.location.href = "/login";
+              }
             }
             
             // Don't reconnect on auth failure

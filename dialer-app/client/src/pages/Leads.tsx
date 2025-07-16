@@ -32,7 +32,7 @@ import MultiDispositionFilter from '../components/MultiDispositionFilter';
 import { useLeadsQuery } from '../hooks/useLeadsQuery';
 import { useLeadsData } from '../hooks/useLeadsData';
 import { LeadsQueryState } from '../types/queryTypes';
-import { QUERY_CONFIG } from '@shared/config/queryConfig';
+import type { QUERY_CONFIG } from '@shared/config/queryConfig';
 import StateIcon from '../components/StateIcon';
 import LocalTime from '../components/LocalTime';
 import LeadActionsMenu from '../components/LeadActionsMenu';
@@ -57,6 +57,7 @@ import RemindersStrip from '../components/RemindersStrip';
 import { lockScroll, unlockScroll } from '../shared/scrollLock';
 import PullToRefresh from 'react-simple-pull-to-refresh';
 import CrocLoader from '../components/CrocLoader';
+import { safeString } from '../utils/safeString';
 
 // Define disposition colors
 const DISPOSITION_COLORS = {
@@ -78,8 +79,13 @@ const DISPOSITION_COLORS = {
 };
 
 // Helper functions
-const formatPhoneNumber = (phone: string) => {
-  const cleaned = phone.replace(/\D/g, '');
+
+const formatPhoneNumber = (phone: string | undefined | null) => {
+  if (!phone) {
+    console.warn('[Leads.tsx] formatPhoneNumber received null or undefined phone value.');
+    return ''; // Return empty string if phone is null or undefined
+  }
+  const cleaned = (phone ?? '').replace(/\D/g, '');
   const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
   if (match) {
     return '(' + match[1] + ') ' + match[2] + '-' + match[3];
@@ -87,24 +93,24 @@ const formatPhoneNumber = (phone: string) => {
   return phone;
 };
 
-const formatHeight = (height: string) => {
+const formatHeight = (height: string | undefined | null) => {
   if (!height) return '';
-  if (height.includes("'")) {
+  if (safeString(height).includes("'")) {
     return height;
   }
-  const totalInches = parseInt(height);
+  const totalInches = parseInt(safeString(height));
   const feet = Math.floor(totalInches / 12);
   const inches = totalInches % 12;
   return `${feet}'${inches}"`;
 };
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string | undefined | null) => {
   if (!dateString) return '';
   try {
-    if (dateString.includes('/')) {
+    if (safeString(dateString).includes('/')) {
       return dateString;
     }
-    const [year, month, day] = dateString.split('-');
+    const [year, month, day] = safeString(dateString).split('-');
     if (year && month && day) {
       return `${month}/${day}/${year}`;
     }
@@ -118,9 +124,9 @@ const formatDate = (dateString: string) => {
   return dateString;
 };
 
-const formatEmail = (email: string) => {
+const formatEmail = (email: string | undefined | null) => {
   if (!email) return '';
-  if (email.length > 25) {
+  if (safeString(email).length > 25) {
     const atIndex = email.indexOf('@');
     if (atIndex !== -1) {
       const username = email.substring(0, atIndex);
@@ -949,6 +955,10 @@ export default function Leads() {
 
   // Ensure special sentinel option always exists
   const availableDispositions: string[] = React.useMemo(() => {
+    // Add console warning if the upstream data is missing
+    if (!dispositionsList) {
+      console.warn('[Leads.tsx] dispositionsList is null or undefined. Using empty array for dropdown.');
+    }
     const names: string[] = Array.isArray(dispositionsList)
       ? dispositionsList.map((d: any) => d.name)
       : [];
@@ -962,7 +972,7 @@ export default function Leads() {
   }, [dispositionsList]);
 
   // useLeadsData expects an object with queryState and queryVersion
-  const { leads, isLoading, error, pagination, refetch } = useLeadsData({
+  const { leads, isLoading, isInitialLoading, isFetching, error, pagination, refetch } = useLeadsData({
     queryState,
     queryVersion,
     enabled: true,
@@ -1304,7 +1314,7 @@ export default function Leads() {
         globalAny.addFollowUpLead(lead.name, lead.phone, lead.state);
       } else if (typeof globalAny.appendDailyGoal === 'function') {
         // Fallback legacy string path. Ensure single parentheses and clean phone.
-        const cleanedPhone = lead.phone.replace(/[()]/g, '').trim();
+        const cleanedPhone = safeString(lead.phone).replace(/[^\d]/g, '').trim();
         const phoneFormatted = `(${cleanedPhone})`;
         const reminderText = `Follow up with ${lead.name} ${phoneFormatted}${lead.state ? ` - ${lead.state}` : ''}`;
         globalAny.appendDailyGoal(reminderText);
@@ -1358,9 +1368,17 @@ export default function Leads() {
         // Set up the window content
         const doc = newWindow.document;
         doc.open();
-        const dispositionOptionsHtml = availableDispositions
+        
+        // --- CRITICAL FIX ---
+        // Ensure availableDispositions is not undefined before mapping. If the dispositions
+        // query fails or hasn't resolved, this prevents a fatal .map render error.
+        if (!availableDispositions) {
+            console.error('[Leads.tsx] CRITICAL: availableDispositions is undefined during handlePopoutNotes. Cannot render disposition options.');
+        }
+        const dispositionOptionsHtml = (availableDispositions || [])
           .map((d) => `<option value="${d}" ${d === lead.disposition ? 'selected' : ''}>${d}</option>`)
           .join('');
+
         const popupHTML = `<!DOCTYPE html><html><head>
         <meta charset='utf-8' />
         <title>Lead Details: ${lead.name}</title>
@@ -1645,8 +1663,9 @@ export default function Leads() {
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: true
-              }).replace(' AM', 'AM').replace(' PM', 'PM');
-              timeDisplay.textContent = timeString + ' ' + tzAbbreviation;
+              });
+              const formattedTime = safeString(timeString).replace(' AM', 'AM').replace(' PM', 'PM');
+              timeDisplay.textContent = formattedTime + ' ' + tzAbbreviation;
             };
             setInterval(updateTime, 1000);
             updateTime(); // Initial call
@@ -1654,7 +1673,7 @@ export default function Leads() {
 
           document.getElementById('call-btn').addEventListener('click', () => {
             if (window.opener && typeof window.opener.dialPhone === 'function') {
-              window.opener.dialPhone('${lead.phone}');
+              window.opener.dialPhone('${safeString(lead.phone)}');
             }
           });
           document.getElementById('hangup-btn').addEventListener('click', () => {
@@ -1665,7 +1684,7 @@ export default function Leads() {
           if (qdbtn) {
             qdbtn.addEventListener('click', () => {
               if (window.opener && typeof window.opener.handleQuickDrip === 'function') {
-                const leadObject = { _id: '${lead._id}', name: '${lead.name}', phone: '${lead.phone}', email: '${lead.email}', disposition: '${lead.disposition}' };
+                const leadObject = { _id: '${lead._id}', name: '${safeString(lead.name)}', phone: '${safeString(lead.phone)}', email: '${safeString(lead.email)}', disposition: '${safeString(lead.disposition)}' };
                 window.opener.handleQuickDrip(leadObject);
               }
             });
@@ -1687,7 +1706,7 @@ export default function Leads() {
               }
             });
 
-            const leadObject = { _id: '${lead._id}', name: '${lead.name}', phone: '${lead.phone}', email: '${lead.email}', disposition: '${lead.disposition}', source: '${lead.source}', dob: '${lead.dob}', height: '${lead.height}', weight: '${lead.weight}', gender: '${lead.gender}', state: '${lead.state}', zipcode: '${lead.zipcode}', notes: ${JSON.stringify(lead.notes || '')} };
+            const leadObject = { _id: '${lead._id}', name: '${safeString(lead.name)}', phone: '${safeString(lead.phone)}', email: '${safeString(lead.email)}', disposition: '${safeString(lead.disposition)}', source: '${safeString(lead.source)}', dob: '${safeString(lead.dob)}', height: '${safeString(lead.height)}', weight: '${safeString(lead.weight)}', gender: '${safeString(lead.gender)}', state: '${safeString(lead.state)}', zipcode: '${safeString(lead.zipcode)}', notes: ${JSON.stringify(safeString(lead.notes))} };
 
             const actionHandlers = {
                 'edit-lead-action': () => window.opener.handleEditLead(leadObject),
@@ -2055,23 +2074,23 @@ export default function Leads() {
               title="Click to copy"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.email, toast, 'Email');
+                copyToClipboard(safeString(lead.email), toast, 'Email');
               }}
             >
-              {formatEmail(lead.email)}
+              {formatEmail(safeString(lead.email))}
             </div>
           </div>
           <div className="grid-item">
             <div
               className="text-content value phone"
-              data-phone={lead.phone.replace(/[^\d]/g, '')}
+              data-phone={safeString(lead.phone).replace(/\D/g, '')}
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.phone, toast, 'Phone');
+                copyToClipboard(safeString(lead.phone), toast, 'Phone');
               }}
               title="Click to copy"
             >
-              {formatPhoneNumber(lead.phone)}
+              {formatPhoneNumber(safeString(lead.phone))}
             </div>
           </div>
           <div className="grid-item">
@@ -2079,11 +2098,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.zipcode, toast, 'Zipcode');
+                copyToClipboard(safeString(lead.zipcode), toast, 'Zipcode');
               }}
               title="Click to copy"
             >
-              {lead.zipcode}
+              {safeString(lead.zipcode)}
             </div>
           </div>
           <div className="grid-item">
@@ -2091,12 +2110,12 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                const dobDisplay = formatDate(lead.dob);
+                const dobDisplay = formatDate(safeString(lead.dob));
                 copyToClipboard(dobDisplay, toast, 'DOB');
               }}
               title="Click to copy"
             >
-              {formatDate(lead.dob)}
+              {formatDate(safeString(lead.dob))}
             </div>
           </div>
           <div className="grid-item">
@@ -2104,11 +2123,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.height, toast, 'Height');
+                copyToClipboard(safeString(lead.height), toast, 'Height');
               }}
               title="Click to copy"
             >
-              {formatHeight(lead.height)}
+              {formatHeight(safeString(lead.height))}
             </div>
           </div>
           <div className="grid-item">
@@ -2116,11 +2135,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.weight, toast, 'Weight');
+                copyToClipboard(safeString(lead.weight), toast, 'Weight');
               }}
               title="Click to copy"
             >
-              {lead.weight}
+              {safeString(lead.weight)}
             </div>
           </div>
           <div className="grid-item">
@@ -2128,11 +2147,11 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.gender, toast, 'Gender');
+                copyToClipboard(safeString(lead.gender), toast, 'Gender');
               }}
               title="Click to copy"
             >
-              {lead.gender}
+              {safeString(lead.gender)}
             </div>
           </div>
           <div className="grid-item">
@@ -2140,12 +2159,12 @@ export default function Leads() {
               className="text-content value"
               onClick={(e) => {
                 e.stopPropagation();
-                copyToClipboard(lead.state, toast, 'State');
+                copyToClipboard(safeString(lead.state), toast, 'State');
               }}
               title="Click to copy"
             >
-              <img src={`/states/${lead.state}.png`} alt={lead.state} style={{ height: '24px', maxWidth: '100%' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
-              <span style={{ display: 'none' }}>{lead.state}</span>
+              <img src={`/states/${safeString(lead.state)}.png`} alt={safeString(lead.state)} style={{ height: '24px', maxWidth: '100%' }} onError={(e) => (e.currentTarget.style.display = 'none')} />
+              <span style={{ display: 'none' }}>{safeString(lead.state)}</span>
             </div>
           </div>
           <div className="grid-item">
@@ -2168,7 +2187,7 @@ export default function Leads() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <option value="">Disposition</option>
-                {availableDispositions.map((disposition: string) => (
+                {(availableDispositions || []).map((disposition: string) => (
                   <option key={disposition} value={disposition}>
                     {disposition}
                   </option>
@@ -2182,7 +2201,7 @@ export default function Leads() {
         <div className="notes-section">
           <NotesEditor
             leadId={lead._id}
-            initialNotes={lead.notes || ''}
+            initialNotes={safeString(lead.notes)}
             className="notes-textarea"
             style={{ resize: 'vertical', minHeight: '140px' }}
             onSaveSuccess={refetch}
@@ -2354,6 +2373,11 @@ export default function Leads() {
     const target = evt.target as HTMLElement | null;
     return !(target && target.closest('.lead-card'));
   };
+
+  // Cast to any to relax prop type checks for react-simple-pull-to-refresh
+  const PullToRefreshAny = PullToRefresh as any;
+
+  const showInitialOverlay = isInitialLoading;
 
   return (
     <>
@@ -2639,7 +2663,7 @@ export default function Leads() {
                     <div className="error-message" style={{ textAlign: 'center', padding: '2rem' }}>
                       Error loading leads: {error.message}
                     </div>
-                  ) : isLoading && leads.length === 0 ? (
+                  ) : showInitialOverlay ? (
                     <LoadingCroc />
                   ) : leads.length === 0 ? (
                     <div className="no-leads" style={{ textAlign: 'center', padding: '2rem' }}>
@@ -2669,19 +2693,14 @@ export default function Leads() {
 
             // @ts-ignore – library prop types can be inconsistent, but runtime handles this
             return (
-              <PullToRefresh
-                shouldPullToRefresh={shouldStartPull as any}
+              <PullToRefreshAny
                 onRefresh={handleRefresh}
                 pullingContent={<CrocLoader size={48} />}
                 refreshingContent={<CrocLoader size={48} />}
-                pullDownToRefresh={true as any}
-                pullDownThreshold={200}
-                maxPullDownDistance={380}
-                triggerHeight={0}
-                resistance={1.0}
+                pullDownThreshold={150}
               >
                 {listElement}
-              </PullToRefresh>
+              </PullToRefreshAny>
             );
           })()}
 

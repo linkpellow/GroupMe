@@ -38,10 +38,11 @@ import webhookRoutes from './routes/webhook.routes';
 import documentsRoutes from './routes/documents.routes';
 import textdripRoutes from './routes/textdrip.routes';
 import dialCountsRoutes from './routes/dialCounts.routes';
+import testRoutes from './routes/test.routes';
 
 // Comment out routes for files confirmed missing from ./routes/ directory
 // import clientRoutes from './routes/clients.routes';
-// import csvUploadRoutes from './routes/csvUpload.routes';
+import csvUploadRoutes from './routes/csvUpload.routes';
 // import notesRoutes from './routes/notes.routes';
 // import usersRoutes from './routes/users.routes';
 
@@ -99,6 +100,9 @@ interface ExtendedWebSocket extends WebSocket {
   userId?: string;
 }
 
+// In-memory map of the active authenticated WebSocket for each userId.
+const userSessions = new Map<string, ExtendedWebSocket>();
+
 wss.on('connection', (ws: ExtendedWebSocket) => {
   console.log('Client connected to WebSocket');
   ws.isAlive = true;
@@ -116,6 +120,16 @@ wss.on('connection', (ws: ExtendedWebSocket) => {
           const decodedToken = verifyToken(parsedMessage.token) as { _id: string };
           if (decodedToken && decodedToken._id) {
             ws.userId = decodedToken._id;
+            // Replace any existing session for this user
+            const existing = userSessions.get(ws.userId);
+            if (existing && existing !== ws && existing.readyState === WebSocket.OPEN) {
+              try {
+                existing.close(4000, 'New session established');
+              } catch (err) {
+                console.error('Error closing previous WebSocket session', err);
+              }
+            }
+            userSessions.set(ws.userId, ws);
             console.log(`WebSocket authenticated for userId: ${ws.userId}`);
             ws.send(
               JSON.stringify({
@@ -174,6 +188,12 @@ wss.on('connection', (ws: ExtendedWebSocket) => {
 
   ws.on('close', () => {
     console.log('Client disconnected from WebSocket');
+    if (ws.userId) {
+      const current = userSessions.get(ws.userId);
+      if (current === ws) {
+        userSessions.delete(ws.userId);
+      }
+    }
   });
 
   ws.on('error', (error) => {
@@ -195,9 +215,23 @@ wss.on('close', () => {
 
 // WebSocket broadcast functions
 export const sendMessageToUser = (userId: string, message: object) => {
-  wss.clients.forEach((client: ExtendedWebSocket) => {
-    if (client.readyState === WebSocket.OPEN && client.userId === userId) {
+  const client = userSessions.get(userId);
+  if (client && client.readyState === WebSocket.OPEN) {
+    try {
       client.send(JSON.stringify(message));
+    } catch (err) {
+      console.error('Error sending WS message to user', err);
+    }
+    return;
+  }
+  // Fallback – iterate all (shouldn't normally be needed)
+  wss.clients.forEach((ws: ExtendedWebSocket) => {
+    if (ws.readyState === WebSocket.OPEN && ws.userId === userId) {
+      try {
+        ws.send(JSON.stringify(message));
+      } catch (err) {
+        console.error('Error sending WS message in fallback loop', err);
+      }
     }
   });
 };
@@ -211,10 +245,11 @@ export const broadcastMessage = (message: object) => {
 };
 
 export const broadcastNewLeadNotification = (leadData: {
-  leadId: string;
+  leadId?: string; // may be undefined for pre-DB stub notifications
   name: string;
   source: string;
   isNew: boolean;
+  processMs?: number;
 }) => {
   const notification = {
     type: 'new_lead_notification',
@@ -222,13 +257,22 @@ export const broadcastNewLeadNotification = (leadData: {
     timestamp: new Date().toISOString(),
   };
 
-  console.log('Broadcasting new lead notification:', notification);
+  logger.info(`Broadcasting lead notification: ${leadData.name} (${leadData.leadId || 'no-id'}), isNew=${leadData.isNew}, clients=${wss.clients.size}`);
 
+  let sentCount = 0;
   wss.clients.forEach((client: ExtendedWebSocket) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(notification));
+      try {
+        client.send(JSON.stringify(notification));
+        sentCount++;
+        logger.debug(`Notification sent to client: ${client.userId || 'anonymous'}`);
+      } catch (error) {
+        logger.error(`Failed to send notification to client: ${error}`);
+      }
     }
   });
+
+  logger.info(`Notification broadcast complete: sent to ${sentCount}/${wss.clients.size} clients`);
 };
 
 const storage = multer.diskStorage({
@@ -248,6 +292,8 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   `http://localhost:${port}`,
   `http://127.0.0.1:${port}`,
+  'https://crokodial.com',
+  'https://www.crokodial.com',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 const corsOptions = {
@@ -303,6 +349,13 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/textdrip', textdripRoutes);
 app.use('/api/dial-counts', dialCountsRoutes);
+app.use('/api/csv-upload', csvUploadRoutes);
+
+// Register test routes only in non-production environments for security
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/test', testRoutes);
+  console.log('DEV-ONLY: Test routes registered at /api/test');
+}
 
 // Comment out app.use for missing routes only
 // app.use('/api/clients', clientRoutes);
@@ -338,6 +391,15 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
   });
+});
+
+// Add direct route for GroupMe OAuth callback
+app.get('/groupme/callback', (req, res) => {
+  console.log('Received GroupMe callback at /groupme/callback, forwarding to /api/groupme/callback');
+  // Forward the request to our API route
+  const { access_token, state } = req.query;
+  const targetUrl = `/api/groupme/callback?access_token=${access_token}&state=${state}`;
+  res.redirect(targetUrl);
 });
 
 // Determine client dist directory dynamically to work in dev, build, and Heroku slug paths
@@ -447,4 +509,14 @@ process.on('SIGUSR2', () => {
   // ts-node-dev expects the process to exit; it will handle the restart
 });
 
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+} else {
+  // In Jest tests, avoid opening network listeners to keep tests fast and leak-free.
+  // Stub out broadcast functions so importing files don’t throw.
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  (exports as any).broadcastNewLeadNotification = () => {};
+}
+
+// Export Express app for supertest
+export default app;

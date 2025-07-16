@@ -1,11 +1,11 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, Router } from 'express';
 import Lead from '../models/Lead';
 import winston from 'winston';
 import { z } from 'zod';
 import * as Sentry from '@sentry/node';
 import { broadcastNewLeadNotification } from '../index';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Winston logger configuration
 const logger = winston.createLogger({
@@ -21,30 +21,38 @@ const logger = winston.createLogger({
   ],
 });
 
-// Middleware to verify NextGen credentials
-const verifyNextGenAuth = (req: Request, res: Response, next: NextFunction) => {
-  const { sid, apikey } = req.headers;
+// Middleware to verify NextGen credentials (per-tenant)
+import NextGenCredential from '../models/NextGenCredential';
 
-  if (!process.env.NEXTGEN_SID || !process.env.NEXTGEN_API_KEY) {
-    logger.error('NextGen credentials not configured in environment');
-    return res.status(500).json({
-      success: false,
-      message: 'Server configuration error',
-    });
+const verifyNextGenAuth = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sid, apikey } = req.headers as Record<string, string | undefined>;
+
+    if (!sid || !apikey) {
+      return res.status(401).json({ success: false, message: 'Missing creds' });
+    }
+
+    // Look up active credential
+    const cred = await NextGenCredential.findOne({ sid, apiKey: apikey, active: true }).lean();
+
+    if (!cred) {
+      // Legacy env-var fallback for admin tenant
+      if (sid === process.env.NEXTGEN_SID && apikey === process.env.NEXTGEN_API_KEY) {
+        (req as any).tenantId = process.env.ADMIN_TENANT_ID || null;
+        return next();
+      }
+
+      logger.warn('Invalid NextGen credentials attempted', { sid: sid.substring(0,5)+'...', ip: req.ip });
+      return res.status(401).json({ success: false, message: 'Bad creds' });
+    }
+
+    // Attach tenantId for controller to use in upsert
+    (req as any).tenantId = cred.tenantId;
+    return next();
+  } catch (err) {
+    logger.error('verifyNextGenAuth error', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
-
-  if (sid !== process.env.NEXTGEN_SID || apikey !== process.env.NEXTGEN_API_KEY) {
-    logger.warn('Invalid NextGen credentials attempted', {
-      sid: sid?.toString().substring(0, 5) + '...',
-      ip: req.ip,
-    });
-    return res.status(401).json({
-      success: false,
-      message: 'Bad creds',
-    });
-  }
-
-  next();
 };
 
 // Zod schema for NextGen webhook payload
@@ -57,6 +65,7 @@ const NextGenLeadSchema = z.object({
   last_name: z.string().optional(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
+  phone_number: z.string().optional(),
 
   // Location
   city: z.string().optional(),
@@ -65,9 +74,10 @@ const NextGenLeadSchema = z.object({
   street_address: z.string().optional(),
 
   // Demographics
-  dob: z.string().optional(),
+  dob: z.string().optional(), // preferred
+  date_of_birth: z.string().optional(), // some vendors send this
   age: z.number().optional(),
-  gender: z.enum(['M', 'F', 'Male', 'Female']).optional(),
+  gender: z.string().optional(),
   height: z.string().optional(),
   weight: z.string().optional(),
 
@@ -102,6 +112,36 @@ type NextGenLeadData = z.infer<typeof NextGenLeadSchema>;
 
 // Adapter to convert NextGen format to our Lead schema
 const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
+  // Convert numeric height in inches (e.g. "70") → `5'10"`. Fallback to raw string if parsing fails.
+  let formattedHeight: string | undefined = undefined;
+  if (nextgenData.height) {
+    const numeric = parseInt(nextgenData.height.replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(numeric) && numeric > 0) {
+      const feet = Math.floor(numeric / 12);
+      const inches = numeric % 12;
+      formattedHeight = `${feet}'${inches}"`;
+    } else {
+      // Keep original if parsing fails (e.g. already formatted or contains non-numeric)
+      formattedHeight = nextgenData.height.trim();
+    }
+  }
+
+  // Normalize weight – trim and keep as-is (string) so UI can display
+  const formattedWeight = nextgenData.weight ? nextgenData.weight.trim() : undefined;
+
+  // Keep DOB as provided (MM/DD/YY) so UI can parse consistently
+  const formattedDob = (nextgenData.dob || (nextgenData as any).date_of_birth)?.trim();
+
+  // Format gender (capitalize first letter)
+  let formattedGender = undefined;
+  if (nextgenData.gender) {
+    if (nextgenData.gender.toLowerCase().startsWith('m')) {
+      formattedGender = 'Male';
+    } else if (nextgenData.gender.toLowerCase().startsWith('f')) {
+      formattedGender = 'Female';
+    }
+  }
+
   const adapted = {
     // IDs
     nextgenId: nextgenData.nextgen_id || nextgenData.lead_id,
@@ -114,23 +154,19 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
 
     // Contact
     email: nextgenData.email,
-    phone: nextgenData.phone,
+    phone: nextgenData.phone ?? nextgenData.phone_number,
 
     // Location
-    city: nextgenData.city,
-    state: nextgenData.state?.toUpperCase(),
-    zipcode: nextgenData.zip_code,
-    street1: nextgenData.street_address,
+    city: nextgenData.city?.trim(),
+    state: nextgenData.state?.toUpperCase()?.trim(),
+    zipcode: nextgenData.zip_code?.trim(),
+    street1: nextgenData.street_address?.trim(),
 
-    // Demographics
-    dob: nextgenData.dob,
-    gender: nextgenData.gender?.toLowerCase()?.startsWith('m')
-      ? 'male'
-      : nextgenData.gender?.toLowerCase()?.startsWith('f')
-        ? 'female'
-        : undefined,
-    height: nextgenData.height,
-    weight: nextgenData.weight,
+    // Demographics - with consistent formatting
+    dob: formattedDob,
+    gender: formattedGender,
+    height: formattedHeight,
+    weight: formattedWeight,
 
     // Health
     tobaccoUser: nextgenData.tobacco_user,
@@ -159,8 +195,8 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
     subIdHash: nextgenData.sub_id_hash,
 
     // Defaults
-    source: 'nextgen' as const,
-    disposition: 'new' as const,
+    source: 'NextGen' as const,  // Changed to match the enum in Lead model
+    disposition: 'New Lead' as const,  // Changed to match other imports
     status: 'New' as const,
   };
 
@@ -196,46 +232,83 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
       });
     }
 
-    // Adapt the lead data
-    const leadData = adaptNextGenLead(validationResult.data);
+    // Adapt lead data (full) but we'll upsert minimal first for speed
+    const fullLeadData = adaptNextGenLead(validationResult.data);
 
-    // Ensure we have minimum required data
-    if (!leadData.email && !leadData.phone) {
-      logger.error('NextGen lead missing both email and phone', {
-        nextgenId: leadData.nextgenId,
+    // Broadcast minimal stub ASAP for instant UI feedback (no DB wait)
+    try {
+      broadcastNewLeadNotification({
+        name: fullLeadData.name,
+        source: 'NextGen',
+        isNew: true,
       });
+    } catch (stubErr) {
+      logger.warn('Stub notification failed', stubErr);
+    }
 
+    if (!fullLeadData.email && !fullLeadData.phone) {
+      logger.error('NextGen lead missing both email and phone', {
+        nextgenId: fullLeadData.nextgenId,
+      });
       return res.status(400).json({
         success: false,
         message: 'Lead must have either email or phone',
       });
     }
 
-    // Upsert the lead
-    const { lead, isNew } = await (Lead as any).upsertLead(leadData);
+    // Build minimal payload for fast upsert
+    const minimal = {
+      nextgenId: fullLeadData.nextgenId,
+      firstName: fullLeadData.firstName,
+      lastName: fullLeadData.lastName,
+      name: fullLeadData.name,
+      email: fullLeadData.email,
+      phone: fullLeadData.phone,
+      source: 'NextGen' as const,
+      disposition: 'New Lead' as const,
+      status: 'New' as const,
+    };
+
+    const { lead, isNew } = await (Lead as any).upsertLead(minimal);
     leadId = lead._id.toString();
+
+    // Async update with heavy fields (non-blocking)
+    setImmediate(async () => {
+      try {
+        await Lead.updateOne({ _id: leadId }, { $set: fullLeadData });
+      } catch (e) {
+        console.error('Async enrich lead failed', e);
+      }
+    });
 
     // Log success
     logger.info('NextGen lead processed successfully', {
       leadId,
-      nextgenId: leadData.nextgenId,
+      nextgenId: fullLeadData.nextgenId,
       isNew,
       duration: Date.now() - startTime,
     });
+
+    // Compute processing time
+    const processMs = Date.now() - startTime;
 
     // Broadcast notification if available
     if (typeof broadcastNewLeadNotification === 'function' && leadId) {
       try {
         broadcastNewLeadNotification({
           leadId,
-          name: leadData.name,
+          name: fullLeadData.name,
           source: 'NextGen',
           isNew,
+          processMs,
         });
       } catch (broadcastError) {
         logger.error('Failed to broadcast lead notification', broadcastError);
       }
     }
+
+    // Expose timing header
+    res.set('X-Process-Time', processMs.toString());
 
     // Send success response
     res.status(isNew ? 201 : 200).json({
@@ -243,6 +316,7 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
       leadId,
       message: `Lead successfully ${isNew ? 'created' : 'updated'}`,
       isNew,
+      processMs,
     });
   } catch (error: any) {
     logger.error('NextGen webhook error', {

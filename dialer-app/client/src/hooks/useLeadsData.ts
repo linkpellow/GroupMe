@@ -7,7 +7,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LeadsQueryState, LeadsQueryResponse, QueryErrorResponse } from '../types/queryTypes';
 import { leadsApi } from '../services/leadsApi';
-import { QUERY_CONFIG } from '@shared/config/queryConfig';
+import { QUERY_CONFIG } from '../constants/queryConfigClient';
 
 interface UseLeadsDataOptions {
   queryState: LeadsQueryState;
@@ -24,6 +24,7 @@ interface UseLeadsDataReturn {
     limit: number;
   };
   isLoading: boolean;
+  isInitialLoading: boolean;
   isError: boolean;
   error: Error | null;
   isFetching: boolean;
@@ -51,8 +52,15 @@ export function useLeadsData({
     queryKey: getQueryKey(queryState, queryVersion),
     queryFn: () => leadsApi.queryLeads(queryState),
     enabled,
+    /**
+     * Preserve the previous list while refetching (v5 replacement for
+     * keepPreviousData).
+     */
+    placeholderData: (prev) => prev,
     staleTime: QUERY_CONFIG.PERFORMANCE.cacheTime,
     gcTime: QUERY_CONFIG.PERFORMANCE.cacheTime * 2,
+    refetchInterval: 60000, // Background refresh every 60s
+    refetchIntervalInBackground: true,
     retry: (failureCount, error) => {
       // Don't retry on client errors (4xx)
       if (error?.code?.startsWith('4')) return false;
@@ -118,6 +126,7 @@ export function useLeadsData({
       limit: queryState.limit,
     },
     isLoading: query.isLoading,
+    isInitialLoading: query.isInitialLoading,
     isError: query.isError,
     error: query.error as Error | null,
     isFetching: query.isFetching,

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { auth } from '../middleware/auth';
 import { incrementDialCount, getDialCounts } from '../controllers/dialCount.controller';
 
-const router = Router();
+const router: Router = Router();
 
 // Protected routes
 router.post('/increment', auth, incrementDialCount);

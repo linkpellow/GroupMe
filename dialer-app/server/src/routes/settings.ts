@@ -1,7 +1,7 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { authenticate as auth } from '../middleware/auth';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Get user settings
 router.get('/', auth, async (req, res) => {

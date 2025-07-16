@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Direct Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      button {
+        padding: 10px;
+        margin: 5px;
+        cursor: pointer;
+      }
+      .success {
+        color: green;
+        font-weight: bold;
+      }
+      .error {
+        color: red;
+        font-weight: bold;
+      }
+      pre {
+        background: #f1f1f1;
+        padding: 10px;
+        border-radius: 4px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Direct API Test</h1>
+
+    <div>
+      <button id="testFetch">Test with Fetch API</button>
+      <button id="testXHR">Test with XHR</button>
+      <button id="testNoCredentials">Test without Credentials</button>
+    </div>
+
+    <div id="results">
+      <h3>Results:</h3>
+      <pre id="output">Click a button to test</pre>
+    </div>
+
+    <script>
+      const output = document.getElementById("output");
+      const API_URL = "http://localhost:3001/api/auth/login";
+
+      function logResult(type, data) {
+        output.innerHTML = `<span class="${data.success ? "success" : "error"}">${type}: ${data.success ? "SUCCESS" : "FAILED"}</span>\n\n${JSON.stringify(data, null, 2)}`;
+      }
+
+      // Test with Fetch API
+      document
+        .getElementById("testFetch")
+        .addEventListener("click", async () => {
+          try {
+            output.innerText = "Testing with Fetch API...";
+
+            const response = await fetch(API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: "admin@crokodial.com",
+                password: "admin123",
+              }),
+              credentials: "include",
+            });
+
+            const data = await response.json();
+            logResult("Fetch API", {
+              success: true,
+              status: response.status,
+              statusText: response.statusText,
+              data,
+            });
+          } catch (error) {
+            logResult("Fetch API", {
+              success: false,
+              message: error.message,
+              stack: error.stack,
+            });
+          }
+        });
+
+      // Test with XMLHttpRequest
+      document.getElementById("testXHR").addEventListener("click", () => {
+        output.innerText = "Testing with XMLHttpRequest...";
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", API_URL);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.withCredentials = true;
+
+        xhr.onload = function () {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            logResult("XHR", {
+              success: true,
+              status: xhr.status,
+              statusText: xhr.statusText,
+              data: JSON.parse(xhr.responseText),
+            });
+          } else {
+            logResult("XHR", {
+              success: false,
+              status: xhr.status,
+              statusText: xhr.statusText,
+              response: xhr.responseText,
+            });
+          }
+        };
+
+        xhr.onerror = function () {
+          logResult("XHR", {
+            success: false,
+            message: "Network error occurred",
+          });
+        };
+
+        xhr.send(
+          JSON.stringify({
+            email: "admin@crokodial.com",
+            password: "admin123",
+          }),
+        );
+      });
+
+      // Test without credentials
+      document
+        .getElementById("testNoCredentials")
+        .addEventListener("click", async () => {
+          try {
+            output.innerText = "Testing without credentials...";
+
+            const response = await fetch(API_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: "admin@crokodial.com",
+                password: "admin123",
+              }),
+              // No credentials
+            });
+
+            const data = await response.json();
+            logResult("No Credentials", {
+              success: true,
+              status: response.status,
+              statusText: response.statusText,
+              data,
+            });
+          } catch (error) {
+            logResult("No Credentials", {
+              success: false,
+              message: error.message,
+              stack: error.stack,
+            });
+          }
+        });
+    </script>
+  </body>
+</html>

@@ -22,17 +22,33 @@ const register = async (req, res, next) => {
         if (existingUser) {
             return res.status(400).json({ message: 'User already exists' });
         }
-        // Hash password
-        const salt = await bcryptjs_1.default.genSalt(10);
-        const hashedPassword = await bcryptjs_1.default.hash(password, salt);
-        // Create user with username defaulting to email
+        // Create user with username defaulting to email. The User schema's pre-save
+        // hook will hash `password` securely – avoid hashing here to prevent a
+        // double-hash that breaks subsequent login attempts.
         const user = await User_1.default.create({
             email,
-            password: hashedPassword,
+            password, // plain text; will be hashed by pre-save middleware
             name,
             username: email, // Set username to email by default
             role: 'user', // Ensure new users get the user role
         });
+        // Create unique NextGen SID & API-Key for real-time lead integration
+        try {
+            const { generateSid, generateApiKey } = require('../utils/nextgenUtils');
+            const NextGenCredential = require('../models/NextGenCredential').default;
+            const sid = generateSid();
+            const apiKey = generateApiKey();
+            await NextGenCredential.create({
+                tenantId: user._id,
+                sid,
+                apiKey,
+                active: true,
+            });
+            console.log('Generated NextGen creds for new user', user.email, sid);
+        }
+        catch (credErr) {
+            console.error('Failed to generate NextGen credential for user', credErr);
+        }
         // Generate token
         const token = (0, exports.generateToken)(user._id.toString());
         console.log('Generated token for new user:', {
@@ -210,8 +226,10 @@ const updateProfile = async (req, res, next) => {
         }
         // If password is being updated, hash it
         if (password) {
+            // Hash password
             const salt = await bcryptjs_1.default.genSalt(10);
-            user.password = await bcryptjs_1.default.hash(password, salt);
+            const hashedPassword = await bcryptjs_1.default.hash(password, salt);
+            user.password = hashedPassword;
         }
         // Save updated user
         await user.save();

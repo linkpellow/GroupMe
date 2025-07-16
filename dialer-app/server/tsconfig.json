@@ -12,8 +12,9 @@
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
-    }
+    },
+    "types": ["node", "jest"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "__tests__/**/*", "jest.setup.ts"],
   "exclude": ["node_modules", "dist", "../shared/**/*"]
 }

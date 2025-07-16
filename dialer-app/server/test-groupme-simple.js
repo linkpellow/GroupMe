@@ -11,7 +11,7 @@ const crypto = require('crypto');
 
 // Configuration
 const CONFIG = {
-  clientId: process.env.GROUPME_CLIENT_ID || 'm30BXQSEw03mzZK0ZfzDGQqqp8LXHRT2MiZNWWCeC7jmBSAx',
+  clientId: process.env.GROUPME_CLIENT_ID || '6sdc8GOrrAhoOmTAkdVjArldmIfHfnJh5FivtUulrGEgXw66',
   redirectUri: process.env.GROUPME_REDIRECT_URI || 'http://localhost:5173/groupme/callback',
   apiUrl: 'https://api.groupme.com/v3',
 };

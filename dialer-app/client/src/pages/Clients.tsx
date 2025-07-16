@@ -52,6 +52,7 @@ import {
   FaClipboardList,
   FaCheck,
   FaExclamationCircle,
+  FaTrashAlt,
 } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { useDropzone } from 'react-dropzone';
@@ -594,6 +595,28 @@ const Clients: React.FC = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  // Remove client by setting disposition to ""
+  const handleRemoveClient = async (clientId: string) => {
+    try {
+      // Optimistically remove from UI
+      setClients((prev) => prev.filter((c) => c._id !== clientId));
+      setFilteredClients((prev) => prev.filter((c) => c._id !== clientId));
+
+      await axiosInstance.patch(`/api/leads/${clientId}`, { disposition: '' });
+    } catch (err) {
+      console.error('Failed to remove client', err);
+      toast({ title: 'Error', description: 'Could not update disposition', status: 'error', duration: 3000 });
+      // Re-fetch to restore consistency
+      refreshClients();
+    }
+  };
+
+  // Periodic refresh every 30s to keep in sync with disposition changes
+  useEffect(() => {
+    const id = setInterval(refreshClients, 30000);
+    return () => clearInterval(id);
+  }, [refreshClients]);
+
   return (
     <Box bg={bgColor} minHeight="100vh">
       <Container maxW="container.xl" py={6}>
@@ -988,6 +1011,19 @@ const Clients: React.FC = () => {
                       >
                         View Details
                       </Button>
+                      <IconButton
+                        aria-label="Remove client"
+                        icon={<FaTrash />}
+                        size="sm"
+                        variant="ghost"
+                        position="absolute"
+                        bottom="2"
+                        right="2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveClient(client._id);
+                        }}
+                      />
                     </CardFooter>
                   </Card>
                 ))}

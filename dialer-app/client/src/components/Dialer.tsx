@@ -282,6 +282,41 @@ const DialerWrapper = () => {
     setIsMinimizedToIcon(false);
   }, []);
 
+  // Add keyboard event handlers
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle keyboard events if dialer is visible and not minimized
+      if (isExited || isMinimized || isMinimizedToIcon) return;
+
+      switch (e.key) {
+        case 'Backspace':
+          e.preventDefault();
+          handleBackspace();
+          break;
+        case 'Escape':
+          e.preventDefault();
+          handleClear();
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (phoneNumber.length >= 10) {
+            handleCall();
+          }
+          break;
+        default:
+          // Allow number keys (0-9) to be typed directly
+          if (/^[0-9]$/.test(e.key)) {
+            e.preventDefault();
+            handleNumberClick(e.key);
+          }
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [phoneNumber, isExited, isMinimized, isMinimizedToIcon]);
+
   // Create a unified scaling function that synchronizes the window and dialer
   const syncScaling = (newScale: number) => {
     console.log(`Syncing scale to: ${newScale}`);
@@ -1561,6 +1596,18 @@ const DialerWrapper = () => {
   const handleNumberClick = (num: string) => {
     setPhoneNumber((prev) => prev + num);
     setActiveButton(num);
+    setTimeout(() => setActiveButton(null), 150);
+  };
+
+  const handleBackspace = () => {
+    setPhoneNumber((prev) => prev.slice(0, -1));
+    setActiveButton('backspace');
+    setTimeout(() => setActiveButton(null), 150);
+  };
+
+  const handleClear = () => {
+    setPhoneNumber('');
+    setActiveButton('clear');
     setTimeout(() => setActiveButton(null), 150);
   };
 
@@ -3561,6 +3608,93 @@ const DialerWrapper = () => {
                 e.stopPropagation();
               }}
             />
+            
+            {/* Backspace and Clear buttons */}
+            {phoneNumber.length > 0 && (
+              <div
+                className="flex items-center gap-1"
+                style={{
+                  position: 'absolute',
+                  right: `${2 * scale}px`,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 101,
+                }}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBackspace();
+                  }}
+                  className="transform hover:scale-105 transition-transform bg-transparent"
+                  style={{
+                    width: `${16 * scale}px`,
+                    height: `${16 * scale}px`,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0',
+                    margin: '0',
+                  }}
+                  title="Backspace (⌫)"
+                >
+                  <svg
+                    width={`${12 * scale}px`}
+                    height={`${12 * scale}px`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#333"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18"></path>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <path d="M10 11l4 4"></path>
+                    <path d="M14 11l-4 4"></path>
+                  </svg>
+                </button>
+                
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClear();
+                  }}
+                  className="transform hover:scale-105 transition-transform bg-transparent"
+                  style={{
+                    width: `${16 * scale}px`,
+                    height: `${16 * scale}px`,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0',
+                    margin: '0',
+                  }}
+                  title="Clear (Esc)"
+                >
+                  <svg
+                    width={`${12 * scale}px`}
+                    height={`${12 * scale}px`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#333"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 6L6 18"></path>
+                    <path d="M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Number Pad */}

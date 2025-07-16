@@ -4,14 +4,14 @@
   "version": "0.0.0",
   "scripts": {
     "dev:prep": "kill-port 5173 || true",
-    "dev": "npm run dev:prep && cross-env ROLLUP_NO_NATIVE=1 ROLLUP_WASM=true vite",
-    "dev:wasm": "cross-env ROLLUP_NO_NATIVE=1 ROLLUP_WASM=true vite --port 5173 --host 0.0.0.0",
+    "dev": "npm run dev:prep && vite --host 0.0.0.0",
     "dev:bare": "vite --port 5173 --host 0.0.0.0",
-    "build": "rimraf dist && cross-env ROLLUP_NO_NATIVE=1 ROLLUP_WASM=true vite build",
+    "build": "rimraf dist && vite build",
+    "start": "npm run dev:prep && vite --port 5173 --host 0.0.0.0",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "start": "npm run dev:prep && cross-env ROLLUP_NO_NATIVE=1 ROLLUP_WASM=true vite --port 5173 --host 0.0.0.0",
     "preview": "vite preview",
-    "rebuild": "rm -rf node_modules package-lock.json && npm install"
+    "rebuild": "rm -rf node_modules package-lock.json && npm install",
+    "test": "echo \"(placeholder) client test suite – no tests defined.\" && exit 0"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",
@@ -39,7 +39,7 @@
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-image-crop": "^11.0.7",
-    "react-quill": "^2.0.0",
+    "react-quill": "^0.0.2",
     "react-refresh": "^0.17.0",
     "react-resizable": "^3.0.5",
     "react-router-dom": "^6.30.0",
@@ -50,7 +50,6 @@
     "tailwindcss": "^3.4.1"
   },
   "devDependencies": {
-    "@rollup/wasm-node": "^4.9.5",
     "@types/node": "^22.13.14",
     "@types/react": "^18.2.56",
     "@types/react-dom": "^18.2.19",
@@ -58,16 +57,16 @@
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
-    "@vitejs/plugin-react": "^4.5.0",
+    "@vitejs/plugin-react": "^3.1.0",
     "cross-env": "^7.0.3",
     "esbuild": "^0.25.4",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "kill-port": "^2.0.1",
     "rimraf": "^5.0.5",
-    "rollup": "4.9.5",
     "typescript": "^5.8.3",
-    "vite": "4.5.0"
+    "vite": "^4.5.2"
   },
   "server": {
     "proxy": {

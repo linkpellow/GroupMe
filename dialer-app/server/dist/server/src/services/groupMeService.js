@@ -19,13 +19,37 @@ class GroupMeService extends events_1.EventEmitter {
         this.lastMessageIds = new Map();
         this.requestCount = 0;
         this.requestResetTime = Date.now() + 60000; // 1 minute from now
+        // Validate token before using it
+        if (!token) {
+            console.error('No GroupMe token provided');
+            throw new Error('No GroupMe token provided');
+        }
+        // Add better logging and token validation
+        if (token === 'undefined') {
+            console.error('GroupMe token is the string "undefined", which is invalid');
+            throw new Error('Invalid GroupMe token: "undefined" string received');
+        }
+        // Log token characteristics for debugging
+        console.log(`GroupMeService: Token validation - Length: ${token.length}, First 5 chars: ${token.substring(0, 5)}...`);
         this.token = token;
         this.api = axios_1.default.create({
             baseURL: 'https://api.groupme.com/v3',
             headers: {
                 'X-Access-Token': token,
-                'Content-Type': 'application/json',
-            },
+                'Content-Type': 'application/json'
+            }
+        });
+        // Add response interceptor to detect API errors early
+        this.api.interceptors.response.use((response) => response, (error) => {
+            console.error('GroupMe API error:', {
+                status: error.response?.status,
+                data: error.response?.data,
+                config: {
+                    url: error.config?.url,
+                    method: error.config?.method
+                }
+            });
+            return Promise.reject(error);
         });
         // Rate limiting interceptor
         this.api.interceptors.request.use(async (config) => {
@@ -65,8 +89,33 @@ class GroupMeService extends events_1.EventEmitter {
         return response.data.response;
     }
     async getGroups() {
-        const response = await this.api.get('/groups');
-        return response.data.response;
+        try {
+            console.log('GroupMeService.getGroups: Making API request to GroupMe API');
+            const response = await this.api.get('/groups', {
+                params: {
+                    per_page: 50 // Request maximum number of groups
+                }
+            });
+            console.log('GroupMeService.getGroups: Received response from GroupMe API');
+            if (!response.data || !response.data.response) {
+                console.error('GroupMeService.getGroups: Invalid response format', response.data);
+                return [];
+            }
+            const groups = response.data.response;
+            console.log(`GroupMeService.getGroups: Found ${groups.length} groups`);
+            // Map the raw API response to our GroupMeGroup format
+            return groups.map((group) => ({
+                id: group.id,
+                name: group.name,
+                image_url: group.image_url,
+                messages: group.messages,
+                members_count: group.members ? group.members.length : 0
+            }));
+        }
+        catch (error) {
+            console.error('GroupMeService.getGroups: Error fetching groups from GroupMe API', error);
+            throw error; // Re-throw to let the controller handle it
+        }
     }
     async getGroup(groupId) {
         const response = await this.api.get(`/groups/${groupId}`);

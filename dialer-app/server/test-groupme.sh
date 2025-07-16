@@ -16,7 +16,7 @@ echo "====================================="
 
 # Configuration
 export JWT_SECRET="lkj234lkjfdslkj234lkjadsflkjfdaslkjfdalskdfj"
-export GROUPME_CLIENT_ID="m30BXQSEw03mzZK0ZfzDGQqqp8LXHRT2MiZNWWCeC7jmBSAx"
+export GROUPME_CLIENT_ID="6sdc8GOrrAhoOmTAkdVjArldmIfHfnJh5FivtUulrGEgXw66"
 export GROUPME_REDIRECT_URI="http://localhost:5173/groupme/callback"
 export FRONTEND_URL="http://localhost:5173"
 export MONGODB_URI="mongodb://localhost:27017/dialer"

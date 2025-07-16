@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { auth } from '../middleware/auth';
 import * as gmailController from '../controllers/gmail.controller';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Auth routes
 router.get('/auth-url', auth, gmailController.generateAuthUrl);

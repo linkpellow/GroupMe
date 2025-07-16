@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import UserModel from './User';
 
 export interface IPolicyDocument {
   _id?: mongoose.Types.ObjectId;
@@ -70,11 +71,29 @@ export interface ILeadInput {
   // Textdrip integration
   textdripContactId?: string;
   timeZone?: string;
+  tenantId?: mongoose.Types.ObjectId;
 }
 
 export interface ILead extends ILeadInput, Document {
   createdAt: Date;
   updatedAt: Date;
+  tenantId: mongoose.Types.ObjectId;
+}
+
+// Extend the model with static methods
+export interface ILeadModel extends mongoose.Model<ILead> {
+  upsertLead(payload: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    notes?: string;
+    source?: string;
+    tenantId?: mongoose.Types.ObjectId;
+    [key: string]: any;
+  }): Promise<{
+    lead: ILead;
+    isNew: boolean;
+  }>;
 }
 
 // Policy document schema
@@ -101,6 +120,7 @@ const leadSchema = new Schema<ILead>(
       default: '',
     },
     phone: { type: String, default: '' },
+    tenantId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     status: {
       type: String,
       required: true,
@@ -179,7 +199,12 @@ leadSchema.index({ disposition: 1 });
 leadSchema.index({ createdAt: -1 });
 leadSchema.index({ assignedTo: 1, createdAt: -1 });
 leadSchema.index({ timeZone: 1 });
-
+leadSchema.index({ source: 1, createdAt: -1 });
+// Compound index for multi-tenant queries
+leadSchema.index({ tenantId: 1, createdAt: -1 });
+// Compound indexes for fast upsert lookups
+leadSchema.index({ tenantId: 1, phone: 1 });
+leadSchema.index({ tenantId: 1, email: 1 });
 // Add state and zipcode setters
 leadSchema.path('state').set(function (value: string) {
   console.log('Setting state:', value);
@@ -192,7 +217,7 @@ leadSchema.path('zipcode').set(function (value: string) {
 });
 
 // Update the updatedAt timestamp before saving
-leadSchema.pre('save', function (next) {
+leadSchema.pre('save', function (this: any, next) {
   this.updatedAt = new Date();
 
   // Ensure state and zipcode are properly set if they exist in the document
@@ -207,5 +232,65 @@ leadSchema.pre('save', function (next) {
   next();
 });
 
-const LeadModel = mongoose.model<ILead>('Lead', leadSchema);
+/**
+ * Upsert helper for webhook feeds (NextGen, etc.)
+ * - Looks up a lead by phone number
+ * - Updates existing lead data if found
+ * - Inserts a new lead if not found
+ */
+leadSchema.statics.upsertLead = async function(payload) {
+  try {
+    // Ensure tenantId – fallback to first admin user if missing (legacy global webhook)
+    if (!payload.tenantId) {
+      try {
+        const adminUser = await (UserModel as any).findOne({ role: 'admin' }).select('_id').lean();
+        if (adminUser) {
+          payload.tenantId = adminUser._id;
+        }
+      } catch (e) {
+        console.error('Failed to lookup admin user for tenantId fallback', e);
+      }
+    }
+
+    if (!payload.tenantId) {
+      throw new Error('tenantId is required for lead upsert');
+    }
+
+    if (!payload.phone && !payload.email) {
+      throw new Error('Either phone or email is required for lead upsert');
+    }
+
+    // Build lookup query – must include tenantId for strict multi-tenancy
+    const query: { tenantId: mongoose.Types.ObjectId; phone?: string; email?: string } = {
+      tenantId: payload.tenantId,
+    } as any;
+    if (payload.phone) query.phone = payload.phone;
+    if (!payload.phone && payload.email) query.email = payload.email;
+
+    // Check for existing lead FIRST to reliably compute isNew
+    const existing = await this.findOne(query).lean();
+    const isNew = !existing;
+
+    if (isNew) {
+      // Create new lead
+      const lead = await this.create({ ...payload, createdAt: new Date(), updatedAt: new Date() });
+      console.log(`Lead created: ${lead._id}, name: ${lead.name}, phone: ${lead.phone}`);
+      return { lead, isNew: true };
+    }
+
+    // Otherwise update existing lead
+    const updateFields = { ...payload, updatedAt: new Date() };
+    // Prevent status overwrite unless explicitly provided
+    if (!payload.status) delete (updateFields as any).status;
+
+    const lead = await this.findOneAndUpdate(query, { $set: updateFields }, { new: true });
+    console.log(`Lead updated: ${lead._id}, name: ${lead.name}, phone: ${lead.phone}`);
+    return { lead, isNew: false };
+  } catch (error) {
+    console.error('Error in Lead.upsertLead:', error);
+    throw error;
+  }
+};
+
+const LeadModel = mongoose.model<ILead, ILeadModel>('Lead', leadSchema);
 export default LeadModel;

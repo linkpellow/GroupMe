@@ -25,6 +25,8 @@ import {
   FaPlug,
   FaUserTie,
   FaTimes,
+  FaFile,
+  FaFileAlt,
 } from 'react-icons/fa';
 import GroupMeChatWrapper from './GroupMeChatWrapper';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
@@ -32,6 +34,7 @@ import { useSidebarToggle } from '../context/SidebarToggleContext';
 import TripleChevronIcon from './icons/TripleChevronIcon';
 import { useCallCountsContext } from '../context/CallCountsContext';
 import DailyGoals from './DailyGoals';
+import SoundToggleButton from './SoundToggleButton';
 
 const Navigation: React.FC = () => {
   const { user, logout, refreshUserData } = useAuth();
@@ -296,15 +299,41 @@ const Navigation: React.FC = () => {
     }
   }, [user?.profilePicture]);
 
-  const navItems = [
+  const menuPages = [
+    [
+      { title: 'Clients', path: '/clients', icon: FaUserTie },
+      { title: 'GMAIL', path: '/gmail', icon: FaEnvelope },
+      { title: 'Spreadsheet', path: '/spreadsheet', icon: FaTable },
+      { title: 'CSV Upload', path: '/csv-upload', icon: FaFileUpload },
+      { title: 'Integrations', path: '/integrations', icon: FaPlug },
+      { title: 'Settings', path: '/settings', icon: FaCog },
+    ],
+    [
+      // Page 2 is now empty - GroupMe chat will be the only content here
+    ],
+    [
+      { title: 'Page Two', path: '/page-two', icon: FaFileAlt },
+    ],
+  ] as const;
+
+  const fixedItems = [
     { title: 'Leads', path: '/leads', icon: FaClipboard },
-    { title: 'Clients', path: '/clients', icon: FaUserTie },
-    { title: 'GMAIL', path: '/gmail', icon: FaEnvelope },
-    { title: 'Spreadsheet', path: '/spreadsheet', icon: FaTable },
-    { title: 'CSV Upload', path: '/csv-upload', icon: FaFileUpload },
-    { title: 'Integrations', path: '/integrations', icon: FaPlug },
-    { title: 'Settings', path: '/settings', icon: FaCog },
   ];
+
+  const [menuPage, setMenuPage] = useState<number>(() => {
+    const saved = localStorage.getItem('nav_menu_page');
+    return saved ? Number(saved) % menuPages.length : 0;
+  });
+
+  const changePage = (delta: number) => {
+    setMenuPage((prev) => {
+      const next = (prev + delta + menuPages.length) % menuPages.length;
+      localStorage.setItem('nav_menu_page', String(next));
+      return next;
+    });
+  };
+
+  const navItems = [...fixedItems, ...menuPages[menuPage]];
 
   // CRM counter
   const { uniqueCount } = useCallCountsContext();
@@ -506,8 +535,29 @@ const Navigation: React.FC = () => {
           })}
         </VStack>
 
+        {/* Pager buttons */}
+        <Flex justify="center" align="center" py={2} mt="auto" mb={2} gap={2}>
+          <IconButton
+            aria-label="Previous menu page"
+            icon={<ChevronLeftIcon />}
+            size="sm"
+            variant="ghost"
+            onClick={() => changePage(-1)}
+          />
+          <Text color="white" fontSize="xs">
+            {menuPage + 1}/{menuPages.length}
+          </Text>
+          <IconButton
+            aria-label="Next menu page"
+            icon={<ChevronRightIcon />}
+            size="sm"
+            variant="ghost"
+            onClick={() => changePage(1)}
+          />
+        </Flex>
+
         {/* GroupMe Chat Area - always present at the bottom of expanded sidebar */}
-        {!isSidebarCollapsed && user && (
+        {!isSidebarCollapsed && user && menuPage === 1 && (
           <>
             <Divider borderColor="rgba(255,255,255,0.2)" my={2} />
             <Box flexGrow={1} w="100%" overflowY="auto" pl={2} pr={2} pb={2} position="relative">
@@ -519,6 +569,9 @@ const Navigation: React.FC = () => {
           </>
         )}
 
+        <Box position="absolute" bottom="10px" right="10px">
+          <SoundToggleButton compact={true} />
+        </Box>
         <DailyGoals />
       </Box>
 

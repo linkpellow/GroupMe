@@ -88,6 +88,16 @@ html,
   border-color: var(--brand);
 }
 
+.login__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login__input-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
 .login__btn {
   margin-top: 0.5rem;
   width: 100%;
@@ -102,14 +112,100 @@ html,
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.login__btn:hover {
+.login__btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
 }
 
-.login__btn:active {
+.login__btn:active:not(:disabled) {
   transform: translateY(0);
   box-shadow: none;
+}
+
+.login__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login__btn-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.login__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.login__error {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.login__error-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.login__success {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.login__success-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #166534;
+  font-weight: 500;
+}
+
+.login__password-strength {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.login__strength-item {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.login__strength-item:last-child {
+  margin-bottom: 0;
+}
+
+.login__strength-valid {
+  color: #059669;
+  font-weight: 500;
 }
 
 .login__footer {
@@ -140,8 +236,13 @@ html,
   transition: color 0.2s ease;
 }
 
-.login__toggle-btn:hover {
+.login__toggle-btn:hover:not(:disabled) {
   color: #e67e00;
+}
+
+.login__toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .login__passcode-success {
@@ -202,19 +303,21 @@ html,
 .passcode-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .passcode-input-group {
-  text-align: left;
+  position: relative;
 }
 
 .passcode-label {
-  display: block;
-  margin-bottom: 0.35rem;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text);
+  margin-bottom: 0.35rem;
+  display: block;
 }
 
 .passcode-input {
@@ -224,12 +327,11 @@ html,
   border-radius: 8px;
   background: var(--input);
   font-size: 0.95rem;
-  font-family: 'Courier New', monospace;
-  font-weight: 600;
-  letter-spacing: 0.1em;
   outline: none;
   transition: border-color 0.2s ease;
+  font-family: 'Courier New', monospace;
   text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .passcode-input:focus {
@@ -237,7 +339,8 @@ html,
 }
 
 .passcode-input-error {
-  border-color: #dc2626;
+  border-color: #ef4444;
+  background-color: #fef2f2;
 }
 
 .passcode-input:disabled {
@@ -247,46 +350,41 @@ html,
 
 .passcode-error {
   margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: #dc2626;
-  text-align: left;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.75rem 1rem;
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 6px;
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .passcode-error-icon {
-  font-size: 1rem;
+  color: #ef4444;
   flex-shrink: 0;
-  margin-top: 0.125rem;
 }
 
 .passcode-attempts {
-  margin-top: 0.5rem;
   font-size: 0.75rem;
   color: var(--subtle);
-  text-align: left;
+  margin-top: 0.5rem;
 }
 
 .passcode-troubleshoot {
-  margin-top: 0.75rem;
-  font-size: 0.75rem;
-  color: var(--subtle);
-  line-height: 1.4;
-  padding: 0.5rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
   border-radius: 6px;
+  font-size: 0.75rem;
+  color: #92400e;
 }
 
 .passcode-actions {
   display: flex;
   gap: 1rem;
-  margin-top: 0.5rem;
+  margin-top: 1.5rem;
 }
 
 .passcode-btn {
@@ -298,17 +396,12 @@ html,
   border-radius: 8px;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
 }
 
 .passcode-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
+  transform: none;
 }
 
 .passcode-btn-primary {
@@ -328,22 +421,22 @@ html,
 
 .passcode-btn-secondary {
   color: var(--text);
-  background: transparent;
+  background: #f3f4f6;
   border: 1px solid var(--border);
 }
 
 .passcode-btn-secondary:hover:not(:disabled) {
-  background: var(--input);
-  transform: translateY(-1px);
+  background: #e5e7eb;
 }
 
 .passcode-btn-secondary:active:not(:disabled) {
-  transform: translateY(0);
+  background: #d1d5db;
 }
 
 .passcode-loading {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
 }
 
@@ -357,30 +450,29 @@ html,
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .passcode-footer {
   margin-top: 2rem;
+  font-size: 0.75rem;
+  color: var(--subtle);
 }
 
 .passcode-help {
-  margin: 0;
+  margin-top: 1rem;
   font-size: 0.75rem;
   color: var(--subtle);
   line-height: 1.4;
 }
 
-/* Small screens for passcode entry */
 @media (max-width: 480px) {
   .passcode-entry {
     border-radius: 0;
     height: 100%;
     max-width: none;
     box-shadow: none;
-    padding: 2rem 1.5rem;
   }
   
   .passcode-actions {
@@ -389,62 +481,83 @@ html,
 }
 
 .prelogin-outer {
-  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
+  min-height: 100vh;
+  height: 100vh;
 }
 
 .prelogin-card {
-  background: #fff;
-  padding: 2.5rem 2rem;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 320px;
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem 3rem;
+  background: var(--card);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.07);
+  text-align: center;
 }
 
 .prelogin-title {
+  margin: 0 0 0.5rem;
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #121212;
+  color: var(--text);
+}
+
+.prelogin-subtitle {
+  margin: 0 0 2rem;
+  font-size: 0.875rem;
+  color: var(--subtle);
+  line-height: 1.5;
 }
 
 .prelogin-input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d0d7e2;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 1rem;
-  margin-bottom: 1rem;
+  background: var(--input);
+  font-size: 0.95rem;
   outline: none;
+  transition: border-color 0.2s ease;
+  margin-bottom: 1.5rem;
+}
+
+.prelogin-input:focus {
+  border-color: var(--brand);
 }
 
 .prelogin-btn {
   width: 100%;
   padding: 0.75rem 1rem;
-  background: var(--brand, #ff8e23);
+  font-size: 1rem;
+  font-weight: 600;
   color: #fff;
+  background: var(--brand);
   border: none;
   border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.prelogin-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
 }
 
 .prelogin-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .prelogin-error {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
   color: #dc2626;
-  font-size: 0.95rem;
-  margin-bottom: 1rem;
-  text-align: center;
+  font-size: 0.875rem;
 } 

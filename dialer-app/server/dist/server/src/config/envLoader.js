@@ -7,6 +7,7 @@ const dotenv_safe_1 = __importDefault(require("dotenv-safe"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+console.log('[ENV LOADER] Source file:', __filename);
 // This file is loaded first to ensure all environment variables
 // are available before any other module tries to access them.
 // ------------------- Helper: resolve .env.local path -------------------
@@ -17,16 +18,18 @@ const fs_1 = __importDefault(require("fs"));
  * exists on disk.
  */
 function locateEnvLocal() {
-    // 1) When executed via ts-node-dev, __dirname => dialer-app/server/src/config
-    //    -> ../../.env.local  => dialer-app/server/.env.local (desired)
+    // Candidate paths, tried in order, to support both dev (ts-node) and prod (dist) execution
     const candidateFiles = [
-        path_1.default.resolve(__dirname, '../../.env.local'),
-        path_1.default.resolve(__dirname, '../../../.env.local'),
+        path_1.default.resolve(__dirname, '../../.env.local'), // From src/config to server/
+        path_1.default.resolve(__dirname, '../../../../.env.local'), // From dist/server/src/config to server/
     ];
     for (const file of candidateFiles) {
-        if (fs_1.default.existsSync(file))
+        if (fs_1.default.existsSync(file)) {
+            console.log(`[ENV LOADER] Found .env.local at: ${file}`);
             return file;
+        }
     }
+    console.log('[ENV LOADER] .env.local not found in candidate paths:', candidateFiles);
     return undefined;
 }
 // ------------------- Load env vars with dotenv-safe -------------------
@@ -86,6 +89,19 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
     console.error('For security, the server will not start.');
     console.error('Please ensure the ".env.local" file in the "dialer-app/server" directory contains a line like this:');
     console.error('\n  \x1b[32mJWT_SECRET=your_super_secret_random_string_of_at_least_32_characters\x1b[0m\n');
+    process.exit(1);
+}
+// --------------------------------------------------------------------------
+// ------------------- SECURITY HARDENING: MONGODB_URI CHECK -------------------
+if (!process.env.MONGODB_URI) {
+    console.error('\n\x1b[31m[FATAL ERROR] MONGODB_URI missing.\x1b[0m');
+    process.exit(1);
+}
+const mongoUri = process.env.MONGODB_URI;
+// Basic sanity: must start with mongodb:// or mongodb+srv://
+if (!/^mongodb(\+srv)?:\/\//.test(mongoUri)) {
+    console.error('\n\x1b[31m[FATAL ERROR] MONGODB_URI must start with mongodb:// or mongodb+srv://\x1b[0m');
+    console.error('Value:', mongoUri);
     process.exit(1);
 }
 // --------------------------------------------------------------------------

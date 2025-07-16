@@ -6,7 +6,7 @@ import axios from 'axios';
 import UserModel from '../models/User';
 import { loginToTextDrip, getCampaigns } from '../services/textdripService';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * GET /api/textdrip/campaigns

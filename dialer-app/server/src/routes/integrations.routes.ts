@@ -1,11 +1,51 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { authenticate as auth } from '../middleware/auth';
 import User from '../models/User';
+import NextGenCredential from '../models/NextGenCredential';
+import { generateSid, generateApiKey } from '../utils/nextgenUtils';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 // Apply auth middleware
 router.use(auth);
+
+// -------------------- NextGen Credential Endpoints --------------------
+
+// GET /api/integrations/nextgen/credentials
+router.get('/nextgen/credentials', async (req, res) => {
+  try {
+    const tenantId = req.user._id;
+    const cred = await NextGenCredential.findOne({ tenantId, active: true }).lean();
+    if (!cred) {
+      return res.status(404).json({ connected: false });
+    }
+    res.json({ connected: true, sid: cred.sid, apiKey: cred.apiKey, createdAt: cred.createdAt });
+  } catch (err) {
+    console.error('Error fetching NextGen credential', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/integrations/nextgen/rotate – generate new key pair
+router.post('/nextgen/credentials/rotate', async (req, res) => {
+  try {
+    const tenantId = req.user._id;
+
+    // Deactivate existing
+    await NextGenCredential.updateMany({ tenantId, active: true }, { $set: { active: false, rotatedAt: new Date() } });
+
+    // Create new cred
+    const sid = generateSid();
+    const apiKey = generateApiKey();
+
+    const cred = await NextGenCredential.create({ tenantId, sid, apiKey, active: true });
+
+    res.json({ sid: cred.sid, apiKey: cred.apiKey, createdAt: cred.createdAt });
+  } catch (err) {
+    console.error('Error rotating NextGen credential', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 // Get user's Calendly integration
 router.get('/calendly', async (req, res) => {

@@ -1,21 +1,30 @@
-import express from 'express';
+import express, { Router } from 'express';
 import { authenticate as auth } from '../middleware/auth';
 import * as groupMeController from '../controllers/groupMe.controller';
 import User from '../models/User';
 import GroupMeConfigModel from '../models/GroupMeConfig';
 
-const router = express.Router();
+const router: Router = Router();
 
 // OAuth routes that DO NOT require authentication
 router.post('/oauth/callback', groupMeController.handleOAuthCallback);
-router.get('/oauth/status', auth, groupMeController.getConnectionStatus);
+router.get('/oauth/status', groupMeController.getConnectionStatus);
 router.post('/oauth/initiate', groupMeController.initiateOAuth);
+
+// Implicit grant callback (no auth) - MOVED HERE to make it public
+router.get('/callback', groupMeController.handleGroupMeImplicitCallback);
+
+// Add token save endpoint (requires authentication)
+router.post('/token', auth, groupMeController.saveGroupMeToken);
 
 // Apply auth middleware for all other routes
 router.use(auth);
 
 // OAuth disconnect requires authentication
 router.post('/oauth/disconnect', groupMeController.disconnectGroupMe);
+
+// Manual token submission
+router.post('/save-manual-token', groupMeController.saveManualToken);
 
 // Configuration routes
 router.get('/config', groupMeController.getConfig);

@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ChakraProvider } from "@chakra-ui/react";
 import theme from "./theme";
@@ -11,6 +12,7 @@ import CallCountsProvider from "./context/CallCountsContext";
 import LifetimeCountsProvider from "./context/LifetimeCountsContext";
 import * as scrollLockUtil from "./shared/scrollLock";
 import { ZoomProvider, useZoom } from './context/ZoomContext';
+import { webSocketService } from './services/websocketService';
 
 // Prevent touch scrolling when dropdown lock is active
 window.addEventListener(
@@ -51,7 +53,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <CallCountsProvider>
               <LifetimeCountsProvider>
                 <ZoomProvider>
-                  <App />
+                  <ErrorBoundary>
+                    <App />
+                  </ErrorBoundary>
                   <ZoomControls />
                 </ZoomProvider>
               </LifetimeCountsProvider>
@@ -93,3 +97,32 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   // Hard-stop to prevent being stuck even if everything else fails
   setTimeout(fadeOut, HARD_STOP);
 })();
+
+// Ensure the import is used to prevent tree-shaking
+console.log('Initializing WebSocket service...');
+// This will execute the constructor
+webSocketService;
+
+// Add global error listeners to catch anything that slips past React's boundaries
+window.addEventListener('error', (event) => {
+  console.error('GLOBAL UNCAUGHT ERROR:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('GLOBAL UNHANDLED REJECTION:', event.reason);
+});
+
+// Dev-only: trace accidental .replace on undefined/null
+{
+  const _origReplace = String.prototype.replace as any;
+  // @ts-ignore
+  String.prototype.replace = function (...args: any[]) {
+    if (this == null) {
+      // eslint-disable-next-line no-console
+      console.error('[NULL-REPLACE] String.replace called on', this, '\nStack:', new Error().stack?.split('\n').slice(2, 8).join('\n'));
+      return '';
+    }
+    // @ts-ignore
+    return _origReplace.apply(this, args);
+  };
+}
