@@ -56,9 +56,8 @@ axiosInstance.interceptors.request.use(
       let url = config.url.startsWith('/') ? config.url.substring(1) : config.url;
 
       // Add /api/ prefix if not already present and not a full URL
-      if (!config.url.startsWith('/api/') && !config.url.includes('://')) {
-        const path = config.url.startsWith('/') ? config.url.substring(1) : config.url;
-        config.url = `/api/${path}`;
+      if (config.url && !config.url.startsWith('/api') && !config.url.includes('://')) {
+        config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
       }
 
       // Log the normalized URL
