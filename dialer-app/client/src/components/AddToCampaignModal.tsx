@@ -33,7 +33,7 @@ interface Campaign {
 }
 
 const fetchCampaigns = async (): Promise<Campaign[]> => {
-  const { data } = await axiosInstance.get("/api/textdrip/campaigns");
+  const { data } = await axiosInstance.get("/textdrip/campaigns");
   return data || [];
 };
 
@@ -58,7 +58,7 @@ export const AddToCampaignModal: React.FC<AddToCampaignModalProps> = ({
   const addMutation = useMutation({
     mutationFn: async () => {
       if (!leadId || !selectedCampaignId) throw new Error("Missing selections");
-      await axiosInstance.post(`/api/textdrip/campaign`, {
+      await axiosInstance.post(`/textdrip/campaign`, {
         leadId,
         campaignId: selectedCampaignId,
       });

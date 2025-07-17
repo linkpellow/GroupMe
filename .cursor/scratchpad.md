@@ -581,7 +581,7 @@ Once branch exists, proceed with **P0-2** following the granular checklist above
 - [ ] P0-8 Deploy to staging & verify *(pending)*
 - [ ] P0-9 Deploy to production *(pending)*
 
-## Executor’s Feedback or Assistance Requests
+## Executor's Feedback or Assistance Requests
 _Add comments below this line as implementation progresses._
 
 ---
@@ -593,12 +593,12 @@ _Add comments below this line as implementation progresses._
 | **A. `Invalid MONGODB_URI format` fatal error** blocks server boot on dev & Heroku | 10 Jul 2025 in local dev; 11 Jul 2025 on Heroku | • `envLoader.ts` added a *strict* regex requiring `user:pass@host` credentials.<br/>• Local dev strings (`mongodb://127.0.0.1:27017/db`) and Atlas SRV strings without inline creds now rejected.<br/>• Error introduced in commit `9b1a2b8` (“feat(security): enforce strict Mongo URI validation”) during hardening pass. | Commit `9b1a2b8` in `production-plan` branch – PR #214 “Security validation hardening”. |
 | **B. `Cannot find module @rollup/rollup-darwin-arm64` & Vite exits 137** | 11 Jul 2025 macOS dev; 12 Jul 2025 Heroku build | • Updated Vite from v6 → v7 pulls `rollup@4` which depends on *native* pre-built binaries as **optionalDependencies**.<br/>• NPM v10 bug (#4828) installs *optional* deps with wrong platform tags and then *requires* them.<br/>• Root `package.json` sets custom `rollup-native` / `rollup-wasm` config flags – added to bypass issue, but **workspace client** still inherits upstream `@rollup/rollup-*` packages.<br/>• Heroku (linux-x64) also fetches mac-ARM binary because of lockfile entry. | Commit `3e7c5f4` (“chore: bump vite 6→7 & rollup 4”) merged 10 Jul 2025 – PR #219. |
 | **C. `EADDRINUSE 0.0.0.0:3005` in dyno** | 12 Jul 2025 staging & prod | • `server/src/index.ts` changed to *always* listen on **3005** *and*, in production mode, spin up an *additional* HTTPS listener for websockets, causing two listeners on same port.<br/>• Overwrote previous logic that respected `process.env.PORT`.<br/>• Locally the port is free, on Heroku `PORT` is still injected but ignored, leading to collision. | Commit `c4dc9d0` (“refactor(server): consolidate HTTP & WS listeners on 3005”) – PR #220. |
-| **D. Vite dev server killed (exit 137) after launch** | 12 Jul 2025 macOS dev | • macOS Sonoma on M1 aggressively kills processes exceeding *MemoryPressure* when parent shell marks as *low priority*.<br/>• Vite’s re-optimise step spikes RAM when **native Rollup** fails and falls back to JS implementation, causing >2 GB RSS and OS kill.<br/>• Consequence of issue **B**; no separate code change. | Same as **B** – cascades from Rollup native binary problem. |
+| **D. Vite dev server killed (exit 137) after launch** | 12 Jul 2025 macOS dev | • macOS Sonoma on M1 aggressively kills processes exceeding *MemoryPressure* when parent shell marks as *low priority*.<br/>• Vite's re-optimise step spikes RAM when **native Rollup** fails and falls back to JS implementation, causing >2 GB RSS and OS kill.<br/>• Consequence of issue **B**; no separate code change. | Same as **B** – cascades from Rollup native binary problem. |
 | **E. Heroku slug size & build time increased (~1 GB, >15 min)** | 11 Jul 2025 | • `client/dist/` removed from repo but root `build` script *not* run in Heroku; thus Vite runs in dyno at slug compile time pulling heavy optional deps.<br/>• Rollup native binaries add 500 MB unpacked.<br/>• Caused by switching to runtime build approach in commit `493bf56` (“build(client): move to postinstall build to reduce repo size”) – PR #210. | Commit `493bf56`. |
 
 ### Causal Chain
 1. Security hardening (**A**) accidentally blocks valid URIs → server refuses to start locally; workaround commits add stricter hot-reloading which hides problem until deploy.
-2. Vite upgrade (**B**) introduces native Rollup deps → mac dev broken; to *fix* dev someone added custom config flags but didn’t purge lockfiles, leaving Heroku broken.
+2. Vite upgrade (**B**) introduces native Rollup deps → mac dev broken; to *fix* dev someone added custom config flags but didn't purge lockfiles, leaving Heroku broken.
 3. Listener refactor (**C**) ignores `process.env.PORT` → when server finally boots on Heroku it collides and respawns.
 4. Combined, users cannot log in because the dyno either (a) fails to build, (b) fails to connect to Mongo, or (c) crashes with port conflict.
 
@@ -651,7 +651,7 @@ This plan maps each root cause to a concrete fix and assigns an executor task wi
 
 ## 🧭 Planner Refresh – Outstanding Work (15 Jul 2025)
 
-After today’s progress the following gaps remain before users can sign-in again:
+After today's progress the following gaps remain before users can sign-in again:
 
 1. **Client bundler still pulling Vite 7 artefacts** – we deleted `node_modules` but never re-installed; `@vitejs/plugin-react@4` may also be incompatible with Vite 6.
 2. **Strict Mongo URI validation** still blocks dev/staging when URI lacks creds → server never boots.
@@ -795,7 +795,7 @@ Total ≈ **4 h** with parallel CI cycles.
 - [ ] PG-7 – Heroku CI builds green
 - [ ] PG-8 – Production deploy & login verified
 
-Once all check-boxes are ticked we can declare “login is fully functional with modern, maintainable build”.
+Once all check-boxes are ticked we can declare "login is fully functional with modern, maintainable build".
 
 ---
 
@@ -870,7 +870,7 @@ Standardise on **baseURL = '/api'** *and* require **all call paths to be root-re
 ## Project Status Board (update)
 - [ ] APD-0 Verify code map *(pending)*
 - [x] APD-1 Refactor axiosInstance *(completed)* – baseURL '/api', duplicate stripping logic added
-- [ ] APD-2 Strip /api from call paths *(pending)*
+- [x] APD-2 Strip `/api` prefix from all axios calls *(completed – see code edits in AddToCampaignModal.tsx & GroupMeContext.tsx)*
 - [ ] APD-3 Add Jest URL test *(pending)*
 - [ ] APD-4 Build & smoke test *(pending)*
 - [ ] APD-5 PR & review *(pending)*
@@ -888,16 +888,16 @@ Standardise on **baseURL = '/api'** *and* require **all call paths to be root-re
 # 🔒 PRODUCTION LOGIN BLOCKERS – ROOT-CAUSE ANALYSIS (17 Jul 2025)
 
 ## Symptoms Observed on https://crokodial.com
-1. Login form submits but returns generic “Network Error” or hangs.
+1. Login form submits but returns generic "Network Error" or hangs.
 2. Dev-tools show either:
    • 404 on `/api/api/auth/login` OR
-   • 500 on `/api/auth/login` with message “Mongo connection failed”
+   • 500 on `/api/auth/login` with message "Mongo connection failed"
 3. Heroku logs (owner screenshots) reveal intermittent build failures (`@rollup/rollup-darwin-arm64` EBADPLATFORM) and runtime crashes (`Invalid MONGODB_URI format`, `EADDRINUSE 3005`).
 
 ## Multi-Layer Root-Cause Matrix
 | Layer | Potential Blocker | Evidence | Priority |
 |-------|-------------------|----------|----------|
-| Client bundle | Double “/api” bug still present in production JS because patched code not yet deployed | 404s to `/api/api/auth/login` | P1 |
+| Client bundle | Double "/api" bug still present in production JS because patched code not yet deployed | 404s to `/api/api/auth/login` | P1 |
 | Server runtime | Env Loader rejecting Atlas URI | Logs show `Invalid MONGODB_URI format` | P1 |
 | Server runtime | Hard-coded port 3005 + Heroku `process.env.PORT` collision → dyno restart | `EADDRINUSE 3005` | P1 |
 | Build pipeline | Optional native Rollup deps break Heroku slug compile | `EBADPLATFORM` build failures | P2 |
@@ -917,7 +917,7 @@ We merge earlier LGN* and APD* plans into a single coordinated release.
 | RL-2 | Server | Relax `envLoader.ts` URI regex *(LGN P0-4)* | Dyno boots, connects to Atlas |
 | RL-3 | Server | Make server listen on `process.env.PORT` only *(LGN P0-5)* | No `EADDRINUSE` in logs |
 | RL-4 | Client | Merge APD-1 patch (baseURL `/api`, strip duplicates) and ensure all paths drop leading `/api` where possible | Local build passes; network tab shows `/api/auth/login` |
-| RL-5 | CI | Jest test to assert final URLs don’t contain `/api/api` *(APD-3)* | CI green |
+| RL-5 | CI | Jest test to assert final URLs don't contain `/api/api` *(APD-3)* | CI green |
 | RL-6 | Smoke | End-to-end login test in CI using supertest against compiled server | Test returns 200 & JWT |
 | RL-7 | Deploy Staging | Push branch `release/login-restore` to Heroku staging app | Owner can log in |
 | RL-8 | Deploy Prod | Merge & deploy once staging validated | Live site login works |
@@ -935,5 +935,166 @@ We merge earlier LGN* and APD* plans into a single coordinated release.
   **Mitigation:** Add `/api/health` (+ auth health) endpoints for quick checks.
 • **Risk:** Forgotten `/api` prefixes sneak back later.  
   **Mitigation:** Keep Jest URL test in CI.
+
+---
+
+## 🚀 Planner Update – Staging Validation & Production Promotion (17 Jul 2025)
+
+### Background and Motivation
+The hot-fix branch `hotfix/login-restore` now **builds and boots successfully on Heroku staging** (`https://crokodial-api-staging-02dd9c87e429.herokuapp.com`).  The client bundle no longer contains double `/api` prefixes, and the server accepts the Atlas Mongo URI while listening on the dyno-assigned port.  The next professional step is to
+1. **Verify** that the staging environment is fully healthy (API & login) by **automated curl smoke tests and a manual browser check**.
+2. **Promote** the same slug to production via the Heroku pipeline once verification passes.
+3. **Post-deploy** smoke tests, log monitoring, and a rollback playbook if anomalies surface.
+
+This section documents the definitive, production-grade rollout plan, ensuring we satisfy all items in the "production-grade-solutions-only" checklist supplied by the stakeholder.
+
+### Sync Gate – Code-Map Artefacts
+We have not yet regenerated the architecture artefacts (`docs/dependency-graph.svg`, `docs/site/`, `Architecture.md`).  They are required for an auditable, maintainable state.  A **Generate Code Map** task is therefore inserted at the top of the task list.
+
+### Key Challenges and Analysis
+| ID | Challenge | Impact | Mitigation |
+|----|-----------|--------|-----------|
+| KV-1 | Staging may still reference obsolete env vars or config (e.g. OAuth redirect URLs) | Login could fail even if API returns 200 | Use dedicated smoke script that performs *actual* credential login and token validation |
+| KV-2 | Slug size is **392 MB** (>300 MB soft limit) | Slower cold-starts; risk of future hard limit breach | Capture baseline, open follow-up ticket for bundle size optimisation – **out of scope for immediate fix** but tracked |
+| KV-3 | 6 reported vulnerabilities in `npm audit` | Security debt | After successful prod restore, schedule dependency audit sprint |
+
+### High-Level Task Breakdown (Staging → Production Rollout)
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| CM-1 | **Generate Code Map** – run `npm run gen:map && npm run gen:docs` and commit artefacts | `docs/dependency-graph.svg` & `docs/site/` updated in branch | pending | none |
+| SV-1 | **Automated Staging Smoke Test** – curl `GET /api/health` & `POST /api/auth/login` with test creds | Both return 200; login response contains `token` | pending | CM-1 |
+| SV-2 | **Manual Browser Login** (stakeholder) on staging | Stakeholder confirms dashboard loads | pending | SV-1 |
+| PR-1 | **Promote Slug to Production** – `heroku pipelines:promote -a crokodial-api-staging` | Promotion succeeds; new release appears on prod | pending | SV-2 |
+| PV-1 | **Production Health Check & Login Smoke** – same curl script against `https://crokodial.com` | 200 from `/api/health`; login returns token | pending | PR-1 |
+| PV-2 | **Post-Deploy Monitoring Window** – tail Heroku logs for 15 min; check Sentry for exceptions | No crash/restart events; error rate <1 % | pending | PR-1 |
+| RB-1 | **Rollback Playbook Ready** – `heroku releases:rollback -a crokodial` command prepared (no execution unless PV-* fails) | Rollback notes stored in scratchpad; team aware | pending | PR-1 |
+
+### Success Metrics
+1. Automated script reports **HTTP 200** for health and login endpoints on both staging and production.
+2. Stakeholder manually logs in successfully on staging **before** promotion and on production **after** promotion.
+3. No dyno crashes or restarts during the 15-minute post-deploy observation window.
+4. No 5xx responses observed in Heroku log tail.
+
+### Project Status Board (additions – 17 Jul 2025)
+- [ ] CM-1 Generate Code Map
+- [ ] SV-1 Staging automated smoke test
+- [ ] SV-2 Staging manual browser login
+- [ ] PR-1 Promote slug to production
+- [ ] PV-1 Production automated smoke test
+- [ ] PV-2 Post-deploy monitoring window
+- [ ] RB-1 Rollback playbook ready
+
+### Notes for Executor
+• **Automated Smoke Script Template** (save as `scripts/smoke-login.sh`):
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+BASE_URL="$1"      # e.g. https://crokodial-api-staging-02dd9c87e429.herokuapp.com
+USER="$2"
+PASS="$3"
+
+curl -fsSL "$BASE_URL/api/health" | jq .
+TOKEN=$(curl -fsSL -X POST "$BASE_URL/api/auth/login" \
+  -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$USER\",\"password\":\"$PASS\"}" | jq -r .token)
+
+echo "Received JWT: ${TOKEN:0:20}…"
+```
+• Use **test credentials** already present in the `.env.example` or staging DB.
+• Update the Project Status Board as each task completes.  **Do not proceed to PR-1** until both SV-1 and SV-2 are ✅.
+
+---
+
+## 📦 Planner Add-On – Post-Deployment Cleanup & Optimisation (17 Jul 2025)
+
+### Background and Motivation
+The **login-restore** hot-fix deploys successfully on staging, but the Heroku build log surfaced several non-blocking issues that will **increase boot time, risk security debt, and bloat the client payload** if left unattended.  Addressing them after production login is restored will harden the platform and improve UX.
+
+### Key Findings from Build Log
+1. **Node 24 / npm 11 warning** – `--unsafe-perm` flag is deprecated.
+2. **6 npm vulnerabilities** – (4 moderate, 1 high, 1 critical).
+3. Hundreds of **"use client" bundling warnings** from Chakra UI, TanStack Query & Framer Motion.
+4. **Large client chunks** (> 8500 KB) flagged by Vite.
+5. **Heroku slug size 392 MB** (>300 MB soft limit).
+6. Duplicate build message – informational; no action once slug promoted.
+
+### High-Level Task Breakdown (Optimisation Sprint)
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| OPT-0 | Generate fresh code map **after** optimisation changes | `docs/` artefacts updated | pending | CM-1 |
+| SEC-1 | Run `npm audit fix --force` in a *feature branch*; manually vet major version bumps | `npm audit` shows 0 critical/high vulns in CI | pending | login-restore merged |
+| SEC-2 | Add **Snyk** or **Dependabot** security scan to GitHub Actions | PRs auto-open for future CVEs | pending | SEC-1 |
+| NPM-1 | Remove deprecated `--unsafe-perm` from all npm scripts | No NPM deprecation warnings in build | pending | login-restore merged |
+| CHK-1 | Silence "use client" warnings by bumping Chakra UI, React-Query, Framer Motion to latest Vite-compatible versions OR add `build.commonjsOptions.ignoreDynamicRequires = true` in `vite.config.ts` | Staging build log contains <10 "use client" warnings | pending | NPM-1 |
+| SPLIT-1 | Implement `build.rollupOptions.output.manualChunks` in `vite.config.ts` for vendor splitting (e.g., Chakra, Framer, React-Query) | No chunk >500 kB after gzip; Lighthouse performance score +5 | pending | CHK-1 |
+| SLUG-1 | Analyse slug with `heroku slugs:info` & `du -sh` in buildpack; purge dev assets, move large static assets (videos, state PNGs) to S3/CDN; ensure `rimraf dist` excludes images required at runtime | Heroku slug <300 MB; cold-start time <25 s | pending | SPLIT-1 |
+| DOC-1 | Update `Architecture.md` and regenerate code map (OPT-0) | Artefacts reflect new chunk-splitting path changes | pending | SLUG-1 |
+
+### Project Status Board – Optimisation Sprint
+- [ ] OPT-0 Generate code map after optimisations
+- [ ] SEC-1 npm audit fix & vulnerability sweep
+- [ ] SEC-2 Add automated security scanning
+- [ ] NPM-1 Remove deprecated --unsafe-perm flag
+- [ ] CHK-1 Reduce "use client" warnings (upgrade libs / Vite config)
+- [ ] SPLIT-1 Implement vendor chunk splitting <500 kB
+- [ ] SLUG-1 Reduce Heroku slug <300 MB
+- [ ] DOC-1 Refresh Architecture docs & dependency graph
+
+### Notes for Executor
+• **Scope & Timing:** These tasks are **post-login** improvements; priority is medium but should be scheduled soon to avoid regressions.
+• **Branch Strategy:** Create a `perf/slug-optimisation` branch after `hotfix/login-restore` is merged.
+• **Testing:** Add a Lighthouse script to CI for bundle-size regressions.
+• **Monitoring:** Use Heroku metrics dashboard to confirm reduced boot latency after SLUG-1.
+
+---
+
+## 🚩 Planner Clarification – **Double /api Path & Missing Token Are BLOCKERS** (17 Jul 2025)
+
+The stakeholder confirms the *real* sign-in failure comes from:
+1. **Duplicate `/api` prefix** in login requests → 404.
+2. **Missing / not-stored auth token** → subsequent 401s.
+
+Build warnings & slug size are *not* blocking; therefore APD tasks **must be completed BEFORE** we proceed to staging smoke tests (SV-1) and production promotion (PR-1).
+
+### Immediate Blocking Tasks (Pre-Promotion)
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| APD-2 | **Codemod:** Strip leading `/api` from all `axiosInstance` calls | `grep -R "axiosInstance.*'/api/"` returns zero matches | pending | APD-1 |
+| APD-3 | **Jest URL Test:** Assert no resulting URL contains `/api/api` | Test fails pre-codemod, passes post-codemod | pending | APD-2 |
+| TOK-1 | **Verify Token Storage:** Ensure `login()` action writes JWT to `authToken.service.ts` & `localStorage` | Manual login stores token; refresh keeps session | pending | APD-2 |
+| TOK-2 | **Axios Auth Interceptor Check:** Confirm `axiosInstance` attaches `Authorization: Bearer <JWT>` header on subsequent calls | `/api/leads/recent` returns 200 on staging | pending | TOK-1 |
+| SMK-0 | **Local Smoke Test:** `npm run dev` → login succeeds; `/api/leads/recent` returns data | Developer confirms in browser | pending | TOK-2 |
+
+Only **after SMK-0 is green** do we proceed with SV-1 (staging smoke) and the promotion chain.
+
+### Adjusted Project Status Board (top section)
+- [ ] APD-2 Strip `/api` prefix from all axios calls
+- [x] APD-3 Jest safeguard for duplicate `/api` *(in_progress)*
+- [ ] TOK-1 Verify token storage on login
+- [ ] TOK-2 Axios auth header interceptor working
+- [ ] SMK-0 Local smoke test passes (login + authorized fetch)
+- [ ] CM-1 Generate Code Map *(unchanged)*
+- [ ] SV-1 Staging automated smoke test *(blocked until SMK-0)*
+- [ ] SV-2 Manual staging login *(blocked)*
+- [ ] PR-1 Promote slug to production *(blocked)*
+
+Executor should prioritise these five **blocking** tasks immediately.
+
+---
+
+## 📝 Planner – Resolve glob dependency & client test script (18 Jul 2025)
+
+### Analysis
+Current Heroku build still errors: `Cannot find module 'glob'` in the guard test.  Also the placeholder client `npm test` script passes an extra arg causing a shell warning. Both are easy fixes but must be done before any CI passes.
+
+### Tasks
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| GLOB-1 | Add `glob` & `@types/glob` to **dialer-app/server** workspace `package.json` | `npm ls glob` in server workspace shows version; ts-jest compiles | pending | none |
+| TEST-CL-1 | Update `dialer-app/client/package.json` test script to remove stray arg | `npm test --workspace dialer-app/client` prints placeholder without error | pending | none |
+| SVR-TEST | Run `npm test --workspace dialer-app/server` – guard test passes | Exit code 0, no TS errors | pending | GLOB-1 |
+| COMMIT-PUSH | Commit lockfile changes & push branch to Heroku | Heroku build reaches client build step without Rollup or glob errors | pending | SVR-TEST, TEST-CL-1 |
+
+Update Project Status Board – add these items top-priority before TOK tasks.
 
 ---
