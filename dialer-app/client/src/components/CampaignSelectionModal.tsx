@@ -53,7 +53,7 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
   const fetchCampaigns = async () => {
     try {
       setIsLoading(true);
-      const response = await axiosInstance.get('/api/campaigns');
+      const response = await axiosInstance.get('campaigns');
 
       // Filter out completed campaigns
       const activeCampaigns = response.data.filter(
@@ -93,7 +93,7 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
 
     try {
       setIsSubmitting(true);
-      await axiosInstance.post('/api/campaigns/add-lead', {
+      await axiosInstance.post('campaigns/add-lead', {
         campaignId: selectedCampaign,
         leadId,
       });
