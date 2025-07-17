@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dropdown Filter Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        select, button {
+            padding: 8px 16px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        select:hover, button:hover {
+            border-color: #007bff;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        button:active {
+            background: #0056b3;
+        }
+        .results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .lead-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lead-info {
+            flex: 1;
+        }
+        .lead-source {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .source-nextgen {
+            background: #10b981;
+            color: white;
+        }
+        .source-marketplace {
+            background: #3b82f6;
+            color: white;
+        }
+        .source-selfgen {
+            background: #8b5cf6;
+            color: white;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            flex: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .status.loading {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        h2 {
+            margin-top: 0;
+        }
+        .debug {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Leads Dropdown Filter Test</h1>
+    
+    <div class="status" id="status">Ready to test</div>
+    
+    <div class="controls">
+        <div>
+            <label>Sort Order:</label>
+            <select id="sortDirection">
+                <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Pipeline Source:</label>
+            <select id="pipelineSource">
+                <option value="all">All</option>
+                <option value="nextgen">NextGen</option>
+                <option value="marketplace">Marketplace</option>
+                <option value="selfgen">Self Generated</option>
+            </select>
+        </div>
+        
+        <button onclick="loadLeads()">Apply Filters</button>
+        <button onclick="resetFilters()">Reset</button>
+    </div>
+    
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-value" id="totalCount">0</div>
+            <div class="stat-label">Total Leads</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="nextgenCount">0</div>
+            <div class="stat-label">NextGen Leads</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="marketplaceCount">0</div>
+            <div class="stat-label">Marketplace Leads</div>
+        </div>
+    </div>
+    
+    <div class="results">
+        <h2>Results <span id="resultCount"></span></h2>
+        <div id="leadsList"></div>
+    </div>
+    
+    <div class="debug">
+        <h3>Debug Information</h3>
+        <pre id="debugInfo">No requests made yet</pre>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        
+        // Load initial stats
+        loadStats();
+        
+        async function loadLeads() {
+            const sortDirection = document.getElementById('sortDirection').value;
+            const pipelineSource = document.getElementById('pipelineSource').value;
+            
+            const params = new URLSearchParams({
+                sortDirection: sortDirection,
+                limit: '10',
+                page: '1'
+            });
+            
+            if (pipelineSource !== 'all') {
+                params.append('pipelineSource', pipelineSource);
+            }
+            
+            const url = `${API_BASE}/leads?${params.toString()}`;
+            
+            updateStatus('loading', 'Loading leads...');
+            updateDebug('Request URL', url);
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                updateDebug('Response', {
+                    status: response.status,
+                    total: data.total,
+                    returned: data.leads?.length || 0,
+                    params: Object.fromEntries(params)
+                });
+                
+                if (response.ok) {
+                    displayLeads(data.leads || []);
+                    updateStatus('success', `Loaded ${data.leads?.length || 0} leads (Total: ${data.total || 0})`);
+                } else {
+                    updateStatus('error', `Error: ${data.message || 'Failed to load'}`);
+                }
+            } catch (error) {
+                updateStatus('error', `Network error: ${error.message}`);
+                updateDebug('Error', error.toString());
+            }
+        }
+        
+        async function loadStats() {
+            try {
+                // Load total count
+                const allResponse = await fetch(`${API_BASE}/leads?limit=1`);
+                const allData = await allResponse.json();
+                document.getElementById('totalCount').textContent = allData.total || 0;
+                
+                // Load NextGen count
+                const nextgenResponse = await fetch(`${API_BASE}/leads?pipelineSource=nextgen&limit=1`);
+                const nextgenData = await nextgenResponse.json();
+                document.getElementById('nextgenCount').textContent = nextgenData.total || 0;
+                
+                // Load Marketplace count
+                const marketplaceResponse = await fetch(`${API_BASE}/leads?pipelineSource=marketplace&limit=1`);
+                const marketplaceData = await marketplaceResponse.json();
+                document.getElementById('marketplaceCount').textContent = marketplaceData.total || 0;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+        
+        function displayLeads(leads) {
+            const container = document.getElementById('leadsList');
+            document.getElementById('resultCount').textContent = `(${leads.length})`;
+            
+            if (leads.length === 0) {
+                container.innerHTML = '<p>No leads found</p>';
+                return;
+            }
+            
+            container.innerHTML = leads.map(lead => `
+                <div class="lead-card">
+                    <div class="lead-info">
+                        <strong>${lead.name || 'No Name'}</strong><br>
+                        Email: ${lead.email || 'N/A'}<br>
+                        Phone: ${lead.phone || 'N/A'}<br>
+                        Created: ${new Date(lead.createdAt).toLocaleDateString()}
+                    </div>
+                    <div class="lead-source source-${(lead.source || '').toLowerCase().replace(/\s+/g, '')}">
+                        ${lead.source || 'Unknown'}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+        
+        function updateDebug(label, data) {
+            const debug = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleTimeString();
+            debug.textContent = `[${timestamp}] ${label}:\n${typeof data === 'object' ? JSON.stringify(data, null, 2) : data}`;
+        }
+        
+        function resetFilters() {
+            document.getElementById('sortDirection').value = 'desc';
+            document.getElementById('pipelineSource').value = 'all';
+            updateStatus('success', 'Filters reset');
+            document.getElementById('leadsList').innerHTML = '';
+            document.getElementById('resultCount').textContent = '';
+        }
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                loadLeads();
+            }
+        });
+    </script>
+</body>
+</html> 

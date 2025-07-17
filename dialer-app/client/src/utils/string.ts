@@ -1,0 +1,1 @@
+export const safeStr = (v: string | null | undefined): string => (v ?? ''); 

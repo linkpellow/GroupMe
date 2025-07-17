@@ -1,0 +1,571 @@
+
+> crokodial-crm-server@1.0.0 dev
+> nodemon src/index.ts
+
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] reading config ./nodemon.json[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] or send SIGHUP to 48851 to restart[39m
+[33m[nodemon] ignoring: src/**/*.spec.ts ./dist/**/* ./node_modules/**/* *.log[39m
+[33m[nodemon] watching path(s): src/**/*[39m
+[33m[nodemon] watching extensions: ts,json[39m
+[32m[nodemon] starting `npm run build && node dist/server/src/index.js src/index.ts`[39m
+[33m[nodemon] spawning[39m
+[33m[nodemon] child pid: 48873[39m
+[33m[nodemon] watching 123 files[39m
+
+> crokodial-crm-server@1.0.0 build
+> tsc
+
+
+> crokodial-crm-server@1.0.0 postbuild
+> echo 'Build completed successfully'
+
+Build completed successfully
+Gmail credentials file not found. Gmail integration will be disabled.
+ENV sanity → JWT_SECRET: lkj234… (44 chars), TEXTDRIP_API_TOKEN: 211819… (47 chars)
+=== PRODUCTION SERVER: UNIFIED IMPLEMENTATION ===
+Client dist path not found: /Users/linkp/Desktop/sheesh/dialer-app/server/dist/client/dist
+MongoDB connected (Production Server).
+Checking if default dispositions need to be seeded...
+Found 14 existing dispositions, no need to seed defaults
+Dispositions seeded/verified.
+Campaign processor job enabled.
+[INFO] 2025-06-07T20:51:59.866Z - Production Server listening on port 3001.
+[INFO] 2025-06-07T20:51:59.866Z - WebSocket server initialized
+[INFO] 2025-06-07T20:51:59.866Z - Memory logging enabled – interval 30000 ms
+[INFO] 2025-06-07T20:52:29.868Z - Memory usage – rss 156.9 MB | heapUsed 81.3 MB | external 20.3 MB
+Auth middleware - Request headers: { authorization: undefined, cookie: undefined, path: '/' }
+No auth token found
+[INFO] 2025-06-07T20:52:59.868Z - Memory usage – rss 158.1 MB | heapUsed 81.6 MB | external 20.3 MB
+Login attempt received for email: admin@crokodial.com
+Request body: { email: 'admin@crokodial.com', password: 'admin123' }
+User found: {
+  id: new ObjectId('68031c6250449693533f5ae7'),
+  email: 'admin@crokodial.com',
+  role: 'admin'
+}
+Password comparison result: true
+Login successful, token generated for user: admin@crokodial.com
+Login attempt received for email: admin@crokodial.com
+Request body: { email: 'admin@crokodial.com', password: 'admin123' }
+User found: {
+  id: new ObjectId('68031c6250449693533f5ae7'),
+  email: 'admin@crokodial.com',
+  role: 'admin'
+}
+Password comparison result: true
+Login successful, token generated for user: admin@crokodial.com
+Auth middleware - Request headers: {
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODAzMWM2MjUwNDQ5NjkzNTMzZjVhZTciLCJpYXQiOjE3NDkzMjk1OTUsImV4cCI6MTc1MTkyMTU5NX0.EIIHaTQFN8R9RDP9wkArbImO_UqCE_kKIhsVi3aK1Zw',
+  cookie: undefined,
+  path: '/'
+}
+Removed Bearer prefix from token
+Attempting to verify token
+Token verified successfully
+Looking up user with ID: 68031c6250449693533f5ae7
+Auth middleware - Request headers: {
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODAzMWM2MjUwNDQ5NjkzNTMzZjVhZTciLCJpYXQiOjE3NDkzMjk1OTUsImV4cCI6MTc1MTkyMTU5NX0.EIIHaTQFN8R9RDP9wkArbImO_UqCE_kKIhsVi3aK1Zw',
+  cookie: undefined,
+  path: '/config'
+}
+Removed Bearer prefix from token
+Attempting to verify token
+Token verified successfully
+Looking up user with ID: 68031c6250449693533f5ae7
+Auth middleware - Request headers: {
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODAzMWM2MjUwNDQ5NjkzNTMzZjVhZTciLCJpYXQiOjE3NDkzMjk1OTUsImV4cCI6MTc1MTkyMTU5NX0.EIIHaTQFN8R9RDP9wkArbImO_UqCE_kKIhsVi3aK1Zw',
+  cookie: undefined,
+  path: '/profile'
+}
+Removed Bearer prefix from token
+Attempting to verify token
+Token verified successfully
+Looking up user with ID: 68031c6250449693533f5ae7
+User authenticated successfully: admin@crokodial.com
+User authenticated successfully: admin@crokodial.com
+SERVER LOG: getConfig - Called for userId: 68031c6250449693533f5ae7
+User authenticated successfully: admin@crokodial.com
+SERVER LOG: getConfig - No GroupMeConfig found for userId: 68031c6250449693533f5ae7
+Client connected to WebSocket
+Received WebSocket message: {"type":"authenticate","token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODAzMWM2MjUwNDQ5NjkzNTMzZjVhZTciLCJpYXQiOjE3NDkzMjk1OTUsImV4cCI6MTc1MTkyMTU5NX0.EIIHaTQFN8R9RDP9wkArbImO_UqCE_kKIhsVi3aK1Zw"}
+WebSocket authenticated for userId: 68031c6250449693533f5ae7
+Auth middleware - Request headers: {
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODAzMWM2MjUwNDQ5NjkzNTMzZjVhZTciLCJpYXQiOjE3NDkzMjk1OTUsImV4cCI6MTc1MTkyMTU5NX0.EIIHaTQFN8R9RDP9wkArbImO_UqCE_kKIhsVi3aK1Zw',
+  cookie: undefined,
+  path: '/'
+}
+Removed Bearer prefix from token
+Attempting to verify token
+Token verified successfully
+Looking up user with ID: 68031c6250449693533f5ae7
+User authenticated successfully: admin@crokodial.com
+[ValidateQuery] Raw query params: {
+  page: '1',
+  limit: '50',
+  sortBy: 'createdAt',
+  sortDirection: 'desc',
+  requestId: '1749329598903-7fgqeubrc'
+}
+[ValidateQuery] Validated query: {
+  page: 1,
+  limit: 50,
+  sortBy: 'createdAt',
+  sortDirection: 'desc',
+  search: undefined,
+  states: undefined,
+  dispositions: undefined,
+  sources: undefined,
+  pipelineSource: undefined,
+  requestId: '1749329598903-7fgqeubrc',
+  getAllResults: false
+}
+Auth middleware - Request headers: {
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODAzMWM2MjUwNDQ5NjkzNTMzZjVhZTciLCJpYXQiOjE3NDkzMjk1OTUsImV4cCI6MTc1MTkyMTU5NX0.EIIHaTQFN8R9RDP9wkArbImO_UqCE_kKIhsVi3aK1Zw',
+  cookie: undefined,
+  path: '/'
+}
+Removed Bearer prefix from token
+Attempting to verify token
+Token verified successfully
+Looking up user with ID: 68031c6250449693533f5ae7
+User authenticated successfully: admin@crokodial.com
+[ValidateQuery] Raw query params: {
+  page: '2',
+  limit: '50',
+  sortBy: 'createdAt',
+  sortDirection: 'desc',
+  requestId: '1749329599026-9auwhzn5z'
+}
+[ValidateQuery] Validated query: {
+  page: 2,
+  limit: 50,
+  sortBy: 'createdAt',
+  sortDirection: 'desc',
+  search: undefined,
+  states: undefined,
+  dispositions: undefined,
+  sources: undefined,
+  pipelineSource: undefined,
+  requestId: '1749329599026-9auwhzn5z',
+  getAllResults: false
+}
+Auth middleware - Request headers: {
+  authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODAzMWM2MjUwNDQ5NjkzNTMzZjVhZTciLCJpYXQiOjE3NDkzMjk1OTUsImV4cCI6MTc1MTkyMTU5NX0.EIIHaTQFN8R9RDP9wkArbImO_UqCE_kKIhsVi3aK1Zw',
+  cookie: undefined,
+  path: '/campaigns'
+}
+Removed Bearer prefix from token
+Attempting to verify token
+Token verified successfully
+Looking up user with ID: 68031c6250449693533f5ae7
+User authenticated successfully: admin@crokodial.com
+Setting up default sender with phone: +18136679756
+Error setting default sender: AxiosError: Request failed with status code 400
+    at settle (/Users/linkp/Desktop/sheesh/node_modules/axios/dist/node/axios.cjs:2049:12)
+    at IncomingMessage.handleStreamEnd (/Users/linkp/Desktop/sheesh/node_modules/axios/dist/node/axios.cjs:3166:11)
+    at IncomingMessage.emit (node:events:529:35)
+    at IncomingMessage.emit (node:domain:489:12)
+    at endReadableNT (node:internal/streams/readable:1400:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+    at Axios.request (/Users/linkp/Desktop/sheesh/node_modules/axios/dist/node/axios.cjs:4276:41)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async TextdripService.setDefaultSenderNumber (/Users/linkp/Desktop/sheesh/dialer-app/server/dist/server/src/services/textdripService.js:44:30)
+    at async TextdripService.initializeDefaultSender (/Users/linkp/Desktop/sheesh/dialer-app/server/dist/server/src/services/textdripService.js:29:13) {
+  code: 'ERR_BAD_REQUEST',
+  config: {
+    transitional: {
+      silentJSONParsing: true,
+      forcedJSONParsing: true,
+      clarifyTimeoutError: false
+    },
+    adapter: [ 'xhr', 'http', 'fetch' ],
+    transformRequest: [ [Function: transformRequest] ],
+    transformResponse: [ [Function: transformResponse] ],
+    timeout: 30000,
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN',
+    maxContentLength: -1,
+    maxBodyLength: -1,
+    env: { FormData: [Function [FormData]], Blob: [class Blob] },
+    validateStatus: [Function: validateStatus],
+    headers: Object [AxiosHeaders] {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer 211819|l8MadkDW7QEVAnk8VH1ensIHuebpA7J3WF4vTB2a',
+      'User-Agent': 'axios/1.9.0',
+      'Content-Length': '82',
+      'Accept-Encoding': 'gzip, compress, deflate, br'
+    },
+    baseURL: 'https://api.textdrip.com/api',
+    method: 'post',
+    url: '/default-number-setup',
+    data: '{"phone_token":"863185c51a1badb9b1a53dcb546d4bc109c8396a6676119f019402e9e481f602"}',
+    allowAbsoluteUrls: true
+  },
+  request: <ref *1> ClientRequest {
+    _events: [Object: null prototype] {
+      abort: [Function (anonymous)],
+      aborted: [Function (anonymous)],
+      connect: [Function (anonymous)],
+      error: [Function (anonymous)],
+      socket: [Function (anonymous)],
+      timeout: [Function (anonymous)],
+      finish: [Function: requestOnFinish]
+    },
+    _eventsCount: 7,
+    _maxListeners: undefined,
+    outputData: [],
+    outputSize: 0,
+    writable: true,
+    destroyed: false,
+    _last: true,
+    chunkedEncoding: false,
+    shouldKeepAlive: false,
+    maxRequestsOnConnectionReached: false,
+    _defaultKeepAlive: true,
+    useChunkedEncodingByDefault: true,
+    sendDate: false,
+    _removedConnection: false,
+    _removedContLen: false,
+    _removedTE: false,
+    strictContentLength: false,
+    _contentLength: '82',
+    _hasBody: true,
+    _trailer: '',
+    finished: true,
+    _headerSent: true,
+    _closed: false,
+    socket: TLSSocket {
+      _tlsOptions: [Object],
+      _secureEstablished: true,
+      _securePending: false,
+      _newSessionPending: false,
+      _controlReleased: true,
+      secureConnecting: false,
+      _SNICallback: null,
+      servername: 'api.textdrip.com',
+      alpnProtocol: false,
+      authorized: true,
+      authorizationError: null,
+      encrypted: true,
+      _events: [Object: null prototype],
+      _eventsCount: 10,
+      connecting: false,
+      _hadError: false,
+      _parent: null,
+      _host: 'api.textdrip.com',
+      _closeAfterHandlingError: false,
+      _readableState: [ReadableState],
+      _maxListeners: undefined,
+      _writableState: [WritableState],
+      allowHalfOpen: false,
+      _sockname: null,
+      _pendingData: null,
+      _pendingEncoding: '',
+      server: undefined,
+      _server: null,
+      ssl: [TLSWrap],
+      _requestCert: true,
+      _rejectUnauthorized: true,
+      parser: null,
+      _httpMessage: [Circular *1],
+      timeout: 30000,
+      [Symbol(alpncallback)]: null,
+      [Symbol(res)]: [TLSWrap],
+      [Symbol(verified)]: true,
+      [Symbol(pendingSession)]: null,
+      [Symbol(async_id_symbol)]: 1019,
+      [Symbol(kHandle)]: [TLSWrap],
+      [Symbol(lastWriteQueueSize)]: 0,
+      [Symbol(timeout)]: Timeout {
+        _idleTimeout: 30000,
+        _idlePrev: [TimersList],
+        _idleNext: [Timeout],
+        _idleStart: 81582,
+        _onTimeout: [Function: bound ],
+        _timerArgs: undefined,
+        _repeat: null,
+        _destroyed: false,
+        [Symbol(refed)]: false,
+        [Symbol(kHasPrimitive)]: false,
+        [Symbol(asyncId)]: 1032,
+        [Symbol(triggerId)]: 1022
+      },
+      [Symbol(kBuffer)]: null,
+      [Symbol(kBufferCb)]: null,
+      [Symbol(kBufferGen)]: null,
+      [Symbol(kCapture)]: false,
+      [Symbol(kSetNoDelay)]: false,
+      [Symbol(kSetKeepAlive)]: true,
+      [Symbol(kSetKeepAliveInitialDelay)]: 60,
+      [Symbol(kBytesRead)]: 0,
+      [Symbol(kBytesWritten)]: 0,
+      [Symbol(connect-options)]: [Object]
+    },
+    _header: 'POST /api/default-number-setup HTTP/1.1\r\n' +
+      'Accept: application/json\r\n' +
+      'Content-Type: application/json\r\n' +
+      'Authorization: Bearer 211819|l8MadkDW7QEVAnk8VH1ensIHuebpA7J3WF4vTB2a\r\n' +
+      'User-Agent: axios/1.9.0\r\n' +
+      'Content-Length: 82\r\n' +
+      'Accept-Encoding: gzip, compress, deflate, br\r\n' +
+      'Host: api.textdrip.com\r\n' +
+      'Connection: close\r\n' +
+      '\r\n',
+    _keepAliveTimeout: 0,
+    _onPendingData: [Function: nop],
+    agent: Agent {
+      _events: [Object: null prototype],
+      _eventsCount: 2,
+      _maxListeners: undefined,
+      defaultPort: 443,
+      protocol: 'https:',
+      options: [Object: null prototype],
+      requests: [Object: null prototype] {},
+      sockets: [Object: null prototype],
+      freeSockets: [Object: null prototype] {},
+      keepAliveMsecs: 1000,
+      keepAlive: false,
+      maxSockets: Infinity,
+      maxFreeSockets: 256,
+      scheduling: 'lifo',
+      maxTotalSockets: Infinity,
+      totalSocketCount: 2,
+      maxCachedSessions: 100,
+      _sessionCache: [Object],
+      [Symbol(kCapture)]: false
+    },
+    socketPath: undefined,
+    method: 'POST',
+    maxHeaderSize: undefined,
+    insecureHTTPParser: undefined,
+    joinDuplicateHeaders: undefined,
+    path: '/api/default-number-setup',
+    _ended: true,
+    res: IncomingMessage {
+      _readableState: [ReadableState],
+      _events: [Object: null prototype],
+      _eventsCount: 4,
+      _maxListeners: undefined,
+      socket: [TLSSocket],
+      httpVersionMajor: 1,
+      httpVersionMinor: 1,
+      httpVersion: '1.1',
+      complete: true,
+      rawHeaders: [Array],
+      rawTrailers: [],
+      joinDuplicateHeaders: undefined,
+      aborted: false,
+      upgrade: false,
+      url: '',
+      method: null,
+      statusCode: 400,
+      statusMessage: 'Bad Request',
+      client: [TLSSocket],
+      _consuming: true,
+      _dumped: false,
+      req: [Circular *1],
+      responseUrl: 'https://api.textdrip.com/api/default-number-setup',
+      redirects: [],
+      [Symbol(kCapture)]: false,
+      [Symbol(kHeaders)]: [Object],
+      [Symbol(kHeadersCount)]: 20,
+      [Symbol(kTrailers)]: null,
+      [Symbol(kTrailersCount)]: 0
+    },
+    aborted: false,
+    timeoutCb: null,
+    upgradeOrConnect: false,
+    parser: null,
+    maxHeadersCount: null,
+    reusedSocket: false,
+    host: 'api.textdrip.com',
+    protocol: 'https:',
+    _redirectable: Writable {
+      _writableState: [WritableState],
+      _events: [Object: null prototype],
+      _eventsCount: 3,
+      _maxListeners: undefined,
+      _options: [Object],
+      _ended: true,
+      _ending: true,
+      _redirectCount: 0,
+      _redirects: [],
+      _requestBodyLength: 82,
+      _requestBodyBuffers: [],
+      _onNativeResponse: [Function (anonymous)],
+      _currentRequest: [Circular *1],
+      _currentUrl: 'https://api.textdrip.com/api/default-number-setup',
+      _timeout: null,
+      [Symbol(kCapture)]: false
+    },
+    [Symbol(kCapture)]: false,
+    [Symbol(kBytesWritten)]: 0,
+    [Symbol(kNeedDrain)]: false,
+    [Symbol(corked)]: 0,
+    [Symbol(kOutHeaders)]: [Object: null prototype] {
+      accept: [Array],
+      'content-type': [Array],
+      authorization: [Array],
+      'user-agent': [Array],
+      'content-length': [Array],
+      'accept-encoding': [Array],
+      host: [Array]
+    },
+    [Symbol(errored)]: null,
+    [Symbol(kHighWaterMark)]: 16384,
+    [Symbol(kRejectNonStandardBodyWrites)]: false,
+    [Symbol(kUniqueHeaders)]: null
+  },
+  response: {
+    status: 400,
+    statusText: 'Bad Request',
+    headers: Object [AxiosHeaders] {
+      date: 'Sat, 07 Jun 2025 20:53:21 GMT',
+      'content-type': 'application/json',
+      'transfer-encoding': 'chunked',
+      connection: 'close',
+      server: 'Apache',
+      'cache-control': 'no-cache, private, max-age=0, private, no-store, no-cache, must-revalidate',
+      'access-control-allow-origin': '*',
+      vary: 'Authorization',
+      upgrade: 'h2,h2c'
+    },
+    config: {
+      transitional: [Object],
+      adapter: [Array],
+      transformRequest: [Array],
+      transformResponse: [Array],
+      timeout: 30000,
+      xsrfCookieName: 'XSRF-TOKEN',
+      xsrfHeaderName: 'X-XSRF-TOKEN',
+      maxContentLength: -1,
+      maxBodyLength: -1,
+      env: [Object],
+      validateStatus: [Function: validateStatus],
+      headers: [Object [AxiosHeaders]],
+      baseURL: 'https://api.textdrip.com/api',
+      method: 'post',
+      url: '/default-number-setup',
+      data: '{"phone_token":"863185c51a1badb9b1a53dcb546d4bc109c8396a6676119f019402e9e481f602"}',
+      allowAbsoluteUrls: true
+    },
+    request: <ref *1> ClientRequest {
+      _events: [Object: null prototype],
+      _eventsCount: 7,
+      _maxListeners: undefined,
+      outputData: [],
+      outputSize: 0,
+      writable: true,
+      destroyed: false,
+      _last: true,
+      chunkedEncoding: false,
+      shouldKeepAlive: false,
+      maxRequestsOnConnectionReached: false,
+      _defaultKeepAlive: true,
+      useChunkedEncodingByDefault: true,
+      sendDate: false,
+      _removedConnection: false,
+      _removedContLen: false,
+      _removedTE: false,
+      strictContentLength: false,
+      _contentLength: '82',
+      _hasBody: true,
+      _trailer: '',
+      finished: true,
+      _headerSent: true,
+      _closed: false,
+      socket: [TLSSocket],
+      _header: 'POST /api/default-number-setup HTTP/1.1\r\n' +
+        'Accept: application/json\r\n' +
+        'Content-Type: application/json\r\n' +
+        'Authorization: Bearer 211819|l8MadkDW7QEVAnk8VH1ensIHuebpA7J3WF4vTB2a\r\n' +
+        'User-Agent: axios/1.9.0\r\n' +
+        'Content-Length: 82\r\n' +
+        'Accept-Encoding: gzip, compress, deflate, br\r\n' +
+        'Host: api.textdrip.com\r\n' +
+        'Connection: close\r\n' +
+        '\r\n',
+      _keepAliveTimeout: 0,
+      _onPendingData: [Function: nop],
+      agent: [Agent],
+      socketPath: undefined,
+      method: 'POST',
+      maxHeaderSize: undefined,
+      insecureHTTPParser: undefined,
+      joinDuplicateHeaders: undefined,
+      path: '/api/default-number-setup',
+      _ended: true,
+      res: [IncomingMessage],
+      aborted: false,
+      timeoutCb: null,
+      upgradeOrConnect: false,
+      parser: null,
+      maxHeadersCount: null,
+      reusedSocket: false,
+      host: 'api.textdrip.com',
+      protocol: 'https:',
+      _redirectable: [Writable],
+      [Symbol(kCapture)]: false,
+      [Symbol(kBytesWritten)]: 0,
+      [Symbol(kNeedDrain)]: false,
+      [Symbol(corked)]: 0,
+      [Symbol(kOutHeaders)]: [Object: null prototype],
+      [Symbol(errored)]: null,
+      [Symbol(kHighWaterMark)]: 16384,
+      [Symbol(kRejectNonStandardBodyWrites)]: false,
+      [Symbol(kUniqueHeaders)]: null
+    },
+    data: { status: false, message: 'Data not found' }
+  },
+  status: 400
+}
+Failed to set Textdrip default sender number on init: Error: TextDrip 400: Data not found
+    at TextdripService.unwrap (/Users/linkp/Desktop/sheesh/dialer-app/server/dist/server/src/services/textdripService.js:196:19)
+    at TextdripService.setDefaultSenderNumber (/Users/linkp/Desktop/sheesh/dialer-app/server/dist/server/src/services/textdripService.js:56:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async TextdripService.initializeDefaultSender (/Users/linkp/Desktop/sheesh/dialer-app/server/dist/server/src/services/textdripService.js:29:13)
+node:internal/process/promises:288
+            triggerUncaughtException(err, true /* fromPromise */);
+            ^
+
+Error: TextDrip 400: Data not found
+    at TextdripService.unwrap (/Users/linkp/Desktop/sheesh/dialer-app/server/dist/server/src/services/textdripService.js:196:19)
+    at TextdripService.setDefaultSenderNumber (/Users/linkp/Desktop/sheesh/dialer-app/server/dist/server/src/services/textdripService.js:56:18)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async TextdripService.initializeDefaultSender (/Users/linkp/Desktop/sheesh/dialer-app/server/dist/server/src/services/textdripService.js:29:13)
+
+Node.js v18.20.8
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting child process[39m
+[32m[nodemon] starting `npm run build && node dist/server/src/index.js src/index.ts`[39m
+[33m[nodemon] spawning[39m
+[33m[nodemon] child pid: 49270[39m
+[33m[nodemon] exiting[39m
+node:events:495
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: read EIO
+    at TTY.onStreamRead (node:internal/stream_base_commons:217:20)
+Emitted 'error' event on ReadStream instance at:
+    at emitErrorNT (node:internal/streams/destroy:151:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:116:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
+  errno: -5,
+  code: 'EIO',
+  syscall: 'read'
+}
+
+Node.js v18.20.8
+
+> crokodial-crm-server@1.0.0 build
+> tsc
+
+
+> crokodial-crm-server@1.0.0 postbuild
+> echo 'Build completed successfully'
+
+Build completed successfully

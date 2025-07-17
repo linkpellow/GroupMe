@@ -1,0 +1,360 @@
+.documents-list {
+  margin: 20px 0;
+  width: 100%;
+}
+
+.documents-list h3 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Document Grid */
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.document-card {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.document-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.document-card:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #2196f3, #3f51b5);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.document-card:hover:before {
+  opacity: 1;
+}
+
+.document-icon {
+  margin-bottom: 10px;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 8px;
+}
+
+/* Document type icons */
+.document-icon.document-icon::before {
+  content: "";
+  display: block;
+  width: 42px;
+  height: 48px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  position: absolute;
+  z-index: 1;
+}
+
+.document-icon.document-icon::after {
+  content: "PDF";
+  position: absolute;
+  bottom: 10px;
+  font-size: 10px;
+  color: #fff;
+  background-color: #e74c3c;
+  padding: 2px 4px;
+  border-radius: 2px;
+  z-index: 3;
+}
+
+.document-icon.insurance-icon::before {
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+}
+
+.document-icon.insurance-icon::after {
+  content: "INS";
+  background-color: #2196f3;
+}
+
+.document-icon.health-icon::before {
+  background-color: #e8f5e9;
+  border: 1px solid #c8e6c9;
+}
+
+.document-icon.health-icon::after {
+  content: "HLT";
+  background-color: #4caf50;
+}
+
+.document-info {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.document-name {
+  font-weight: 500;
+  margin-bottom: 5px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.document-meta {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.dot-separator {
+  opacity: 0.5;
+}
+
+.document-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+/* Document viewer overlay */
+.document-viewer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.document-viewer {
+  background-color: white;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 1100px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.document-viewer-header {
+  padding: 15px 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.document-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-icon {
+  width: 24px;
+  height: 24px;
+  position: relative;
+}
+
+.header-icon.document-icon::before {
+  content: "";
+  display: block;
+  width: 18px;
+  height: 22px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  position: absolute;
+}
+
+.header-icon.insurance-icon::before {
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+}
+
+.header-icon.health-icon::before {
+  background-color: #e8f5e9;
+  border: 1px solid #c8e6c9;
+}
+
+.document-viewer-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+  max-width: 500px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewer-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  background-color: #2196f3;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.download-btn:hover {
+  background-color: #1976d2;
+  text-decoration: none;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  font-weight: bold;
+  color: #666;
+  cursor: pointer;
+  padding: 0 5px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: #e74c3c;
+}
+
+.document-viewer-body {
+  flex: 1;
+  overflow: hidden;
+  background-color: #f1f3f4;
+}
+
+.document-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: white;
+}
+
+.document-viewer-footer {
+  padding: 10px 20px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  font-size: 13px;
+  color: #666;
+}
+
+/* Buttons */
+.view-btn,
+.delete-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.view-btn {
+  background-color: #2196f3;
+  color: white;
+}
+
+.view-btn:hover {
+  background-color: #1976d2;
+}
+
+.delete-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+.delete-btn:hover {
+  background-color: #d32f2f;
+}
+
+/* Status messages */
+.documents-loading,
+.documents-error,
+.no-documents {
+  padding: 20px;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.documents-loading {
+  color: #666;
+  background-color: #f9f9f9;
+}
+
+.documents-error {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border-left: 4px solid #f44336;
+}
+
+.no-documents {
+  color: #666;
+  background-color: #f9f9f9;
+}
