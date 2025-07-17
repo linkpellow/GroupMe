@@ -127,9 +127,15 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
         ? token 
         : `Bearer ${token}`;
       
+<<<<<<< HEAD
       console.log('🔄 GroupMeContext: Making API call to /api/groupme/config');
       
       const response = await axiosInstance.get("/api/groupme/config");
+=======
+      console.log('🔄 GroupMeContext: Making API call to /groupme/config');
+      
+      const response = await axiosInstance.get("/groupme/config");
+>>>>>>> hotfix/login-restore
       console.log('🔄 GroupMeContext: Config API response:', response.data);
       
       if (response.data && response.data.accessToken) {
@@ -205,8 +211,13 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
     
     setIsLoading(true);
     try {
+<<<<<<< HEAD
       console.log("🔄 GroupMeContext: Making API call to /api/groupme/groups");
       const response = await axiosInstance.get("/api/groupme/groups");
+=======
+      console.log("🔄 GroupMeContext: Making API call to /groupme/groups");
+      const response = await axiosInstance.get("/groupme/groups");
+>>>>>>> hotfix/login-restore
       console.log("✅ GroupMeContext: Groups API response:", response.data);
       console.log("✅ GroupMeContext: Response status:", response.status);
       console.log("✅ GroupMeContext: Response headers:", response.headers);
@@ -293,7 +304,7 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
 
         // Request with parameters to ensure newest messages and prevent caching
         const response = await axiosInstance.get(
-          `/api/groupme/groups/${groupId}/messages`,
+          `/groupme/groups/${groupId}/messages`,
           {
             params: {
               limit: 100, // Request more messages for better user experience
@@ -396,7 +407,7 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
     setIsLoading(true);
     setError(null);
     try {
-      await axiosInstance.post("/api/groupme/config", newConfig);
+      await axiosInstance.post("/groupme/config", newConfig);
       setConfig(newConfig);
       localStorage.setItem("groupme_config", JSON.stringify(newConfig));
       // After saving, refresh groups as the token might allow access to different groups
@@ -422,7 +433,7 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
       setIsLoading(true); // Indicate loading state
       try {
         // Actual send logic
-        await axiosInstance.post(`/api/groupme/groups/${groupId}/messages`, {
+        await axiosInstance.post(`/groupme/groups/${groupId}/messages`, {
           text,
         });
         console.log(`GroupMeContext: Message sent to group ${groupId}`);

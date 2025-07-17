@@ -94,7 +94,7 @@ export function useLeadsSearchIntegration({
   const fetchLeads = useCallback(
     async (searchQuery: string | null, page: number, controller: AbortController) => {
       try {
-        const response = await axiosInstance.get('/api/leads', {
+        const response = await axiosInstance.get('leads', {
           params: buildApiParams(searchQuery, page),
           signal: controller.signal,
         });

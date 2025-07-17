@@ -1,8 +1,15 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getToken } from '../services/authToken.service';
 
+<<<<<<< HEAD
 // Base URL for local development with correct path
 const baseURL = import.meta.env.VITE_API_BASE || '/api';
+=======
+// Set baseURL so that all requests are automatically prefixed with /api in development & production.
+// Developers should **not** include '/api' in individual request paths.
+const envBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
+const baseURL = envBase || '/api';
+>>>>>>> hotfix/login-restore
 
 const axiosInstance = axios.create({
   baseURL,
@@ -50,21 +57,13 @@ axiosInstance.interceptors.request.use(
       console.warn('No auth token found in authToken service');
     }
 
-    // Make sure all API requests start with /api
+    // No automatic path rewriting—call sites must pass paths **without** '/api'.
     if (config.url) {
-      // Strip any leading slash for consistency
-      let url = config.url.startsWith('/') ? config.url.substring(1) : config.url;
-
-      // Add /api/ prefix if not already present and not a full URL
-      if (!url.includes('://') && !url.startsWith('api/')) {
-        url = 'api/' + url;
+      // Prevent accidental double '/api' when callers include it.
+      if (config.url.startsWith('/api/')) {
+        config.url = config.url.replace(/^\/api/, '');
       }
-
-      // Always add leading slash for absolute path
-      config.url = '/' + url;
-
-      // Log the normalized URL
-      console.log(`Normalized URL: ${config.url}`);
+      console.log(`Request URL: ${config.url}`);
     }
 
     // Log the request
@@ -156,7 +155,12 @@ axiosInstance.interceptors.response.use(
 
 // Make the instance available globally for debugging and emergency fixes
 if (typeof window !== 'undefined') {
+<<<<<<< HEAD
   window.axiosInstance = axiosInstance;
+=======
+  // Cast to any to avoid TypeScript window augmentation requirements
+  (window as any).axiosInstance = axiosInstance;
+>>>>>>> hotfix/login-restore
 }
 
 export default axiosInstance;
