@@ -71,7 +71,7 @@ const CalendlyIntegration: React.FC = () => {
       try {
         setIsLoading(true);
         console.log('Checking Calendly integration status...');
-        const response = await axiosInstance.get('/api/integrations/calendly');
+        const response = await axiosInstance.get('integrations/calendly');
         console.log('Calendly integration response:', response.data);
 
         setApiAvailable(true);
@@ -176,7 +176,7 @@ const CalendlyIntegration: React.FC = () => {
     try {
       // This would normally redirect to Calendly OAuth flow
       // For demo purposes, we'll simulate a direct connection
-      const response = await axiosInstance.post('/api/integrations/calendly', {
+      const response = await axiosInstance.post('integrations/calendly', {
         token: calendlyToken,
         user: calendlyUser,
       });
@@ -266,7 +266,7 @@ const CalendlyIntegration: React.FC = () => {
   const handleDisconnect = async () => {
     setIsLoading(true);
     try {
-      await axiosInstance.delete('/api/integrations/calendly');
+      await axiosInstance.delete('integrations/calendly');
       setCalendlyToken('');
       setCalendlyUser('');
       setIsConnected(false);
@@ -339,7 +339,7 @@ const CalendlyIntegration: React.FC = () => {
 
       // Then save to backend
       try {
-        await axiosInstance.put('/api/integrations/calendly/events', {
+        await axiosInstance.put('integrations/calendly/events', {
           events: updatedEvents,
         });
 
@@ -390,7 +390,7 @@ const CalendlyIntegration: React.FC = () => {
 
       // Then save to backend
       try {
-        await axiosInstance.put('/api/integrations/calendly/events', {
+        await axiosInstance.put('integrations/calendly/events', {
           events: updatedEvents,
         });
 
@@ -589,7 +589,7 @@ const TextDripIntegration: React.FC = () => {
     }
     try {
       setIsLoading(true);
-      await axiosInstance.post('/api/textdrip/connect', { baseUrl, email, password, apiKey });
+      await axiosInstance.post('textdrip/connect', { baseUrl, email, password, apiKey });
       toast({ title: 'Connected to TextDrip', status: 'success', duration: 3000, isClosable: true });
       setIsConnected(true);
     } catch (error: any) {

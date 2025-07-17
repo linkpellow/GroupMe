@@ -53,10 +53,12 @@ axiosInstance.interceptors.request.use(
       console.warn('No auth token found in authToken service');
     }
 
-    // Prevent accidental double '/api' when callers *do* include it.
-    if (config.url && config.url.startsWith('/api/')) {
-      config.url = config.url.replace(/^\/api/, '');
-      console.log(`Normalized URL: ${config.url}`);
+    // Prevent accidental double '/api' in request paths.
+    if (config.url) {
+      if (config.url.startsWith('/api/')) {
+        config.url = config.url.replace(/^\/api/, '');
+      }
+      console.log(`Request URL: ${config.url}`);
     }
 
     // Log the request

@@ -18,7 +18,7 @@ export async function uploadDocument(file: File, clientId: string): Promise<Poli
   const formData = new FormData();
   formData.append('file', file);
   formData.append('clientId', clientId);
-  const response = await axiosInstance.post('/api/documents/upload', formData, {
+  const response = await axiosInstance.post('documents/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
