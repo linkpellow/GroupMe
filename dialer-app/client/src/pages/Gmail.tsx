@@ -557,7 +557,7 @@ const Gmail: React.FC = () => {
   const fetchLeads = async () => {
     try {
       setLeadsLoading(true);
-      const response = await axiosInstance.('/leads', {
+      const response = await axiosInstance.get('/api/leads', {
         params: {
           getAllResults: true, // Get ALL leads without pagination
         },
@@ -635,7 +635,7 @@ const Gmail: React.FC = () => {
   const checkConnectionStatus = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.('/gmail/status');
+      const response = await axiosInstance.get('/api/gmail/status');
 
       setIsConnected(response.data.connected);
       setConnectedEmail(response.data.email);
@@ -662,7 +662,7 @@ const Gmail: React.FC = () => {
   // Connect Gmail
   const connectGmail = async () => {
     try {
-      const response = await axiosInstance.('/gmail/auth-url');
+      const response = await axiosInstance.get('/api/gmail/auth-url');
 
       // Open the auth URL in a new tab
       window.location.href = response.data.url;
@@ -681,7 +681,7 @@ const Gmail: React.FC = () => {
   // Disconnect Gmail
   const disconnectGmail = async () => {
     try {
-      await axiosInstance.('/gmail/disconnect');
+      await axiosInstance.post('/api/gmail/disconnect');
 
       setIsConnected(false);
       setConnectedEmail(null);
@@ -711,7 +711,7 @@ const Gmail: React.FC = () => {
   // Fetch Gmail labels
   const fetchLabels = async () => {
     try {
-      const response = await axiosInstance.('/gmail/labels');
+      const response = await axiosInstance.get('/api/gmail/labels');
       setLabels(response.data.labels || []);
     } catch (error) {
       console.error('Error fetching labels:', error);
@@ -723,7 +723,7 @@ const Gmail: React.FC = () => {
     try {
       setLoadingMessages(true);
 
-      const response = await axiosInstance.('/gmail/messages', {
+      const response = await axiosInstance.get('/api/gmail/messages', {
         params: {
           labelIds: selectedLabel,
           maxResults: 20,
@@ -967,7 +967,7 @@ const Gmail: React.FC = () => {
       const parsedBody = parseTemplateForLead(bodyTemplate, lead);
 
       // Send the personalized email
-      await axiosInstance.('/gmail/send', {
+      await axiosInstance.post('/api/gmail/send', {
         to: lead.email,
         subject: parsedSubject,
         body: parsedBody,
@@ -1042,7 +1042,7 @@ const Gmail: React.FC = () => {
           else failCount++;
         } else {
           // No lead data, send regular email
-          await axiosInstance.('/gmail/send', {
+          await axiosInstance.post('/api/gmail/send', {
             to: email,
             subject,
             body,
@@ -3051,7 +3051,7 @@ const Gmail: React.FC = () => {
     try {
       setProcessingSingleLead(true);
 
-      const response = await axiosInstance.('/gmail/process-single-marketplace-lead');
+      const response = await axiosInstance.post('/api/gmail/process-single-marketplace-lead');
 
       if (response.data.success) {
         toast({

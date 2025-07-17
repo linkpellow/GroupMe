@@ -223,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, 8000); // 8 second safety timeout
 
       try {
-        const response = await axiosInstance.('/auth/profile', {
+        const response = await axiosInstance.get('/api/auth/profile', {
           signal: controller.signal,
           headers: {
             Authorization: `Bearer ${token}`, // Explicitly set the token
@@ -303,7 +303,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const response = await axiosInstance.('/auth/profile');
+      const response = await axiosInstance.get('/api/auth/profile');
       const userData = {
         id: response.data._id,
         email: response.data.email,
@@ -346,7 +346,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Attempting login with:', { email });
 
-      const response = await axiosInstance.('/auth/login', {
+      const response = await axiosInstance.post('/api/auth/login', {
         email,
         password,
       });
@@ -457,7 +457,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await axiosInstance.('/auth/register', {
+      const response = await axiosInstance.post('/api/auth/register', {
         name,
         email,
         password,
@@ -504,7 +504,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         profilePictureLength: data.profilePicture ? data.profilePicture.length : 0,
       });
 
-      const response = await axiosInstance.('/auth/profile', data);
+      const response = await axiosInstance.put('/api/auth/profile', data);
 
       console.log('Profile update response received:', {
         name: response.data.name,

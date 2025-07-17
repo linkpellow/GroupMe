@@ -1032,10 +1032,10 @@ const Settings: React.FC = () => {
     queryKey: ['dispositions'],
     queryFn: async () => {
       try {
-        const response = await axiosInstance.('/dispositions');
+        const response = await axiosInstance.get('/api/dispositions');
         // If no dispositions found, seed the defaults automatically
         if (response.data.length === 0) {
-          const seedResponse = await axiosInstance.('/dispositions/seed-defaults');
+          const seedResponse = await axiosInstance.post('/api/dispositions/seed-defaults');
           return seedResponse.data.dispositions;
         }
         return response.data;
@@ -1050,7 +1050,7 @@ const Settings: React.FC = () => {
   // Seed default dispositions mutation
   const seedDefaultsMutation = useMutation({
     mutationFn: async () => {
-      const response = await axiosInstance.('/dispositions/seed-defaults');
+      const response = await axiosInstance.post('/api/dispositions/seed-defaults');
       return response.data;
     },
     onSuccess: () => {
@@ -1078,7 +1078,7 @@ const Settings: React.FC = () => {
   // Create new disposition mutation
   const createDispositionMutation = useMutation({
     mutationFn: async (data: NewDisposition) => {
-      const response = await axiosInstance.('/dispositions', data);
+      const response = await axiosInstance.post('/api/dispositions', data);
       return response.data;
     },
     onSuccess: () => {
@@ -1924,7 +1924,7 @@ const Settings: React.FC = () => {
                         colorScheme="blue"
                         onClick={async () => {
                           try {
-                            const response = await axiosInstance.('/auth/debug-profile');
+                            const response = await axiosInstance.get('/api/auth/debug-profile');
                             console.log('Debug profile:', response.data);
                             toast({
                               title: 'Debug Info',
