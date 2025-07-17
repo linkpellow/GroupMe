@@ -1,14 +1,13 @@
 {
-  "name": "crokodial-shared",
+  "name": "shared",
   "version": "1.0.0",
-  "description": "Shared utilities and configurations for Crokodial CRM",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "rimraf dist && tsc",
+    "build": "tsc",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "rimraf": "^5.0.5",
-    "typescript": "^5.3.2"
+    "typescript": "^5.8.3"
   }
-} 
+}
