@@ -1,15 +1,11 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getToken } from '../services/authToken.service';
 
-<<<<<<< HEAD
-// Base URL for local development with correct path
-const baseURL = import.meta.env.VITE_API_BASE || '/api';
-=======
-// Set baseURL so that all requests are automatically prefixed with /api in development & production.
-// Developers should **not** include '/api' in individual request paths.
+// Determine API base URL.
+// • In most environments we default to '/api' (client + server on same origin).
+// • In local dev or special staging setups you can override with VITE_API_BASE.
 const envBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
 const baseURL = envBase || '/api';
->>>>>>> hotfix/login-restore
 
 const axiosInstance = axios.create({
   baseURL,
@@ -155,12 +151,8 @@ axiosInstance.interceptors.response.use(
 
 // Make the instance available globally for debugging and emergency fixes
 if (typeof window !== 'undefined') {
-<<<<<<< HEAD
-  window.axiosInstance = axiosInstance;
-=======
   // Cast to any to avoid TypeScript window augmentation requirements
   (window as any).axiosInstance = axiosInstance;
->>>>>>> hotfix/login-restore
 }
 
 export default axiosInstance;
