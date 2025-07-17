@@ -941,7 +941,7 @@ export default function Leads() {
     queryKey: ['dispositions'],
     queryFn: async () => {
       try {
-        const res = await axiosInstance.get('/api/dispositions');
+        const res = await axiosInstance.('/dispositions');
         // API may return array directly or under .dispositions
         if (Array.isArray(res.data)) return res.data;
         if (Array.isArray(res.data?.dispositions)) return res.data.dispositions;
@@ -1170,7 +1170,7 @@ export default function Leads() {
   const handleAddLead = async () => {
     try {
       // TODO: Replace with modal or form for new lead
-      await axiosInstance.post('/api/leads', { name: 'New Lead' });
+      await axiosInstance.('/leads', { name: 'New Lead' });
       toast({ title: 'Lead added!', status: 'success' });
       refetch();
     } catch (err) {
@@ -2603,7 +2603,7 @@ export default function Leads() {
             <AddButton
               onClick={async () => {
                 try {
-                  const res = await axiosInstance.post('/api/leads', {
+                  const res = await axiosInstance.('/leads', {
                     name: 'Blank Lead',
                     status: 'New',
                   });

@@ -43,7 +43,7 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
     queryKey: ['dispositions'],
     queryFn: async () => {
       try {
-        const response = await axiosInstance.get('/api/dispositions');
+        const response = await axiosInstance.('/dispositions');
         // Ensure we are returning the array of dispositions,
         // and handle cases where the structure might be different or an error occurs.
         if (response.data && Array.isArray(response.data.dispositions)) {
