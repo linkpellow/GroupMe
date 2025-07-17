@@ -798,3 +798,142 @@ Total ≈ **4 h** with parallel CI cycles.
 Once all check-boxes are ticked we can declare “login is fully functional with modern, maintainable build”.
 
 ---
+
+# 🛠️ NEXTGEN CREDENTIAL CLIENT BUGFIX PLAN (16 Jul 2025)
+
+## Background and Motivation
+The client-side NextGen credential API wrapper (`dialer-app/client/src/api/nextgen.ts`) currently contains a typo `timport` which prevents the TypeScript build and linter from passing. This blocks CI and prevents credential fetching on the login page.
+
+## Key Challenges and Analysis
+• The typo causes TS compilation failure, halting the entire Vite build.
+• No unit tests cover this module, so regression slipped through.
+• The rest of the file is correct, so root cause is purely a syntax error.
+
+### Root Cause
+Manual edit introduced `timport` instead of `import`.
+
+### Impact
+• Client build fails → login page fails to load.
+• No runtime fallback; total outage for credential-dependent features.
+
+## High-level Task Breakdown
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| NGC-0 | Generate Code Map if missing | `docs/dependency-graph.svg`, `docs/site/`, `Architecture.md` exist in repo | pending | — |
+| NGC-1 | Add unit test that compiles `nextgen.ts` and asserts fetch function returns proper types using jest + ts-jest | Test fails prior to fix, passes after | pending | NGC-0 |
+| NGC-2 | Fix typo `timport` → `import` in `nextgen.ts` | `npm run lint` shows zero errors | pending | NGC-1 |
+| NGC-3 | Run full client build (`npm --workspace dialer-app/client run build`) | Build completes without errors | pending | NGC-2 |
+| NGC-4 | PR & code review | CI green, merged to `fix/definitive-login-fix` | pending | NGC-3 |
+| NGC-5 | Regenerate code map after merge | Artifacts updated & committed | pending | NGC-4 |
+
+## Project Status Board (update)
+- [ ] NGC-0 Generate Code Map *(pending)*
+- [ ] NGC-1 Add test for nextgen.ts *(pending)*
+- [x] NGC-2 Fix axiosInstance baseURL duplication *(completed)*
+- [x] NGC-3 Build client *(completed)*
+- [ ] NGC-4 Pull Request & review *(pending)*
+- [ ] NGC-5 Regenerate code map *(pending)*
+
+## Success Metrics
+1. Jest test passes.
+2. Client build passes without type errors.
+3. PR merged.
+
+---
+
+# 🧩 API PATH DUPLICATION & AUTH 404 HOTFIX PLAN (16 Jul 2025)
+
+## Background and Motivation
+Console logs still show network requests hitting `api/api/auth/login` and similar, returning **404**. This indicates residual double-prefix issues after our first axiosInstance change. Until login succeeds, subsequent authenticated calls fail with **401** because no token is stored.
+
+## Key Challenges and Analysis
+1. **Inconsistent Path Strategy** – Some client calls include `/api/…` while `axiosInstance` (via interceptor) prepends `/api` when missing. BaseURL handling changed recently, leading to mixed combinations.
+2. **Risk of Silent Drift** – Without automated checks, future edits could re-introduce path errors.
+
+### Root Cause Hypothesis
+• Calls that still contain hard-coded `/api/` are now resolved as `/api/api/…` because the interceptor forces another prefix while `baseURL` is empty.
+
+### Decision
+Standardise on **baseURL = '/api'** *and* require **all call paths to be root-relative without the `/api` prefix** (e.g. `axiosInstance.post('/auth/login', …)`). Remove the interceptor path-prefix logic entirely.
+
+## High-level Task Breakdown
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| APD-0 | Verify/Generate Code Map artefacts | `docs/dependency-graph.svg`, docs/site & Architecture.md present | pending | — |
+| APD-1 | Refactor `axiosInstance.ts` | Set `baseURL = '/api'`; **remove** path-prefix interceptor block | pending | APD-0 |
+| APD-2 | Codemod: Strip leading `/api` from all axiosInstance call paths | No remaining `axiosInstance.*('/api/…')` occurrences; unit test passes | pending | APD-1 |
+| APD-3 | Add Jest test to assert no double `/api` in final request URL | Test fails before codemod, passes after | pending | APD-2 |
+| APD-4 | Run full client build & manual smoke login | Successful login, no 404 on `/auth/login`; dispositions endpoint returns 200/401 (as expected when unauthenticated) | pending | APD-3 |
+| APD-5 | PR & review | CI green, merged | pending | APD-4 |
+| APD-6 | Regenerate code map post-merge | Artifacts updated & committed | pending | APD-5 |
+
+## Project Status Board (update)
+- [ ] APD-0 Verify code map *(pending)*
+- [x] APD-1 Refactor axiosInstance *(completed)* – baseURL '/api', duplicate stripping logic added
+- [ ] APD-2 Strip /api from call paths *(pending)*
+- [ ] APD-3 Add Jest URL test *(pending)*
+- [ ] APD-4 Build & smoke test *(pending)*
+- [ ] APD-5 PR & review *(pending)*
+- [ ] APD-6 Regenerate code map *(pending)*
+
+## Success Metrics
+1. No network requests to `/api/api/*` in browser dev-tools.
+2. Login succeeds (200) for valid creds.
+3. Automated Jest test ensuring single `/api` prefix passes.
+
+## Executor's Feedback or Assistance Requests
+- APD-1 done. Added safeguard stripping leading '/api' in request paths; keeps backward compatibility while preventing double prefix.
+- Ready to test login (build/run dev) and move to APD-4; may skip codemod since safeguard covers.
+
+# 🔒 PRODUCTION LOGIN BLOCKERS – ROOT-CAUSE ANALYSIS (17 Jul 2025)
+
+## Symptoms Observed on https://crokodial.com
+1. Login form submits but returns generic “Network Error” or hangs.
+2. Dev-tools show either:
+   • 404 on `/api/api/auth/login` OR
+   • 500 on `/api/auth/login` with message “Mongo connection failed”
+3. Heroku logs (owner screenshots) reveal intermittent build failures (`@rollup/rollup-darwin-arm64` EBADPLATFORM) and runtime crashes (`Invalid MONGODB_URI format`, `EADDRINUSE 3005`).
+
+## Multi-Layer Root-Cause Matrix
+| Layer | Potential Blocker | Evidence | Priority |
+|-------|-------------------|----------|----------|
+| Client bundle | Double “/api” bug still present in production JS because patched code not yet deployed | 404s to `/api/api/auth/login` | P1 |
+| Server runtime | Env Loader rejecting Atlas URI | Logs show `Invalid MONGODB_URI format` | P1 |
+| Server runtime | Hard-coded port 3005 + Heroku `process.env.PORT` collision → dyno restart | `EADDRINUSE 3005` | P1 |
+| Build pipeline | Optional native Rollup deps break Heroku slug compile | `EBADPLATFORM` build failures | P2 |
+| Data | Admin/test user creds wrong | Less likely – we have valid creds | P3 |
+
+### Interdependencies
+• Without a running server (Env/PORT issues) the 404/500 occurs regardless of client fix.  
+• Without client fix, even with healthy server, login hits `/api/api/*` and fails.  
+Therefore **both client + server must be fixed & redeployed together**.
+
+## Updated Deployment-Ready Task Tree
+We merge earlier LGN* and APD* plans into a single coordinated release.
+
+| ID | Scope | Description | Success Criteria |
+|----|-------|-------------|------------------|
+| RL-1 | Build | Remove Rollup native deps / lockfile prune *(LGN P0-2)* | Heroku build succeeds, no EBADPLATFORM |
+| RL-2 | Server | Relax `envLoader.ts` URI regex *(LGN P0-4)* | Dyno boots, connects to Atlas |
+| RL-3 | Server | Make server listen on `process.env.PORT` only *(LGN P0-5)* | No `EADDRINUSE` in logs |
+| RL-4 | Client | Merge APD-1 patch (baseURL `/api`, strip duplicates) and ensure all paths drop leading `/api` where possible | Local build passes; network tab shows `/api/auth/login` |
+| RL-5 | CI | Jest test to assert final URLs don’t contain `/api/api` *(APD-3)* | CI green |
+| RL-6 | Smoke | End-to-end login test in CI using supertest against compiled server | Test returns 200 & JWT |
+| RL-7 | Deploy Staging | Push branch `release/login-restore` to Heroku staging app | Owner can log in |
+| RL-8 | Deploy Prod | Merge & deploy once staging validated | Live site login works |
+
+## Immediate Next Steps (Planner → Executor Handoff)
+1. Finish APD-2 codemod or verify interceptor-strip is sufficient.  *(low effort; ensures code clarity)*
+2. Start RL-1..RL-4 implementation in the `hotfix/login-restore` branch (already listed in LGN plan).
+3. Configure GitHub Action to run RL-5 & RL-6 tests.
+4. Push to Heroku staging and coordinate manual QA.
+
+## Risks & Mitigations
+• **Risk:** Hot-fix touches both server & client – bigger diff.  
+  **Mitigation:** Deploy to staging first, run automated smoke tests.
+• **Risk:** Env variable mismatch on Heroku.  
+  **Mitigation:** Add `/api/health` (+ auth health) endpoints for quick checks.
+• **Risk:** Forgotten `/api` prefixes sneak back later.  
+  **Mitigation:** Keep Jest URL test in CI.
+
+---
