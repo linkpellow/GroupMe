@@ -105,7 +105,7 @@ const CsvUpload: React.FC = () => {
       });
 
       // Use the vendor-aware import endpoint
-      const response = await axiosInstance.post('/api/csv-upload', formData, {
+      const response = await axiosInstance.post('csv-upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -200,7 +200,7 @@ const CsvUpload: React.FC = () => {
     setReconciliationResult(null);
 
     try {
-      const response = await axiosInstance.get('/api/leads/reconcile-dispositions');
+      const response = await axiosInstance.get('leads/reconcile-dispositions');
       console.log('Reconciliation response:', response.data);
 
       setReconciliationResult(response.data);
@@ -235,7 +235,7 @@ const CsvUpload: React.FC = () => {
     setDuplicateFixResult(null);
 
     try {
-      const response = await axiosInstance.get('/api/leads/fix-csv-duplicates');
+      const response = await axiosInstance.get('leads/fix-csv-duplicates');
       console.log('Duplicate fix response:', response.data);
 
       setDuplicateFixResult(response.data);

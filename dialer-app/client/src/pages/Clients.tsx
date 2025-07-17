@@ -207,7 +207,7 @@ const Clients: React.FC = () => {
       setError(null);
       try {
         // Query leads with SOLD disposition
-        const response = await axiosInstance.get('/api/leads', {
+        const response = await axiosInstance.get('leads', {
           params: {
             dispositions: 'SOLD',
             getAllResults: 'true', // Get all results without pagination
@@ -482,7 +482,7 @@ const Clients: React.FC = () => {
       formData.append('file', file);
       formData.append('clientId', selectedClient._id);
 
-      const response = await axiosInstance.post('/api/documents/upload', formData, {
+      const response = await axiosInstance.post('documents/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
