@@ -1,8 +1,11 @@
 import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getToken } from '../services/authToken.service';
 
-// Base URL for local development with correct path
-const baseURL = import.meta.env.VITE_API_BASE || '/api';
+// Determine API base URL.
+// • Default to '/api' when client & server share origin.
+// • Allow override via VITE_API_BASE for staging or dev.
+const envBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
+const baseURL = envBase || '/api';
 
 const axiosInstance = axios.create({
   baseURL,
@@ -50,17 +53,9 @@ axiosInstance.interceptors.request.use(
       console.warn('No auth token found in authToken service');
     }
 
-    // Make sure all API requests start with /api
-    if (config.url) {
-      // Strip any leading slash for consistency
-      let url = config.url.startsWith('/') ? config.url.substring(1) : config.url;
-
-      // Add /api/ prefix if not already present and not a full URL
-      if (config.url && !config.url.startsWith('/api') && !config.url.includes('://')) {
-        config.url = `/api${config.url.startsWith('/') ? '' : '/'}${config.url}`;
-      }
-
-      // Log the normalized URL
+    // Prevent accidental double '/api' when callers *do* include it.
+    if (config.url && config.url.startsWith('/api/')) {
+      config.url = config.url.replace(/^\/api/, '');
       console.log(`Normalized URL: ${config.url}`);
     }
 
@@ -153,7 +148,8 @@ axiosInstance.interceptors.response.use(
 
 // Make the instance available globally for debugging and emergency fixes
 if (typeof window !== 'undefined') {
-  window.axiosInstance = axiosInstance;
+  // Cast to any to avoid TypeScript window augmentation requirements
+  (window as any).axiosInstance = axiosInstance;
 }
 
 export default axiosInstance;

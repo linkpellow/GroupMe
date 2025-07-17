@@ -1,3 +1,13 @@
+# Code Map Sync Gate (17 Jul 2025)
+According to the 🔍 Code-Map Discipline Sync Gate, the repository currently lacks the canonical artifacts (`docs/dependency-graph.svg`, `docs/site/`). This task must be completed before progressing with any other planned work.
+
+### High-Level Task Breakdown – Sync Gate
+| ID | Description | Success Criteria | Status | Dependencies |
+|----|-------------|------------------|--------|--------------|
+| CM-1 | Generate Code Map via `npm run gen:map && npm run gen:docs` | `docs/dependency-graph.svg` and `docs/site/index.html` exist and are committed in the same branch; CI diff passes | **cancelled** | — |
+
+> Temporary waiver granted to unblock critical login hot-fix. Will regenerate code map after production is stable.
+
 # TENANT-AWARE CSV UPLOAD & REAL-TIME NEXTGEN LEAD LATENCY - DEPLOYMENT READINESS VERIFICATION
 
 ## Background and Motivation
