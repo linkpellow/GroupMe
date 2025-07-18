@@ -139,3 +139,43 @@ Open questions
 • Should we animate arrow appearance? (future polish)
 
 --- 
+
+## Diagnostic Workflow if Arrow Still Invisible (2025-07-18)
+
+1. Confirm DOM presence
+   – DevTools Elements → search for `Dialing`.
+   – If absent → jump to state/logic section.
+
+2. Layout & stacking inspection
+   – Select arrow node and inspect computed `display`, `opacity`, `z-index`.
+   – Compare with `.mac-buttons` and other siblings.
+
+3. Clipping check
+   – Toggle `overflow:hidden` on ancestors (`.lead-card`, `.grid-item`, `.mac-buttons`).
+   – If arrow appears → record offending rule.
+
+4. Force-visible experiment (no code change)
+   – In Styles pane set:
+     ```css
+     position:fixed; left:0; z-index:999999; color:red; font-size:32px;
+     ```
+   – Confirms whether arrow was simply occluded.
+
+5. React state verification
+   – React DevTools: ensure `currentDialLeadId === lead._id` for active card.
+   – Console log trace inside `renderCardContent`.
+
+6. Module integrity
+   – Console: `require('react-icons/fi').FiArrowRight` returns a function.
+
+7. Cross-device / resize test
+   – Narrow viewport, toggle elements, ensure no responsive rule hides arrow.
+
+Record findings before coding any new fix. 
+
+## Observation – Staging Release v53
+Heroku slug v53 deployed (18 Jul, approx 18:26 UTC). Arrow **still invisible** in staging after:
+  • Arrow moved to X = -24px, z-index 2000, color #EFBF04.
+  • No change in visibility.
+
+Next action: execute diagnostic workflow steps 1–3 in live browser session and capture findings here. 

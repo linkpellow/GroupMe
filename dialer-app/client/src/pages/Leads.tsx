@@ -1976,8 +1976,11 @@ export default function Leads() {
   };
 
   const renderCardContent = (lead: Lead) => {
-    console.log('Lead Source for ' + lead.name + ':', lead.source); // DEBUG
+    console.log('[DEBUG] Lead Source for ' + lead.name + ':', lead.source);
     const isActiveDial = lead._id === currentDialLeadId;
+    if (isActiveDial) {
+      console.log('ARROW-RENDER', lead._id);
+    }
     const c = counts[normalizePhone(lead.phone)] ?? 0;
     return (
       <>
@@ -1988,7 +1991,7 @@ export default function Leads() {
               left: '-24px',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#4A5568',
+              color: '#EFBF04',
               zIndex: 2000,
               pointerEvents: 'none',
             }}
