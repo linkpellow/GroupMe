@@ -1,0 +1,80 @@
+name: Deploy and Verify
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      HEROKU_EMAIL:   ${{ secrets.HEROKU_EMAIL }}
+      HEROKU_APP_STAGING:  "crokodial-api-staging"
+      HEROKU_APP_PROD:     "crokodial"
+      CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Heroku CLI
+        uses: akhileshns/heroku-deploy@v3.13.15
+        with:
+          heroku_api_key: ${{ env.HEROKU_API_KEY }}
+          heroku_app_name: ${{ env.HEROKU_APP_STAGING }}
+          heroku_email: ${{ env.HEROKU_EMAIL }}
+          justlogin: true
+
+      - name: Push to staging
+        run: |
+          git push https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_STAGING}.git HEAD:main --force
+
+      - name: Smoke-test staging /health
+        run: |
+          for i in {1..20}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://${HEROKU_APP_STAGING}.herokuapp.com/health || true)
+            if [ "$STATUS" = "200" ]; then echo "Staging healthy"; exit 0; fi
+            sleep 10
+          done
+          echo "Staging health check failed"; exit 1
+
+      - name: Promote slug to production
+        run: |
+          heroku pipelines:promote -a ${HEROKU_APP_STAGING} --to ${HEROKU_APP_PROD}
+
+      - name: Capture bundle hash from Heroku dyno
+        id: heroku_hash
+        run: |
+          HASH=$(curl -s https://${HEROKU_APP_PROD}.herokuapp.com/index.html | grep -o "assets/index-[a-z0-9]*\.js" | head -n1)
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Capture bundle hash from CDN
+        id: cdn_hash
+        run: |
+          HASH=$(curl -s "https://crokodial.com/index.html?ts=$(date +%s)" | grep -o "assets/index-[a-z0-9]*\.js" | head -n1)
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Compare hashes
+        run: |
+          echo "Heroku hash: ${{ steps.heroku_hash.outputs.hash }}"
+          echo "CDN   hash: ${{ steps.cdn_hash.outputs.hash }}"
+          if [ "${{ steps.heroku_hash.outputs.hash }}" != "${{ steps.cdn_hash.outputs.hash }}" ]; then
+            echo "Hash mismatch – purging Cloudflare cache";
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+                 -H "Authorization: Bearer ${CF_API_TOKEN}" \
+                 -H "Content-Type: application/json" \
+                 --data '{"purge_everything":true}';
+            sleep 30
+          fi
+
+      - name: Final hash check after purge
+        run: |
+          NEW_HASH=$(curl -s "https://crokodial.com/index.html?ts=$(date +%s)" | grep -o "assets/index-[a-z0-9]*\.js" | head -n1)
+          echo "New CDN hash: $NEW_HASH"
+          if [ "${{ steps.heroku_hash.outputs.hash }}" != "$NEW_HASH" ]; then
+            echo "Hashes still differ after purge – failing deploy"; exit 1;
+          fi
+          echo "Hashes match – deploy successful"; 
