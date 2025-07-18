@@ -26,7 +26,12 @@ import '../config/envLoader';
       const bulk = LeadModel.collection.initializeUnorderedBulkOp();
 
       for (const lead of leads) {
-        const sourceHash = (lead as any).vendorData?.data_source_hash || (lead as any).notesMetadata?.source_hash;
+        const sourceHash =
+          (lead as any).vendorData?.data_source_hash ||
+          (lead as any).vendorData?.source_hash ||
+          (lead as any).notesMetadata?.source_hash ||
+          (lead as any).notesMetadata?.originalData?.data_source_hash ||
+          (lead as any).notesMetadata?.originalData?.source_hash;
         if (!sourceHash) continue;
         bulk.find({ _id: lead._id }).updateOne({ $set: { sourceCode: sourceHash, updatedAt: new Date() } });
         updated++;
