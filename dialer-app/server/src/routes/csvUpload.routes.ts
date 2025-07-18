@@ -57,6 +57,19 @@ router.post('/', auth, upload.single('file'), async (req: MulterRequest, res: Re
     // Parse with vendor-aware helper
     const parseResult = await parseVendorCSV(fileBuffer, { skipEmptyLines: true, maxRows: 15000 });
 
+    // Normalise leadId & createdAt BEFORE further processing
+    for (const lead of parseResult.leads as any[]) {
+      if (lead.leadId) {
+        lead.leadId = String(lead.leadId).trim().toLowerCase();
+      }
+      if (lead.createdAt && typeof lead.createdAt === 'string') {
+        const parsed = new Date(lead.createdAt);
+        if (!isNaN(parsed.getTime())) {
+          lead.createdAt = parsed;
+        }
+      }
+    }
+
     // Deduplicate NextGen rows (ad + data) by leadId and sum price
     if (parseResult.vendor === 'NEXTGEN') {
       const dedupMap = new Map<string, any>();

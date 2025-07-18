@@ -18,6 +18,7 @@ export interface ILeadInput {
   lastName?: string;
   phone?: string;
   email?: string;
+  leadId?: string;
   status?: 'New' | 'Contacted' | 'Follow-up' | 'Won' | 'Lost';
   notes?: string;
   notesMetadata?: any;
@@ -122,6 +123,7 @@ const leadSchema = new Schema<ILead>(
       match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
       default: '',
     },
+    leadId: { type: String, index: true, unique: true, sparse: true },
     phone: { type: String, default: '' },
     tenantId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     status: {
@@ -209,6 +211,8 @@ leadSchema.index({ tenantId: 1, createdAt: -1 });
 // Compound indexes for fast upsert lookups
 leadSchema.index({ tenantId: 1, phone: 1 });
 leadSchema.index({ tenantId: 1, email: 1 });
+// Ensure uniqueness on leadId across tenants
+leadSchema.index({ tenantId: 1, leadId: 1 }, { unique: true, sparse: true });
 // Add state and zipcode setters
 leadSchema.path('state').set(function (value: string) {
   console.log('Setting state:', value);
@@ -260,14 +264,15 @@ leadSchema.statics.upsertLead = async function(payload) {
       throw new Error('tenantId is required for lead upsert');
     }
 
-    if (!payload.phone && !payload.email) {
-      throw new Error('Either phone or email is required for lead upsert');
+    if (!payload.phone && !payload.email && !payload.leadId) {
+      throw new Error('Either phone, email, or leadId is required for lead upsert');
     }
 
     // Build lookup query – must include tenantId for strict multi-tenancy
     const query: { tenantId: mongoose.Types.ObjectId; phone?: string; email?: string } = {
       tenantId: payload.tenantId,
     } as any;
+    if (payload.leadId) (query as any).leadId = payload.leadId;
     if (payload.phone) query.phone = payload.phone;
     if (!payload.phone && payload.email) query.email = payload.email;
 
@@ -277,7 +282,11 @@ leadSchema.statics.upsertLead = async function(payload) {
 
     if (isNew) {
       // Create new lead
-      const lead = await this.create({ ...payload, createdAt: new Date(), updatedAt: new Date() });
+      const lead = await this.create({
+        ...payload,
+        createdAt: payload.createdAt ?? new Date(),
+        updatedAt: new Date(),
+      });
       console.log(`Lead created: ${lead._id}, name: ${lead.name}, phone: ${lead.phone}`);
       return { lead, isNew: true };
     }
