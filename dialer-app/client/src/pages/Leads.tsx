@@ -357,6 +357,7 @@ const StyledLeadCard = styled.div<{
   $isSelected?: boolean;
   $isDeleteMode?: boolean;
   $isClicked?: boolean;
+  $isDialing?: boolean;
 }>`
   padding: 8px 0 0 0; /* no extra padding needed */
   margin: 0;
@@ -374,6 +375,7 @@ const StyledLeadCard = styled.div<{
     if (props.$isDragging) return 'scale(0.98)';
     if (props.$moveUp) return 'translateY(-100%)';
     if (props.$moveDown) return 'translateY(100%)';
+    if (props.$isDialing) return 'translateX(calc(-1 * var(--card-gutter, 60px)))';
     if (props.$isClicked) return 'translateY(-2px)';
     return 'none';
   }};
@@ -404,7 +406,8 @@ const StyledLeadCard = styled.div<{
   margin-bottom: 10px; /* space between cards */
 
   &:hover:not(:active):not(:has(select:focus)):not(:has(select:hover)):not(:has(select:active)) {
-    transform: scale(1.01);
+    transform: ${(props) =>
+      props.$isDialing ? 'translateX(calc(-1 * var(--card-gutter, 60px))) scale(1.01)' : 'scale(1.01)'};
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
     z-index: 500;
     transform-origin: center center;
@@ -1957,6 +1960,7 @@ export default function Leads() {
   };
 
   const handleDial = (lead: Lead) => {
+    console.log('HANDLE-DIAL', lead._id);
     if (!lead.phone) {
       toast({
         title: 'No phone number',
@@ -2735,6 +2739,7 @@ export default function Leads() {
                           $isSelected={selectedLeads.includes(lead._id)}
                           $isDeleteMode={bulkEditMode === 'delete'}
                           $isClicked={false}
+                          $isDialing={activeLeadId === lead._id && currentDialLeadId === lead._id}
                           $backgroundColor={getColorForDisposition(lead.disposition || '')}
                           onClick={() => setActiveLeadId(lead._id)}
                           className="lead-card"
