@@ -1,0 +1,13 @@
+name: CI Guard
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate-remotes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate git remotes
+        run: bash scripts/ci/validate-remotes.sh 

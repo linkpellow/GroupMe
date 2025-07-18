@@ -77,4 +77,14 @@ jobs:
           if [ "${{ steps.heroku_hash.outputs.hash }}" != "$NEW_HASH" ]; then
             echo "Hashes still differ after purge – failing deploy"; exit 1;
           fi
-          echo "Hashes match – deploy successful"; 
+          echo "Hashes match – deploy successful";
+
+      - name: Check slug size
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq >/dev/null
+          SIZE=$(heroku slugs:info --app ${HEROKU_APP_PROD} --json | jq -r '.size')
+          MB=$(expr $SIZE / 1048576)
+          echo "Slug size: ${MB} MB"
+          if [ $MB -gt 350 ]; then
+            echo "Slug exceeds 350 MB soft limit – fail build"; exit 1;
+          fi 
