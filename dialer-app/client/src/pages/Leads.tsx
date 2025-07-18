@@ -2095,6 +2095,19 @@ export default function Leads() {
               })()}
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {lead.name}
+                { (lead.sourceCode || (lead as any).source || (lead as any).pipelineSource) && (
+                   <span
+                     style={{
+                       color: '#666',
+                       fontSize: '0.7rem',
+                       marginLeft: '6px',
+                       fontStyle: 'italic',
+                     }}
+                     title="Source Code"
+                   >
+                    {lead.sourceCode || (lead as any).source || (lead as any).pipelineSource}
+                   </span>
+                 )}
               </span>
             </div>
           </div>
@@ -2282,72 +2295,70 @@ export default function Leads() {
               >
                 <FaPhoneSlash /> Hang Up
               </HangUpButton>
-              {/* Created At – top-right position */}
-              {lead.createdAt && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '10px',
-                    color: '#000',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                  }}
-                  title="Created At"
-                >
-                  {format(new Date(lead.createdAt), "EEE, MMMM d, yyyy 'at' hh:mm:ssa")}
-                </span>
-              )}
-            </div>
-
-            {/* Right side items */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '10px',
-                right: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '15px',
-              }}
-            >
-              <LocalTime
-                zipCode={lead.zipcode}
+              {/* Meta column: Created date above utility row */}
+              <div
                 style={{
-                  position: 'static',
-                  marginRight: '10px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                  border: '1px solid rgba(0, 0, 0, 0.2)',
-                  padding: '4px 10px',
-                  borderRadius: '4px',
-                  minWidth: '110px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  position: 'absolute',
+                  bottom: '10px',
+                  right: '10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  gap: '2px',
                 }}
-              />
-              <IconButton
-                aria-label="Add to Textdrip Campaign"
-                icon={<TextdripIcon boxSize="28px" />}
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleAddToCampaign(lead);
-                }}
-                title="Add to Textdrip Campaign"
-              />
-              <LeadActionsMenu
-                lead={lead}
-                onEdit={handleEditLead}
-                onSendToSpreadsheet={handleSendToSpreadsheet}
-                onBookAppointment={handleBookAppointment}
-                onAddToReminders={handleAddToReminders}
-                onPopoutNotes={handlePopoutNotes}
-                onAddToCampaign={handleAddToCampaign}
-                onQuickDrip={handleQuickDrip}
-                onReferralPartner={handleReferralPartner}
-                style={{ position: 'static' }}
-              />
+              >
+                {lead.createdAt && (
+                  <span
+                    style={{
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                      color: '#000',
+                    }}
+                    title="Created At"
+                  >
+                    {`Created: ${format(new Date(lead.createdAt), "EEE, MMM d yyyy @ h:mma")}`}
+                  </span>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <LocalTime
+                    zipCode={lead.zipcode}
+                    style={{
+                      position: 'static',
+                      marginRight: '10px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      border: '1px solid rgba(0, 0, 0, 0.2)',
+                      padding: '4px 10px',
+                      borderRadius: '4px',
+                      minWidth: '110px',
+                      fontWeight: 'bold',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                    }}
+                  />
+                  <IconButton
+                    aria-label="Add to Textdrip Campaign"
+                    icon={<TextdripIcon boxSize="28px" />}
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCampaign(lead);
+                    }}
+                    title="Add to Textdrip Campaign"
+                  />
+                  <LeadActionsMenu
+                    lead={lead}
+                    onEdit={handleEditLead}
+                    onSendToSpreadsheet={handleSendToSpreadsheet}
+                    onBookAppointment={handleBookAppointment}
+                    onAddToReminders={handleAddToReminders}
+                    onAddToCampaign={handleAddToCampaign}
+                    onQuickDrip={handleQuickDrip}
+                    onReferralPartner={handleReferralPartner}
+                    style={{ position: 'static' }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
