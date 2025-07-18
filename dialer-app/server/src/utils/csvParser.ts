@@ -133,6 +133,7 @@ export interface CanonicalLead {
   name?: string; // Will be computed from firstName + lastName
   phone?: string;
   email?: string;
+  createdAt?: string;
 
   // Address
   street1?: string;
