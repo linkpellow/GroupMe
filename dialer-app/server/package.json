@@ -30,7 +30,8 @@
     "logs": "tail -f logs/*.log",
     "health": "curl -s http://localhost:3001/api/health | jq .",
     "purge:banners": "ts-node -T ./scripts/fixes/purgeBannerLines.ts",
-    "migrate:counts": "ts-node -r module-alias/register src/scripts/migration/normalizeDialCounts.ts"
+    "migrate:counts": "ts-node -r module-alias/register src/scripts/migration/normalizeDialCounts.ts",
+    "migrate:sourceCode": "node dist/server/src/migrations/20250718-backfill-sourceCode.js"
   },
   "keywords": [
     "crm",

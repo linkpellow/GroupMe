@@ -2068,7 +2068,16 @@ export default function Leads() {
                 {lead.name}
               </span>
               {lead.sourceCode && (
-                <span style={{ fontSize: '0.7rem', color: '#666' }} title="Source Code">
+                <span
+                  style={{
+                    color: '#666',
+                    fontSize: '0.7rem',
+                    marginLeft: '8px',
+                    marginTop: '2px',
+                    display: 'block',
+                  }}
+                  title="Source Code"
+                >
                   {lead.sourceCode}
                 </span>
               )}
@@ -2261,6 +2270,20 @@ export default function Leads() {
               {lead.createdAt && (
                 <span style={{ color: '#000', fontSize: '0.75rem', marginLeft: '8px' }} title="Created At">
                   {new Date(lead.createdAt).toLocaleDateString()}
+                </span>
+              )}
+              {lead.sourceCode && (
+                <span
+                  style={{
+                    color: '#666',
+                    fontSize: '0.7rem',
+                    marginLeft: '8px',
+                    marginTop: '2px',
+                    display: 'block',
+                  }}
+                  title="Source Code"
+                >
+                  {lead.sourceCode}
                 </span>
               )}
             </div>
