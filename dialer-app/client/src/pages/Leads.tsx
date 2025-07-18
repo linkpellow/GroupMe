@@ -358,7 +358,7 @@ const StyledLeadCard = styled.div<{
   $isDeleteMode?: boolean;
   $isClicked?: boolean;
 }>`
-  padding: 8px 0 0 16px; /* leave space for dial arrow */
+  padding: 8px 0 0 0; /* no extra padding needed */
   margin: 0;
   background: ${(props) => props.$backgroundColor};
   border-radius: 0;
@@ -1985,11 +1985,11 @@ export default function Leads() {
           <FiArrowRight
             style={{
               position: 'absolute',
-              left: '4px',
+              left: '-24px',
               top: '50%',
               transform: 'translateY(-50%)',
               color: '#4A5568',
-              zIndex: 10,
+              zIndex: 2000,
               pointerEvents: 'none',
             }}
             size={16}

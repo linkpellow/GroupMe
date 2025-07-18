@@ -89,3 +89,53 @@ Objective: Show a small arrow icon to the left of the lead card that is actively
 • Tests in `client/src/__tests__/LeadCard.test.tsx`.
 
 No linter / TS errors: run `npm run build` client & server before commit. 
+
+# Arrow Visibility – Plan of Action (2025-07-18)
+
+Root-cause recap: the arrow is hidden under the mac-buttons strip at the top-left of each lead card.
+
+Decision: place the arrow flush against the extreme left edge of the viewport, outside any card chrome.
+
+Steps
+1. LeadCard CSS
+   • Remove the 16 px left padding we added earlier.
+   • Keep card `position:relative`.
+
+2. Render the arrow as a sibling **outside** the LeadCard grid container so it can extend leftwards.
+   • Position: `absolute`.
+   • Left: `-24px` (enough to clear card border).
+   • z-index: `2000` (above everything).
+   • Pointer-events: `none`.
+
+3. Ensure LeadCard still has enough horizontal room by adding `margin-left:24px` to the card wrapper **only when** arrow is shown to keep visual alignment.
+
+4. Update conditional render:
+   ```tsx
+   {isActiveDial && (
+     <FiArrowRight className="dial-arrow" />
+   )}
+   ```
+
+5. Add global CSS (Leads.tsx styled-components or a CSS module):
+   ```css
+   .dial-arrow {
+     position:absolute;
+     left:-24px;
+     top:50%;
+     transform:translateY(-50%);
+     color:#4A5568;
+     font-size:18px; /* react-icons size prop alternative */
+     z-index:2000;
+     pointer-events:none;
+   }
+   ```
+
+6. Local test: `npm run dev`, dial a lead, verify arrow sits at left page edge, never overlaps card elements.
+
+7. Commit → build → deploy.
+
+Open questions
+• Mobile view: does negative left overflow cause horizontal scroll? If so, consider `overflow-x:hidden` on body.
+• Should we animate arrow appearance? (future polish)
+
+--- 
