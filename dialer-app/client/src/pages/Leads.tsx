@@ -1985,12 +1985,14 @@ export default function Leads() {
           <FiArrowRight
             style={{
               position: 'absolute',
-              left: '-14px',
+              left: '4px',
               top: '50%',
               transform: 'translateY(-50%)',
               color: '#4A5568',
+              zIndex: 10,
+              pointerEvents: 'none',
             }}
-            size={14}
+            size={16}
             title="Dialing"
           />
         )}
