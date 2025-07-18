@@ -19,7 +19,7 @@ import {
   Spinner,
 } from '@chakra-ui/react';
 import { FaTimes, FaPhone, FaPhoneSlash, FaBirthdayCake, FaThumbtack } from 'react-icons/fa';
-import { FiChevronLeft, FiChevronRight, FiDownload } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiDownload, FiArrowRight } from 'react-icons/fi';
 import styled, { createGlobalStyle, keyframes } from 'styled-components';
 import { ChevronDownIcon } from '@chakra-ui/icons';
 import TripleChevronIcon from '../components/icons/TripleChevronIcon';
@@ -358,7 +358,7 @@ const StyledLeadCard = styled.div<{
   $isDeleteMode?: boolean;
   $isClicked?: boolean;
 }>`
-  padding: 8px 0 0 0;
+  padding: 8px 0 0 16px; /* leave space for dial arrow */
   margin: 0;
   background: ${(props) => props.$backgroundColor};
   border-radius: 0;
@@ -999,6 +999,7 @@ export default function Leads() {
   type IframeStatus = 'loading' | 'loaded' | 'blocked';
   const [iframeStatus, setIframeStatus] = useState<IframeStatus>('loading');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [currentDialLeadId, setCurrentDialLeadId] = useState<string | null>(null);
 
   const leadsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1971,13 +1972,28 @@ export default function Leads() {
     // Increment lifetime dial counter (per-phone)
     incrementCount(lead.phone || ''); // Use original phone for API
     dialPhone(lead.phone || '');
+    setCurrentDialLeadId(lead._id);
   };
 
   const renderCardContent = (lead: Lead) => {
     console.log('Lead Source for ' + lead.name + ':', lead.source); // DEBUG
+    const isActiveDial = lead._id === currentDialLeadId;
     const c = counts[normalizePhone(lead.phone)] ?? 0;
     return (
       <>
+        {isActiveDial && (
+          <FiArrowRight
+            style={{
+              position: 'absolute',
+              left: '-14px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#4A5568',
+            }}
+            size={14}
+            title="Dialing"
+          />
+        )}
         {/* macOS-style buttons */}
         <div className="mac-buttons">
           <span
@@ -2262,6 +2278,7 @@ export default function Leads() {
                     status: 'info',
                     duration: 2000,
                   });
+                  setCurrentDialLeadId(null);
                 }}
               >
                 <FaPhoneSlash /> Hang Up
