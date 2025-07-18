@@ -57,6 +57,21 @@ router.post('/', auth, upload.single('file'), async (req: MulterRequest, res: Re
     // Parse with vendor-aware helper
     const parseResult = await parseVendorCSV(fileBuffer, { skipEmptyLines: true, maxRows: 15000 });
 
+    // Deduplicate NextGen rows (ad + data) by leadId and sum price
+    if (parseResult.vendor === 'NEXTGEN') {
+      const dedupMap = new Map<string, any>();
+      for (const lead of parseResult.leads) {
+        const key = (lead as any).leadId || lead.phone || lead.email || Math.random().toString();
+        if (dedupMap.has(key)) {
+          const existing = dedupMap.get(key);
+          existing.price = (existing.price || 0) + (lead as any).price;
+        } else {
+          dedupMap.set(key, lead);
+        }
+      }
+      parseResult.leads = Array.from(dedupMap.values());
+    }
+
     // Cleanup temp file ASAP
     fs.unlinkSync(req.file.path);
 
@@ -72,9 +87,16 @@ router.post('/', auth, upload.single('file'), async (req: MulterRequest, res: Re
 
     for (const lead of parseResult.leads) {
       try {
-        // Upsert through model helper to centralise validation
+        // Coerce unknown status strings to 'New' to satisfy enum validation
+        let status = (lead as any).status;
+        const allowedStatuses = ['New', 'Contacted', 'Follow-up', 'Won', 'Lost'];
+        if (!allowedStatuses.includes(status)) {
+          status = 'New';
+        }
+
         const { isNew } = await (LeadModel as any).upsertLead({
           ...lead,
+          status,
           tenantId,
           assignedTo,
           source: lead.source || getVendorDisplayName(parseResult.vendor) || 'CSV Import',

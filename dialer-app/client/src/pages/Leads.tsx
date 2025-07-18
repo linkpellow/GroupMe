@@ -229,6 +229,7 @@ interface Lead {
   callDuration: string;
   sourceHash: string;
   subIdHash: string;
+  sourceCode?: string;
   vendor_id?: string;
   nextgenId?: string;
 }
@@ -2066,6 +2067,11 @@ export default function Leads() {
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {lead.name}
               </span>
+              {lead.sourceCode && (
+                <span style={{ fontSize: '0.7rem', color: '#666' }} title="Source Code">
+                  {lead.sourceCode}
+                </span>
+              )}
             </div>
           </div>
           <div className="grid-item">
@@ -2251,6 +2257,12 @@ export default function Leads() {
               >
                 <FaPhoneSlash /> Hang Up
               </HangUpButton>
+              {/* Created At display */}
+              {lead.createdAt && (
+                <span style={{ color: '#000', fontSize: '0.75rem', marginLeft: '8px' }} title="Created At">
+                  {new Date(lead.createdAt).toLocaleDateString()}
+                </span>
+              )}
             </div>
 
             {/* Right side items */}

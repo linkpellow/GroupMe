@@ -220,7 +220,6 @@ const AuthenticatedRoute: React.FC<{ children: React.ReactNode }> = ({ children 
   );
 };
 
-// Force new build 2025-07-18
 function App() {
   const [passcodeValidated, setPasscodeValidated] = useState(false);
 

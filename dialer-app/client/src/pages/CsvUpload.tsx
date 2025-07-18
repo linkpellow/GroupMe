@@ -105,11 +105,7 @@ const CsvUpload: React.FC = () => {
       });
 
       // Use the vendor-aware import endpoint
-<<<<<<< HEAD
-      const response = await axiosInstance.post('/api/csv-upload', formData, {
-=======
       const response = await axiosInstance.post('csv-upload', formData, {
->>>>>>> hotfix/login-restore
         headers: {
           'Content-Type': 'multipart/form-data',
         },

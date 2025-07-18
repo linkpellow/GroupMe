@@ -127,15 +127,9 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
         ? token 
         : `Bearer ${token}`;
       
-<<<<<<< HEAD
-      console.log('🔄 GroupMeContext: Making API call to /api/groupme/config');
-      
-      const response = await axiosInstance.get("/api/groupme/config");
-=======
       console.log('🔄 GroupMeContext: Making API call to /groupme/config');
       
       const response = await axiosInstance.get("/groupme/config");
->>>>>>> hotfix/login-restore
       console.log('🔄 GroupMeContext: Config API response:', response.data);
       
       if (response.data && response.data.accessToken) {
@@ -211,13 +205,8 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
     
     setIsLoading(true);
     try {
-<<<<<<< HEAD
-      console.log("🔄 GroupMeContext: Making API call to /api/groupme/groups");
-      const response = await axiosInstance.get("/api/groupme/groups");
-=======
       console.log("🔄 GroupMeContext: Making API call to /groupme/groups");
       const response = await axiosInstance.get("/groupme/groups");
->>>>>>> hotfix/login-restore
       console.log("✅ GroupMeContext: Groups API response:", response.data);
       console.log("✅ GroupMeContext: Response status:", response.status);
       console.log("✅ GroupMeContext: Response headers:", response.headers);

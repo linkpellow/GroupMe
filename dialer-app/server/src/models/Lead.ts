@@ -49,7 +49,8 @@ export interface ILeadInput {
   vendorName?: string;
   accountName?: string;
   bidType?: string;
-  price?: string;
+  price?: number;
+  sourceCode?: string;
   // Call tracking
   callLogId?: string;
   callDuration?: string;
@@ -89,6 +90,8 @@ export interface ILeadModel extends mongoose.Model<ILead> {
     notes?: string;
     source?: string;
     tenantId?: mongoose.Types.ObjectId;
+    price?: number;
+    sourceCode?: string;
     [key: string]: any;
   }): Promise<{
     lead: ILead;
@@ -165,7 +168,8 @@ const leadSchema = new Schema<ILead>(
     vendorName: { type: String },
     accountName: { type: String },
     bidType: { type: String },
-    price: { type: String },
+    price: { type: Number, default: 0 },
+    sourceCode: { type: String },
     // Call tracking
     callLogId: { type: String },
     callDuration: { type: String },

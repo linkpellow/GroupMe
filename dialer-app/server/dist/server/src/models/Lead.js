@@ -105,7 +105,8 @@ const leadSchema = new mongoose_1.Schema({
     vendorName: { type: String },
     accountName: { type: String },
     bidType: { type: String },
-    price: { type: String },
+    price: { type: Number, default: 0 },
+    sourceCode: { type: String },
     // Call tracking
     callLogId: { type: String },
     callDuration: { type: String },

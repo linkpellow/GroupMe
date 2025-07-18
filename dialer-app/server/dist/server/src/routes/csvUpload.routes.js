@@ -53,6 +53,21 @@ router.post('/', auth_1.auth, upload.single('file'), async (req, res) => {
         const fileBuffer = fs_1.default.readFileSync(req.file.path);
         // Parse with vendor-aware helper
         const parseResult = await (0, csvParser_1.parseVendorCSV)(fileBuffer, { skipEmptyLines: true, maxRows: 15000 });
+        // Deduplicate NextGen rows (ad + data) by leadId and sum price
+        if (parseResult.vendor === 'NEXTGEN') {
+            const dedupMap = new Map();
+            for (const lead of parseResult.leads) {
+                const key = lead.leadId || lead.phone || lead.email || Math.random().toString();
+                if (dedupMap.has(key)) {
+                    const existing = dedupMap.get(key);
+                    existing.price = (existing.price || 0) + lead.price;
+                }
+                else {
+                    dedupMap.set(key, lead);
+                }
+            }
+            parseResult.leads = Array.from(dedupMap.values());
+        }
         // Cleanup temp file ASAP
         fs_1.default.unlinkSync(req.file.path);
         if (parseResult.errors.length > 0 && parseResult.vendor !== 'UNKNOWN') {
@@ -64,9 +79,15 @@ router.post('/', auth_1.auth, upload.single('file'), async (req, res) => {
         let updated = 0;
         for (const lead of parseResult.leads) {
             try {
-                // Upsert through model helper to centralise validation
+                // Coerce unknown status strings to 'New' to satisfy enum validation
+                let status = lead.status;
+                const allowedStatuses = ['New', 'Contacted', 'Follow-up', 'Won', 'Lost'];
+                if (!allowedStatuses.includes(status)) {
+                    status = 'New';
+                }
                 const { isNew } = await Lead_1.default.upsertLead({
                     ...lead,
+                    status,
                     tenantId,
                     assignedTo,
                     source: lead.source || (0, csvParser_1.getVendorDisplayName)(parseResult.vendor) || 'CSV Import',

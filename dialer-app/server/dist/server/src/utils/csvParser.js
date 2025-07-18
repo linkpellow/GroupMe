@@ -58,7 +58,7 @@ const NEXTGEN_FIELD_MAP = {
     // Call tracking
     call_log_id: 'callLogId',
     call_duration: 'callDuration',
-    source_hash: 'sourceHash',
+    source_hash: 'sourceCode',
     sub_id_hash: 'subIdHash',
     // Status fields
     status: 'status',
@@ -170,6 +170,11 @@ function mapRowToCanonicalLead(row, vendor, fieldMap) {
             // Regular fields
             else {
                 let value = String(row[csvField]).trim();
+                // Convert price to number
+                if (canonicalField === 'price') {
+                    canonical[canonicalField] = parseFloat(value) || 0;
+                    continue;
+                }
                 // Apply DOB normalisation if this is the dob field
                 if (canonicalField === 'dob') {
                     const fixed = (0, fixDob_1.fixDob)(value);

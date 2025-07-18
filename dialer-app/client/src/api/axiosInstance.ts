@@ -2,8 +2,8 @@ import axios, { AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'ax
 import { getToken } from '../services/authToken.service';
 
 // Determine API base URL.
-// • In most environments we default to '/api' (client + server on same origin).
-// • In local dev or special staging setups you can override with VITE_API_BASE.
+// • Default to '/api' when client & server share origin.
+// • Allow override via VITE_API_BASE for staging or dev.
 const envBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
 const baseURL = envBase || '/api';
 
@@ -53,9 +53,8 @@ axiosInstance.interceptors.request.use(
       console.warn('No auth token found in authToken service');
     }
 
-    // No automatic path rewriting—call sites must pass paths **without** '/api'.
+    // Prevent accidental double '/api' in request paths.
     if (config.url) {
-      // Prevent accidental double '/api' when callers include it.
       if (config.url.startsWith('/api/')) {
         config.url = config.url.replace(/^\/api/, '');
       }
