@@ -23,6 +23,7 @@ import { FiChevronLeft, FiChevronRight, FiDownload, FiArrowRight } from 'react-i
 import styled, { createGlobalStyle, keyframes } from 'styled-components';
 import { ChevronDownIcon } from '@chakra-ui/icons';
 import TripleChevronIcon from '../components/icons/TripleChevronIcon';
+import { format } from 'date-fns';
 
 import axiosInstance from '../api/axiosInstance';
 import { useLeads } from '../context/LeadContext';
@@ -580,6 +581,21 @@ const StyledLeadCard = styled.div<{
     width: auto;
     height: auto;
     padding: 0;
+  }
+
+  /* Dial arrow » wide triangle */
+  .dial-arrow {
+    position: absolute;
+    left: -48px; /* arrow width */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 24px solid transparent;
+    border-bottom: 24px solid transparent;
+    border-right: 48px solid #FFA500;
+    z-index: 2000;
+    pointer-events: none;
   }
 `;
 
@@ -1989,19 +2005,7 @@ export default function Leads() {
     return (
       <>
         {isActiveDial && (
-          <FiArrowRight
-            style={{
-              position: 'absolute',
-              left: '-24px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#EFBF04',
-              zIndex: 2000,
-              pointerEvents: 'none',
-            }}
-            size={16}
-            title="Dialing"
-          />
+          <span className="dial-arrow" />
         )}
         {/* macOS-style buttons */}
         <div className="mac-buttons">
@@ -2294,8 +2298,11 @@ export default function Leads() {
               </HangUpButton>
               {/* Created At display */}
               {lead.createdAt && (
-                <span style={{ color: '#000', fontSize: '0.75rem', marginLeft: '8px' }} title="Created At">
-                  {new Date(lead.createdAt).toLocaleDateString()}
+                <span
+                  style={{ color: '#000', fontSize: '0.75rem', marginLeft: '8px' }}
+                  title="Created At"
+                >
+                  Created: {format(new Date(lead.createdAt), "EEE, MMMM d, yyyy 'at' hh:mm:ssa")}
                 </span>
               )}
               {lead.sourceCode && (
