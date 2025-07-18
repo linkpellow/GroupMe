@@ -198,6 +198,17 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
     source: 'NextGen' as const,  // Changed to match the enum in Lead model
     disposition: 'New Lead' as const,  // Changed to match other imports
     status: 'New' as const,
+
+    // Purchase timestamp — try multiple possible field names
+    createdAt: (() => {
+      const raw =
+        (nextgenData as any).created_at ||
+        (nextgenData as any).created ||
+        (nextgenData as any).order_time;
+      if (!raw) return undefined;
+      const dt = new Date(raw);
+      return isNaN(dt.getTime()) ? undefined : dt;
+    })(),
   };
 
   // Remove undefined values
@@ -264,6 +275,7 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
       name: fullLeadData.name,
       email: fullLeadData.email,
       phone: fullLeadData.phone,
+      createdAt: fullLeadData.createdAt,
       source: 'NextGen' as const,
       disposition: 'New Lead' as const,
       status: 'New' as const,
