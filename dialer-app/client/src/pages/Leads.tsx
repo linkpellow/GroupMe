@@ -2096,20 +2096,6 @@ export default function Leads() {
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {lead.name}
               </span>
-              {lead.sourceCode && (
-                <span
-                  style={{
-                    color: '#666',
-                    fontSize: '0.7rem',
-                    marginLeft: '8px',
-                    marginTop: '2px',
-                    display: 'block',
-                  }}
-                  title="Source Code"
-                >
-                  {lead.sourceCode}
-                </span>
-              )}
             </div>
           </div>
           <div className="grid-item">
@@ -2296,27 +2282,20 @@ export default function Leads() {
               >
                 <FaPhoneSlash /> Hang Up
               </HangUpButton>
-              {/* Created At display */}
+              {/* Created At – top-right position */}
               {lead.createdAt && (
                 <span
-                  style={{ color: '#000', fontSize: '0.75rem', marginLeft: '8px' }}
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    right: '10px',
+                    color: '#000',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                  }}
                   title="Created At"
                 >
-                  Created: {format(new Date(lead.createdAt), "EEE, MMMM d, yyyy 'at' hh:mm:ssa")}
-                </span>
-              )}
-              {lead.sourceCode && (
-                <span
-                  style={{
-                    color: '#666',
-                    fontSize: '0.7rem',
-                    marginLeft: '8px',
-                    marginTop: '2px',
-                    display: 'block',
-                  }}
-                  title="Source Code"
-                >
-                  {lead.sourceCode}
+                  {format(new Date(lead.createdAt), "EEE, MMMM d, yyyy 'at' hh:mm:ssa")}
                 </span>
               )}
             </div>
