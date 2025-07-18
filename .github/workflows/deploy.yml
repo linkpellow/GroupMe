@@ -41,6 +41,14 @@ jobs:
           done
           echo "Staging health check failed"; exit 1
 
+      - name: Cypress UI smoke test on staging
+        uses: cypress-io/github-action@v5
+        with:
+          wait-on: https://${{ env.HEROKU_APP_STAGING }}.herokuapp.com
+          wait-on-timeout: 120
+        env:
+          CYPRESS_baseUrl: https://${{ env.HEROKU_APP_STAGING }}.herokuapp.com
+
       - name: Promote slug to production
         run: |
           heroku pipelines:promote -a ${HEROKU_APP_STAGING} --to ${HEROKU_APP_PROD}
