@@ -203,8 +203,19 @@ const adaptNextGenLead = (nextgenData) => {
         subIdHash: nextgenData.sub_id_hash,
         // Defaults
         source: 'NextGen', // Changed to match the enum in Lead model
+        sourceCode: nextgenData.campaign_name || nextgenData.vendor_name || 'NextGen', // Use campaign name as source code
         disposition: 'New Lead', // Changed to match other imports
         status: 'New',
+        // Purchase timestamp — try multiple possible field names
+        createdAt: (() => {
+            const raw = nextgenData.created_at ||
+                nextgenData.created ||
+                nextgenData.order_time;
+            if (!raw)
+                return undefined;
+            const dt = new Date(raw);
+            return isNaN(dt.getTime()) ? undefined : dt;
+        })(),
     };
     // Remove undefined values
     Object.keys(adapted).forEach((key) => {
@@ -262,7 +273,9 @@ router.post('/nextgen', verifyNextGenAuth, async (req, res) => {
             name: fullLeadData.name,
             email: fullLeadData.email,
             phone: fullLeadData.phone,
+            createdAt: fullLeadData.createdAt,
             source: 'NextGen',
+            sourceCode: fullLeadData.sourceCode, // Include sourceCode in minimal payload
             disposition: 'New Lead',
             status: 'New',
         };
@@ -282,6 +295,8 @@ router.post('/nextgen', verifyNextGenAuth, async (req, res) => {
             leadId,
             nextgenId: fullLeadData.nextgenId,
             isNew,
+            sourceCode: fullLeadData.sourceCode, // Log the source code
+            campaignName: validationResult.data.campaign_name, // Log raw campaign name
             duration: Date.now() - startTime,
         });
         // Compute processing time

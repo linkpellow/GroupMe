@@ -196,6 +196,7 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
 
     // Defaults
     source: 'NextGen' as const,  // Changed to match the enum in Lead model
+    sourceCode: nextgenData.campaign_name || nextgenData.vendor_name || 'NextGen', // Use campaign name as source code
     disposition: 'New Lead' as const,  // Changed to match other imports
     status: 'New' as const,
 
@@ -277,6 +278,7 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
       phone: fullLeadData.phone,
       createdAt: fullLeadData.createdAt,
       source: 'NextGen' as const,
+      sourceCode: fullLeadData.sourceCode, // Include sourceCode in minimal payload
       disposition: 'New Lead' as const,
       status: 'New' as const,
     };
@@ -298,6 +300,8 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
       leadId,
       nextgenId: fullLeadData.nextgenId,
       isNew,
+      sourceCode: fullLeadData.sourceCode, // Log the source code
+      campaignName: validationResult.data.campaign_name, // Log raw campaign name
       duration: Date.now() - startTime,
     });
 
