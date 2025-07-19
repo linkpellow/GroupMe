@@ -37,7 +37,9 @@ const FilterButton = styled.button`
   }
 `;
 
-const ChevronIcon = styled(ChevronDownIcon)<{ isOpen: boolean }>`
+const ChevronIcon = styled(ChevronDownIcon).withConfig({
+  shouldForwardProp: (prop) => prop !== 'isOpen',
+})<{ isOpen: boolean }>`
   transform: ${props => props.isOpen ? 'rotate(180deg)' : 'rotate(0deg)'};
   transition: transform 0.2s ease;
 `;
