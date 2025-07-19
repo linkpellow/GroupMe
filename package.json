@@ -22,6 +22,7 @@
     "clean": "rm -rf node_modules package-lock.json dialer-app/*/node_modules dialer-app/*/package-lock.json && npm install",
     "kill-ports": "kill-port 3005 5173 || true",
     "reset": "npm run kill-ports && npm run clean",
+    "lockfile:linux": "./scripts/fix-lockfile-for-linux.sh",
     "test": "npm run test:client && npm run test:server",
     "test:client": "cd dialer-app/client && npm test",
     "test:server": "cd dialer-app/server && npm test",
