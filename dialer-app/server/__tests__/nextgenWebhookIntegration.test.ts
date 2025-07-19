@@ -42,7 +42,13 @@ describe('NextGen Webhook Premium Listing Integration', () => {
       sid: 'test-sid',
       apiKey: 'test-key',
       tenantId: 'test-tenant-id',
-      active: true
+      active: true,
+      lean: jest.fn().mockResolvedValue({
+        sid: 'test-sid',
+        apiKey: 'test-key',
+        tenantId: 'test-tenant-id',
+        active: true
+      })
     });
   });
 
