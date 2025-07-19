@@ -43,6 +43,7 @@ import TextdripIcon from "../components/icons/TextdripIcon";
 import { AddToCampaignModal } from "../components/AddToCampaignModal";
 import { QuickDripModal } from '../components/QuickDripModal';
 import { getTimezoneFromZipCode, getAbbreviation } from '../utils/timezoneUtils';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { leadsApi } from '../services/leadsApi';
 import NotesEditor from '../components/NotesEditor';
 import { useQuery } from '@tanstack/react-query';
@@ -1125,6 +1126,20 @@ export default function Leads() {
     (dispositions: string[]) => {
       updateQueryState({
         filters: { ...queryState.filters, dispositions },
+        page: 1,
+      });
+    },
+    [updateQueryState, queryState.filters]
+  );
+
+  const handleDateRangeChange = useCallback(
+    (startDate: Date | null, endDate: Date | null) => {
+      updateQueryState({
+        filters: { 
+          ...queryState.filters, 
+          createdAtStart: startDate, 
+          createdAtEnd: endDate 
+        },
         page: 1,
       });
     },
@@ -2322,7 +2337,7 @@ export default function Leads() {
               }}
               title="Created At"
             >
-              {lead.createdAt && `Created: ${format(new Date(lead.createdAt), "EEE, MMM d yyyy @ h:mma")}`}
+              {lead.createdAt && `Created: ${format(new Date(lead.createdAt), "EEE, MMM d yyyy 'at' h:mma")}`}
             </span>
 
             {/* Call and Hang Up buttons - Left side */}
@@ -2613,6 +2628,12 @@ export default function Leads() {
               availableDispositions={availableDispositions}
               getColorForDisposition={getColorForDisposition}
               onChange={handleDispositionFilterChange}
+            />
+
+            <DateRangeFilter
+              startDate={queryState.filters?.createdAtStart || null}
+              endDate={queryState.filters?.createdAtEnd || null}
+              onChange={handleDateRangeChange}
             />
 
             {/* Edit All Menu */}

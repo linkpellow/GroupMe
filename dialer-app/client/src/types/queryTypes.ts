@@ -27,6 +27,8 @@ export interface LeadsQueryState {
     states?: string[];
     dispositions?: string[];
     pipelineSource?: 'all' | 'nextgen' | 'marketplace' | 'selfgen' | 'csv' | 'manual' | 'usha';
+    createdAtStart?: Date | null;
+    createdAtEnd?: Date | null;
   };
 
   /**
@@ -255,6 +257,37 @@ export function validateQueryState(state: unknown): {
         value: s.filters.pipelineSource,
       });
     }
+
+    // Validate date range filters
+    if (s.filters.createdAtStart && !(s.filters.createdAtStart instanceof Date) && isNaN(Date.parse(s.filters.createdAtStart as any))) {
+      errors.push({
+        field: 'filters.createdAtStart',
+        message: 'Invalid start date',
+        value: s.filters.createdAtStart,
+      });
+    }
+
+    if (s.filters.createdAtEnd && !(s.filters.createdAtEnd instanceof Date) && isNaN(Date.parse(s.filters.createdAtEnd as any))) {
+      errors.push({
+        field: 'filters.createdAtEnd',
+        message: 'Invalid end date',
+        value: s.filters.createdAtEnd,
+      });
+    }
+
+    // Validate date range logic (start <= end)
+    if (s.filters.createdAtStart && s.filters.createdAtEnd) {
+      const startDate = s.filters.createdAtStart instanceof Date ? s.filters.createdAtStart : new Date(s.filters.createdAtStart as any);
+      const endDate = s.filters.createdAtEnd instanceof Date ? s.filters.createdAtEnd : new Date(s.filters.createdAtEnd as any);
+      
+      if (startDate > endDate) {
+        errors.push({
+          field: 'filters.dateRange',
+          message: 'Start date must be before or equal to end date',
+          value: { start: s.filters.createdAtStart, end: s.filters.createdAtEnd },
+        });
+      }
+    }
   }
 
   if (errors.length > 0) {
@@ -271,6 +304,8 @@ export function validateQueryState(state: unknown): {
       states: s.filters?.states?.filter((s: string) => s.length > 0),
       dispositions: s.filters?.dispositions?.filter((d: string) => d.length > 0),
       pipelineSource: s.filters?.pipelineSource || 'all',
+      createdAtStart: s.filters?.createdAtStart || null,
+      createdAtEnd: s.filters?.createdAtEnd || null,
     },
     getAllResults: s.getAllResults,
     requestId: s.requestId,
@@ -310,6 +345,14 @@ export function serializeQueryState(state: LeadsQueryState): URLSearchParams {
 
   if (state.filters?.pipelineSource && state.filters.pipelineSource !== 'all') {
     params.set('pipelineSource', state.filters.pipelineSource);
+  }
+
+  if (state.filters?.createdAtStart) {
+    params.set('createdAtStart', state.filters.createdAtStart.toISOString());
+  }
+
+  if (state.filters?.createdAtEnd) {
+    params.set('createdAtEnd', state.filters.createdAtEnd.toISOString());
   }
 
   if (state.getAllResults) {
@@ -391,6 +434,20 @@ export function deserializeQueryState(params: URLSearchParams): Partial<LeadsQue
     const source = params.get('pipelineSource') as any;
     if (['all', 'nextgen', 'marketplace', 'selfgen', 'csv', 'manual', 'usha'].includes(source)) {
       state.filters.pipelineSource = source;
+    }
+  }
+
+  if (params.has('createdAtStart')) {
+    const startDate = new Date(params.get('createdAtStart')!);
+    if (!isNaN(startDate.getTime())) {
+      state.filters.createdAtStart = startDate;
+    }
+  }
+
+  if (params.has('createdAtEnd')) {
+    const endDate = new Date(params.get('createdAtEnd')!);
+    if (!isNaN(endDate.getTime())) {
+      state.filters.createdAtEnd = endDate;
     }
   }
 
