@@ -6,6 +6,7 @@ import { parseVendorCSV, getVendorDisplayName } from '../utils/csvParser';
 import { auth } from '../middleware/auth';
 import LeadModel from '../models/Lead';
 import { broadcastNewLeadNotification } from '../index';
+import { processNextGenBatch } from '../services/nextgenDeduplicationService';
 
 // Configure multer for CSV uploads (max 50 MB, single file)
 const storage = multer.diskStorage({
@@ -72,62 +73,9 @@ router.post('/', auth, upload.single('file'), async (req: MulterRequest, res: Re
 
     // Deduplicate NextGen rows (ad + data) by leadId and sum price
     if (parseResult.vendor === 'NEXTGEN') {
-      const dedupMap = new Map<string, any>();
-      let premiumListingCount = 0;
-      
-      for (const lead of parseResult.leads) {
-        const key = (lead as any).leadId || lead.phone || lead.email || Math.random().toString();
-        
-        if (dedupMap.has(key)) {
-          const existing = dedupMap.get(key);
-          const isPremiumListing = (lead as any).product === 'ad';
-          const isExistingPremium = existing.product === 'ad';
-          
-          // Always keep the 'data' record as the main lead
-          if (isPremiumListing && !isExistingPremium) {
-            // Current is premium listing, existing is main lead - add price to existing
-            existing.price = (existing.price || 0) + ((lead as any).price || 0);
-            
-            // Add note about premium listing
-            if (!existing.notesMetadata) existing.notesMetadata = {};
-            existing.notesMetadata.hasPremiumListing = true;
-            existing.notesMetadata.totalPrice = existing.price;
-            existing.notesMetadata.basePrice = existing.price - ((lead as any).price || 0);
-            existing.notesMetadata.premiumPrice = (lead as any).price || 0;
-            
-            premiumListingCount++;
-            console.log(`[NextGen Import] Merged premium listing for lead ${key}: +$${(lead as any).price} = $${existing.price} total`);
-          } else if (!isPremiumListing && isExistingPremium) {
-            // Current is main lead, existing is premium listing - replace with main lead
-            const premiumPrice = existing.price || 0;
-            dedupMap.set(key, lead);
-            const mainLead = dedupMap.get(key);
-            mainLead.price = (mainLead.price || 0) + premiumPrice;
-            
-            // Add note about premium listing
-            if (!mainLead.notesMetadata) mainLead.notesMetadata = {};
-            mainLead.notesMetadata.hasPremiumListing = true;
-            mainLead.notesMetadata.totalPrice = mainLead.price;
-            mainLead.notesMetadata.basePrice = (mainLead.price || 0) - premiumPrice;
-            mainLead.notesMetadata.premiumPrice = premiumPrice;
-            
-            premiumListingCount++;
-            console.log(`[NextGen Import] Merged premium listing for lead ${key}: +$${premiumPrice} = $${mainLead.price} total`);
-          } else {
-            // Both are same type - just sum prices (fallback behavior)
-            existing.price = (existing.price || 0) + ((lead as any).price || 0);
-            console.warn(`[NextGen Import] Duplicate ${existing.product || 'unknown'} record for lead ${key}, summing prices: $${existing.price}`);
-          }
-        } else {
-          dedupMap.set(key, lead);
-        }
-      }
-      
-      parseResult.leads = Array.from(dedupMap.values());
-      
-      if (premiumListingCount > 0) {
-        console.log(`[NextGen Import] Processed ${premiumListingCount} premium listings`);
-      }
+      // Use the shared deduplication service
+      parseResult.leads = processNextGenBatch(parseResult.leads);
+      console.log(`[NextGen Import] Deduplication complete: ${parseResult.leads.length} unique leads`);
     }
 
     // Cleanup temp file ASAP
@@ -152,20 +100,10 @@ router.post('/', auth, upload.single('file'), async (req: MulterRequest, res: Re
           status = 'New';
         }
 
-        // Add premium listing info to notes if applicable
-        let notes = (lead as any).notes || '';
-        if ((lead as any).notesMetadata?.hasPremiumListing) {
-          const premiumNote = `\n\n💎 Premium Listing Applied:\n` +
-            `Base Price: $${(lead as any).notesMetadata.basePrice}\n` +
-            `Premium Listing: $${(lead as any).notesMetadata.premiumPrice}\n` +
-            `Total Price: $${(lead as any).notesMetadata.totalPrice}`;
-          notes = notes ? notes + premiumNote : premiumNote.trim();
-        }
-
+        // Notes are now handled by the deduplication service
         const { isNew } = await (LeadModel as any).upsertLead({
           ...lead,
           status,
-          notes,
           tenantId,
           assignedTo,
           source: lead.source || getVendorDisplayName(parseResult.vendor) || 'CSV Import',

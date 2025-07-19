@@ -4,6 +4,7 @@ import winston from 'winston';
 import { z } from 'zod';
 import * as Sentry from '@sentry/node';
 import { broadcastNewLeadNotification } from '../index';
+import { processNextGenLead, getDeduplicationKey } from '../services/nextgenDeduplicationService';
 
 const router: Router = express.Router();
 
@@ -247,6 +248,9 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
     // Adapt lead data (full) but we'll upsert minimal first for speed
     const fullLeadData = adaptNextGenLead(validationResult.data);
 
+    // Get tenant ID for this request
+    const tenantId = (req as any).tenantId;
+
     // Broadcast minimal stub ASAP for instant UI feedback (no DB wait)
     try {
       broadcastNewLeadNotification({
@@ -268,40 +272,97 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
       });
     }
 
-    // Build minimal payload for fast upsert
-    const minimal = {
-      nextgenId: fullLeadData.nextgenId,
-      firstName: fullLeadData.firstName,
-      lastName: fullLeadData.lastName,
-      name: fullLeadData.name,
-      email: fullLeadData.email,
-      phone: fullLeadData.phone,
-      createdAt: fullLeadData.createdAt,
-      source: 'NextGen' as const,
-      sourceCode: fullLeadData.sourceCode, // Include sourceCode in minimal payload
-      disposition: 'New Lead' as const,
-      status: 'New' as const,
-    };
-
-    const { lead, isNew } = await (Lead as any).upsertLead(minimal);
-    leadId = lead._id.toString();
-
-    // Async update with heavy fields (non-blocking)
-    setImmediate(async () => {
-      try {
-        await Lead.updateOne({ _id: leadId }, { $set: fullLeadData });
-      } catch (e) {
-        console.error('Async enrich lead failed', e);
+    // Check for existing lead using deduplication key
+    let existingLead = null;
+    const dedupKey = getDeduplicationKey(fullLeadData);
+    if (dedupKey) {
+      // Build query similar to upsertLead but include nextgenId
+      const query: any = { tenantId };
+      if (fullLeadData.nextgenId) {
+        query.nextgenId = fullLeadData.nextgenId;
+      } else if (fullLeadData.phone) {
+        query.phone = fullLeadData.phone;
+      } else if (fullLeadData.email) {
+        query.email = fullLeadData.email;
       }
-    });
+      
+      existingLead = await Lead.findOne(query).lean();
+    }
+
+    // Apply deduplication logic
+    const deduplicationResult = processNextGenLead(fullLeadData, existingLead);
+    
+    if (deduplicationResult.logMessage) {
+      logger.info('[NextGen Webhook] ' + deduplicationResult.logMessage);
+    }
+
+    // Process based on deduplication result
+    let lead;
+    let isNew = false;
+    
+    if (deduplicationResult.action === 'create') {
+      // Create new lead
+      const minimal = {
+        nextgenId: deduplicationResult.leadData.nextgenId,
+        firstName: deduplicationResult.leadData.firstName,
+        lastName: deduplicationResult.leadData.lastName,
+        name: deduplicationResult.leadData.name,
+        email: deduplicationResult.leadData.email,
+        phone: deduplicationResult.leadData.phone,
+        createdAt: deduplicationResult.leadData.createdAt,
+        source: 'NextGen' as const,
+        sourceCode: deduplicationResult.leadData.sourceCode,
+        disposition: 'New Lead' as const,
+        status: 'New' as const,
+      };
+
+      const result = await (Lead as any).upsertLead({ ...minimal, tenantId });
+      lead = result.lead;
+      isNew = result.isNew;
+      leadId = lead._id.toString();
+
+      // Async update with heavy fields
+      setImmediate(async () => {
+        try {
+          await Lead.updateOne({ _id: leadId }, { $set: deduplicationResult.leadData });
+        } catch (e) {
+          console.error('Async enrich lead failed', e);
+        }
+      });
+      
+    } else if (deduplicationResult.action === 'update') {
+      // Update existing lead with merged data
+      lead = await Lead.findByIdAndUpdate(
+        existingLead!._id,
+        { $set: deduplicationResult.leadData },
+        { new: true }
+      );
+      if (!lead) {
+        logger.error('Failed to update lead', { existingLeadId: existingLead!._id });
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to update lead',
+        });
+      }
+      leadId = (lead as any)._id.toString();
+      isNew = false;
+    } else {
+      // Skip - shouldn't happen with current logic
+      return res.status(200).json({
+        success: true,
+        message: 'Lead processing skipped',
+        action: deduplicationResult.action,
+      });
+    }
 
     // Log success
     logger.info('NextGen lead processed successfully', {
       leadId,
-      nextgenId: fullLeadData.nextgenId,
+      nextgenId: deduplicationResult.leadData.nextgenId,
       isNew,
-      sourceCode: fullLeadData.sourceCode, // Log the source code
-      campaignName: validationResult.data.campaign_name, // Log raw campaign name
+      sourceCode: deduplicationResult.leadData.sourceCode,
+      product: deduplicationResult.leadData.product,
+      price: deduplicationResult.leadData.price,
       duration: Date.now() - startTime,
     });
 

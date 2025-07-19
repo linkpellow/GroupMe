@@ -92,6 +92,38 @@ cd dialer-app/server
 npm test nextgenPremiumListing
 ```
 
+## Webhook Integration
+
+As of 2025-07-19, the premium listing deduplication logic also applies to webhook ingestion. Both CSV imports and webhook API calls follow the same rules:
+
+### Webhook Behavior
+- **Main lead arrives first**: Premium listing webhook adds $5 to existing lead
+- **Premium listing arrives first**: Main lead webhook replaces data but keeps combined price
+- **Duplicate detection**: Uses nextgenId, phone, or email (in that priority)
+- **Notes**: Premium listing details automatically added to lead notes
+
+### Example Webhook Flow
+1. Webhook receives `product="data"` with `price="45"`
+   - Creates lead with price=$45
+2. Webhook receives `product="ad"` with same `lead_id` and `price="5"`
+   - Updates existing lead to price=$50
+   - Adds premium listing note
+
+### Implementation Details
+- Shared service: `nextgenDeduplicationService.ts`
+- CSV handler: `csvUpload.routes.ts` 
+- Webhook handler: `webhook.routes.ts`
+- Both use the same `processNextGenLead()` function
+
+### Testing Webhooks
+```bash
+# Unit tests for deduplication service
+npm test nextgenDeduplicationService
+
+# Integration tests for webhook endpoint
+npm test nextgenWebhookIntegration
+```
+
 ## Monitoring
 Watch for these log messages during imports:
 - `[NextGen Import] Merged premium listing...` - Successful merge

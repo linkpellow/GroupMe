@@ -1,134 +1,166 @@
-# NextGen Webhook Source Code Mapping Issue
+# NextGen Premium Merge Logic - Webhook Integration Plan
 
-## Problem Statement
-NextGen leads are showing "nextgen" as the source code instead of the actual source code from the lead data. This means we're losing valuable tracking information about where leads originated.
+## Objective
+Ensure webhook-ingested NextGen leads follow the same deduplication rules as CSV imports:
+- One lead per person per purchase
+- Premium listings ($5 upsell) merge with existing leads
+- Consistent behavior across all ingestion methods
 
-## Professional Analysis
+## Current State Analysis
 
-### Likely Root Causes
-1. **Hardcoded Default**: The webhook handler might be setting `source: "NextGen"` as a hardcoded value ✅ CONFIRMED
-2. **Field Mapping Error**: The source code field in NextGen's payload might have a different name than expected
-3. **Missing Data**: NextGen might not be sending source code in their webhook payload
-4. **Overwrite Issue**: Source code might be captured initially but overwritten later in the process
+### CSV Import (Already Implemented ✅)
+- Location: `dialer-app/server/src/routes/csvUpload.routes.ts`
+- Logic: Deduplicates by lead_id, merges premium listings, sums prices
+- Identifies records by `product` field: "data" vs "ad"
 
-### Investigation Plan
+### Webhook Endpoint (Now Updated ✅)
+- Location: `dialer-app/server/src/routes/webhook.routes.ts`
+- ✅ Creates/updates leads with premium listing logic
+- ✅ Deduplication for ad/data records implemented
+- ✅ Price summing works correctly
 
-#### 1. Examine Webhook Handler ✅ COMPLETE
-- Locate the NextGen webhook endpoint
-- Review how incoming data is processed
-- Identify where the source/sourceCode field is set
-- Check for any hardcoded "NextGen" assignments
+## Implementation Plan
 
-**FINDINGS**: Found the issue in `dialer-app/server/src/routes/webhook.routes.ts`. The `adaptNextGenLead` function was setting `source: 'NextGen'` but not mapping the `sourceCode` field at all.
+### Phase 1: Create Shared Deduplication Service ✅ COMPLETE
 
-#### 2. Analyze NextGen Payload Structure ✅ COMPLETE
-- Find example webhook payloads or logs
-- Identify what field contains the source code in NextGen's data
-- Document the complete field mapping
+1. **Create Shared Utility** ✅
+   - File: `dialer-app/server/src/services/nextgenDeduplicationService.ts`
+   - Purpose: Centralize premium listing merge logic
+   - Functions:
+     - `processNextGenLead(leadData, existingLead?)` ✅
+     - `isPremiumListing(lead)` ✅
+     - `mergeWithPremium(baseLead, premiumData)` ✅
 
-**FINDINGS**: NextGen sends `campaign_name`, `vendor_name`, and other tracking fields that should be used for source code.
+2. **Extract Logic from CSV Handler** ✅
+   - Moved deduplication logic to shared service
+   - Updated CSV handler to use new service
+   - Maintained backward compatibility
 
-#### 3. Trace Data Flow ✅ COMPLETE
-- Follow the lead data from webhook receipt to database storage
-- Check if source code is modified anywhere in the pipeline
-- Verify database schema supports storing source codes
+### Phase 2: Update Webhook Handler ✅ COMPLETE
 
-**FINDINGS**: Lead model has both `source` and `sourceCode` fields. The issue was simply not mapping the data.
+1. **Modify adaptNextGenLead Function** ✅
+   - Product field already passed through
+   - Price information preserved
 
-## Technical Approach
+2. **Enhance Webhook Processing** ✅
+   - Before creating/updating lead, checks for existing lead
+   - Applies deduplication logic for premium listings
+   - Handles both scenarios:
+     - Premium arrives after main lead ✅
+     - Premium arrives before main lead ✅
 
-### Phase 1: Diagnosis ✅ COMPLETE
-1. **Locate Webhook Handler** ✅
-   - Found webhook routes at `/api/webhooks/nextgen`
-   - Reviewed the request handler code
-   - *Success*: Can see exact data transformation logic
+3. **Update Lead Creation Logic** ✅
+   - Uses shared service for all NextGen leads
+   - Ensures proper price aggregation
+   - Adds premium listing notes
 
-2. **Review Sample Payloads** ✅
-   - Found test payload at `dialer-app/server/src/tests/fixtures/nextgen-webhook-payload.json`
-   - Identified source code field name: `campaign_name`
-   - *Success*: Know exact field to extract
+### Phase 3: Testing Strategy ✅ COMPLETE
 
-3. **Test Current Behavior** ✅
-   - Traced lead through the system
-   - Confirmed "nextgen" was being hardcoded
-   - *Success*: Pinpointed the exact issue
+1. **Unit Tests** ✅
+   - Created `__tests__/nextgenDeduplicationService.test.ts`
+   - Tests all deduplication scenarios
+   - Tests price aggregation logic
 
-### Phase 2: Implementation ✅ COMPLETE
-1. **Update Field Mapping** ✅
-   - Mapped NextGen's `campaign_name` to our `sourceCode` field
-   - Added fallback to `vendor_name` if campaign is missing
-   - Added sourceCode to minimal payload for immediate storage
-   - *Success*: Source codes properly captured
+2. **Integration Tests** ✅
+   - Created `__tests__/nextgenWebhookIntegration.test.ts`
+   - Tests webhook with main→premium flow
+   - Tests webhook with premium→main flow
+   - Tests duplicate scenarios
 
-2. **Add Validation** ✅
-   - Validated source code exists in payload
-   - Added logging for debugging
-   - Fallback to "NextGen" only if truly absent
-   - *Success*: Robust error handling
+3. **Test Results** ✅
+   - All 14 tests passing
+   - Coverage includes all edge cases
+   - Logging verified working
 
-3. **Test Thoroughly** ✅
-   - Created test script at `dialer-app/server/src/tests/test-nextgen-sourcecode.ts`
-   - Verified code compiles correctly
-   - All tests pass
-   - *Success*: Ready for production
+### Phase 4: Implementation Details ✅ COMPLETE
 
-### Phase 3: Future-Proofing ✅ COMPLETE
-1. **Add Logging** ✅
-   - Added logging for incoming payloads
-   - Track source code mappings
-   - *Success*: Easy troubleshooting
+1. **Shared Service Structure** ✅
+   ```typescript
+   interface NextGenDeduplicationResult {
+     action: 'create' | 'update' | 'skip';
+     leadData: any;
+     notes?: string;
+     priceBreakdown?: {
+       base: number;
+       premium: number;
+       total: number;
+     };
+   }
+   ```
 
-2. **Document Mapping** ✅
-   - Created `dialer-app/server/docs/NEXTGEN_WEBHOOK_MAPPING.md`
-   - Documented all field mappings
-   - *Success*: Team can maintain easily
+2. **Webhook Integration Points** ✅
+   - Checks existing lead by: nextgenId, phone, or email
+   - Applies merge logic before upsertLead
+   - Logs all premium merges for audit
 
-3. **Consider Historical Data** ✅
-   - Created migration script at `dialer-app/server/src/migrations/20250719-fix-nextgen-sourcecodes.ts`
-   - Script extracts campaign info from notes
-   - *Success*: Can fix existing data
+3. **Data Consistency** ✅
+   - Same fields used for deduplication across CSV and webhook
+   - Price history maintained in notes
+   - All original data preserved
 
-## Expected Outcome
-- New NextGen leads will show their actual source codes (e.g., "FB_Campaign_123", "Google_Ads_456") ✅
-- The system will fall back to "NextGen" only when source code is genuinely missing ✅
-- Clear logging will help diagnose any future issues ✅
-- Documentation will prevent confusion for future developers ✅
+### Phase 5: Documentation & Monitoring ✅ COMPLETE
+
+1. **Update Documentation** ✅
+   - Updated `NEXTGEN_PREMIUM_LISTING.md` with webhook behavior
+   - Updated `NEXTGEN_WEBHOOK_MAPPING.md` with premium listing section
+   - Added troubleshooting guide
+
+2. **Logging & Monitoring** ✅
+   - All deduplication decisions logged
+   - Premium listing merges tracked
+   - Warnings for unusual patterns
+
+### Phase 6: Rollout Plan 🚀 READY
+
+1. **Deployment Steps**
+   - ✅ Code complete and tested
+   - ✅ Documentation updated
+   - Ready for staging deployment
+   - Monitor for 24 hours before production
+
+2. **Rollback Strategy**
+   - Changes are isolated and reversible
+   - Original webhook behavior preserved in git history
+
+## Success Criteria ✅ ALL MET
+
+- ✅ No duplicate leads from webhook + CSV combinations
+- ✅ Premium listings correctly add $5 to existing leads
+- ✅ All tests pass (unit + integration) - 14/14 passing
+- ✅ No regression in non-NextGen webhooks
+- ✅ Clear audit trail in logs
+- ✅ Documentation updated
 
 ## Risk Assessment
-- **Low Risk**: Changes are isolated to webhook handler ✅
-- **Data Integrity**: No risk to existing lead data ✅
-- **Rollback Plan**: Can easily revert if issues arise ✅
+
+- **Low Risk**: Changes isolated to NextGen leads ✅
+- **Medium Risk**: Webhook timing (concurrent requests) - Mitigated with proper DB operations
+- **Mitigation**: Transaction-like processing implemented
+
+## Lessons Learned
+
+1. **Product Field Already Mapped**: The webhook adapter already included the product field, saving implementation time
+2. **Type Safety**: Had to use type assertions for Lead._id due to TypeScript strictness
+3. **Testing Strategy**: Mocking database interactions was more efficient than using in-memory DB
+4. **Shared Service Benefits**: Centralizing logic ensures consistency and makes testing easier
 
 ## Implementation Summary
 
-### Files Changed:
-1. `dialer-app/server/src/routes/webhook.routes.ts` - Added sourceCode mapping
-2. `dialer-app/server/docs/NEXTGEN_WEBHOOK_MAPPING.md` - Created documentation
-3. `dialer-app/server/src/migrations/20250719-fix-nextgen-sourcecodes.ts` - Migration for historical data
-4. `dialer-app/server/src/tests/test-nextgen-sourcecode.ts` - Test script
+### Files Created/Modified:
+1. ✅ `dialer-app/server/src/services/nextgenDeduplicationService.ts` - Shared deduplication logic
+2. ✅ `dialer-app/server/src/routes/csvUpload.routes.ts` - Updated to use shared service
+3. ✅ `dialer-app/server/src/routes/webhook.routes.ts` - Enhanced with deduplication
+4. ✅ `dialer-app/server/__tests__/nextgenDeduplicationService.test.ts` - Unit tests
+5. ✅ `dialer-app/server/__tests__/nextgenWebhookIntegration.test.ts` - Integration tests
+6. ✅ `dialer-app/server/docs/NEXTGEN_PREMIUM_LISTING.md` - Updated docs
+7. ✅ `dialer-app/server/docs/NEXTGEN_WEBHOOK_MAPPING.md` - Updated docs
 
-### Key Changes:
-```typescript
-// Before:
-source: 'NextGen' as const,
+## Status: COMPLETE & READY FOR DEPLOYMENT 🎉
 
-// After:
-source: 'NextGen' as const,
-sourceCode: nextgenData.campaign_name || nextgenData.vendor_name || 'NextGen',
-```
+All objectives achieved:
+- CSV imports and webhooks now use identical deduplication logic
+- Premium listings properly merge regardless of ingestion method
+- Comprehensive test coverage ensures reliability
+- Clear documentation for maintenance
 
-### Next Steps:
-1. Deploy to staging for testing
-2. Run migration script for historical data
-3. Monitor logs to verify correct mapping
-4. Deploy to production
-
-## Status: READY FOR DEPLOYMENT
-
-All implementation tasks complete. The fix has been:
-- Implemented ✅
-- Tested ✅
-- Documented ✅
-- Committed to git ✅
-
-Commit: `e0522c85a - fix: Map NextGen campaign_name to sourceCode field` 
+**Next Step**: Deploy to staging and monitor webhook behavior with real NextGen data. 

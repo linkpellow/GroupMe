@@ -1,0 +1,191 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Lead_1 = __importDefault(require("../src/models/Lead"));
+const NextGenCredential_1 = __importDefault(require("../src/models/NextGenCredential"));
+// Mock the models
+jest.mock('../src/models/Lead');
+jest.mock('../src/models/NextGenCredential');
+jest.mock('../src/models/User');
+// Mock broadcast function
+jest.mock('../src/index', () => ({
+    broadcastNewLeadNotification: jest.fn()
+}));
+// Import the actual webhook handler function after mocks
+const webhook_routes_1 = __importDefault(require("../src/routes/webhook.routes"));
+describe('NextGen Webhook Premium Listing Integration', () => {
+    let mockReq;
+    let mockRes;
+    let jsonMock;
+    let statusMock;
+    let setMock;
+    beforeEach(() => {
+        // Reset all mocks
+        jest.clearAllMocks();
+        // Setup response mocks
+        jsonMock = jest.fn();
+        statusMock = jest.fn(() => ({ json: jsonMock }));
+        setMock = jest.fn();
+        mockRes = {
+            status: statusMock,
+            json: jsonMock,
+            set: setMock
+        };
+        // Mock NextGenCredential to always return valid credential
+        NextGenCredential_1.default.findOne.mockResolvedValue({
+            sid: 'test-sid',
+            apiKey: 'test-key',
+            tenantId: 'test-tenant-id',
+            active: true
+        });
+    });
+    const baseLeadData = {
+        lead_id: 'D-TEST-001',
+        nextgen_id: 'NG-TEST-001',
+        first_name: 'John',
+        last_name: 'Doe',
+        phone: '5551234567',
+        email: 'john.doe@example.com',
+        product: 'data',
+        campaign_name: 'Test Campaign',
+        price: '45.00'
+    };
+    const premiumLeadData = {
+        ...baseLeadData,
+        product: 'ad',
+        price: '5.00'
+    };
+    it('should handle main lead followed by premium listing', async () => {
+        mockReq = {
+            body: premiumLeadData,
+            headers: {
+                sid: 'test-sid',
+                apikey: 'test-key'
+            },
+            ip: '127.0.0.1'
+        };
+        // Mock existing lead (main data record)
+        const existingLead = {
+            _id: 'lead-123',
+            nextgenId: 'NG-TEST-001',
+            firstName: 'John',
+            lastName: 'Doe',
+            phone: '(555) 123-4567',
+            email: 'john.doe@example.com',
+            product: 'data',
+            price: 45,
+            notes: 'Original notes'
+        };
+        Lead_1.default.findOne.mockResolvedValue({
+            lean: jest.fn().mockResolvedValue(existingLead)
+        });
+        // Mock the update
+        Lead_1.default.findByIdAndUpdate.mockResolvedValue({
+            ...existingLead,
+            price: 50,
+            notes: 'Original notes\n\n💎 Premium Listing Applied:\nBase Price: $45\nPremium Listing: $5\nTotal Price: $50',
+            _id: { toString: () => 'lead-123' }
+        });
+        // Find the webhook handler
+        const router = webhook_routes_1.default;
+        const routes = router.stack;
+        const nextgenRoute = routes.find((r) => r.route?.path === '/nextgen');
+        const handler = nextgenRoute.route.stack.find((s) => s.method === 'post').handle;
+        // Mock next function
+        const next = jest.fn();
+        // First call the auth middleware
+        const authMiddleware = nextgenRoute.route.stack[0].handle;
+        await authMiddleware(mockReq, mockRes, next);
+        // Then call the actual handler
+        await handler(mockReq, mockRes);
+        // Verify the lead was updated with merged price
+        expect(Lead_1.default.findByIdAndUpdate).toHaveBeenCalledWith('lead-123', expect.objectContaining({
+            $set: expect.objectContaining({
+                price: 50,
+                notes: expect.stringContaining('💎 Premium Listing Applied:')
+            })
+        }), { new: true });
+        // Verify response
+        expect(statusMock).toHaveBeenCalledWith(200);
+        expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+            success: true,
+            leadId: 'lead-123',
+            isNew: false
+        }));
+    });
+    it('should handle premium listing followed by main lead', async () => {
+        // First request: premium listing (no existing lead)
+        mockReq = {
+            body: premiumLeadData,
+            headers: {
+                sid: 'test-sid',
+                apikey: 'test-key'
+            }
+        };
+        Lead_1.default.findOne.mockResolvedValue({
+            lean: jest.fn().mockResolvedValue(null) // No existing lead
+        });
+        // Mock upsertLead for creating new premium listing
+        Lead_1.default.upsertLead = jest.fn().mockResolvedValue({
+            lead: {
+                _id: { toString: () => 'lead-456' },
+                product: 'ad',
+                price: 5
+            },
+            isNew: true
+        });
+        // Find the webhook handler
+        const router = webhook_routes_1.default;
+        const routes = router.stack;
+        const nextgenRoute = routes.find((r) => r.route?.path === '/nextgen');
+        const handler = nextgenRoute.route.stack.find((s) => s.method === 'post').handle;
+        // Mock next function
+        const next = jest.fn();
+        // Call auth middleware
+        const authMiddleware = nextgenRoute.route.stack[0].handle;
+        await authMiddleware(mockReq, mockRes, next);
+        // Call handler for premium listing
+        await handler(mockReq, mockRes);
+        // Verify premium listing was created
+        expect(Lead_1.default.upsertLead).toHaveBeenCalledWith(expect.objectContaining({
+            product: 'ad',
+            source: 'NextGen'
+        }));
+        // Now send main data record
+        mockReq.body = baseLeadData;
+        // Mock existing premium listing
+        const existingPremium = {
+            _id: 'lead-456',
+            nextgenId: 'NG-TEST-001',
+            product: 'ad',
+            price: 5
+        };
+        Lead_1.default.findOne.mockResolvedValue({
+            lean: jest.fn().mockResolvedValue(existingPremium)
+        });
+        // Mock the update with main data
+        Lead_1.default.findByIdAndUpdate.mockResolvedValue({
+            _id: { toString: () => 'lead-456' },
+            product: 'data',
+            price: 50,
+            firstName: 'John',
+            lastName: 'Doe'
+        });
+        // Reset mocks for second call
+        jsonMock.mockClear();
+        statusMock.mockClear();
+        // Call handler for main data record
+        await handler(mockReq, mockRes);
+        // Verify the lead was updated with main data and combined price
+        expect(Lead_1.default.findByIdAndUpdate).toHaveBeenCalledWith('lead-456', expect.objectContaining({
+            $set: expect.objectContaining({
+                product: 'data',
+                price: 50,
+                firstName: 'John',
+                lastName: 'Doe'
+            })
+        }), { new: true });
+    });
+});

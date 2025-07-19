@@ -42,6 +42,7 @@ const winston_1 = __importDefault(require("winston"));
 const zod_1 = require("zod");
 const Sentry = __importStar(require("@sentry/node"));
 const index_1 = require("../index");
+const nextgenDeduplicationService_1 = require("../services/nextgenDeduplicationService");
 const router = express_1.default.Router();
 // Winston logger configuration
 const logger = winston_1.default.createLogger({
@@ -245,6 +246,8 @@ router.post('/nextgen', verifyNextGenAuth, async (req, res) => {
         }
         // Adapt lead data (full) but we'll upsert minimal first for speed
         const fullLeadData = adaptNextGenLead(validationResult.data);
+        // Get tenant ID for this request
+        const tenantId = req.tenantId;
         // Broadcast minimal stub ASAP for instant UI feedback (no DB wait)
         try {
             (0, index_1.broadcastNewLeadNotification)({
@@ -265,38 +268,89 @@ router.post('/nextgen', verifyNextGenAuth, async (req, res) => {
                 message: 'Lead must have either email or phone',
             });
         }
-        // Build minimal payload for fast upsert
-        const minimal = {
-            nextgenId: fullLeadData.nextgenId,
-            firstName: fullLeadData.firstName,
-            lastName: fullLeadData.lastName,
-            name: fullLeadData.name,
-            email: fullLeadData.email,
-            phone: fullLeadData.phone,
-            createdAt: fullLeadData.createdAt,
-            source: 'NextGen',
-            sourceCode: fullLeadData.sourceCode, // Include sourceCode in minimal payload
-            disposition: 'New Lead',
-            status: 'New',
-        };
-        const { lead, isNew } = await Lead_1.default.upsertLead(minimal);
-        leadId = lead._id.toString();
-        // Async update with heavy fields (non-blocking)
-        setImmediate(async () => {
-            try {
-                await Lead_1.default.updateOne({ _id: leadId }, { $set: fullLeadData });
+        // Check for existing lead using deduplication key
+        let existingLead = null;
+        const dedupKey = (0, nextgenDeduplicationService_1.getDeduplicationKey)(fullLeadData);
+        if (dedupKey) {
+            // Build query similar to upsertLead but include nextgenId
+            const query = { tenantId };
+            if (fullLeadData.nextgenId) {
+                query.nextgenId = fullLeadData.nextgenId;
             }
-            catch (e) {
-                console.error('Async enrich lead failed', e);
+            else if (fullLeadData.phone) {
+                query.phone = fullLeadData.phone;
             }
-        });
+            else if (fullLeadData.email) {
+                query.email = fullLeadData.email;
+            }
+            existingLead = await Lead_1.default.findOne(query).lean();
+        }
+        // Apply deduplication logic
+        const deduplicationResult = (0, nextgenDeduplicationService_1.processNextGenLead)(fullLeadData, existingLead);
+        if (deduplicationResult.logMessage) {
+            logger.info('[NextGen Webhook] ' + deduplicationResult.logMessage);
+        }
+        // Process based on deduplication result
+        let lead;
+        let isNew = false;
+        if (deduplicationResult.action === 'create') {
+            // Create new lead
+            const minimal = {
+                nextgenId: deduplicationResult.leadData.nextgenId,
+                firstName: deduplicationResult.leadData.firstName,
+                lastName: deduplicationResult.leadData.lastName,
+                name: deduplicationResult.leadData.name,
+                email: deduplicationResult.leadData.email,
+                phone: deduplicationResult.leadData.phone,
+                createdAt: deduplicationResult.leadData.createdAt,
+                source: 'NextGen',
+                sourceCode: deduplicationResult.leadData.sourceCode,
+                disposition: 'New Lead',
+                status: 'New',
+            };
+            const result = await Lead_1.default.upsertLead({ ...minimal, tenantId });
+            lead = result.lead;
+            isNew = result.isNew;
+            leadId = lead._id.toString();
+            // Async update with heavy fields
+            setImmediate(async () => {
+                try {
+                    await Lead_1.default.updateOne({ _id: leadId }, { $set: deduplicationResult.leadData });
+                }
+                catch (e) {
+                    console.error('Async enrich lead failed', e);
+                }
+            });
+        }
+        else if (deduplicationResult.action === 'update') {
+            // Update existing lead with merged data
+            lead = await Lead_1.default.findByIdAndUpdate(existingLead._id, { $set: deduplicationResult.leadData }, { new: true });
+            if (!lead) {
+                logger.error('Failed to update lead', { existingLeadId: existingLead._id });
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to update lead',
+                });
+            }
+            leadId = lead._id.toString();
+            isNew = false;
+        }
+        else {
+            // Skip - shouldn't happen with current logic
+            return res.status(200).json({
+                success: true,
+                message: 'Lead processing skipped',
+                action: deduplicationResult.action,
+            });
+        }
         // Log success
         logger.info('NextGen lead processed successfully', {
             leadId,
-            nextgenId: fullLeadData.nextgenId,
+            nextgenId: deduplicationResult.leadData.nextgenId,
             isNew,
-            sourceCode: fullLeadData.sourceCode, // Log the source code
-            campaignName: validationResult.data.campaign_name, // Log raw campaign name
+            sourceCode: deduplicationResult.leadData.sourceCode,
+            product: deduplicationResult.leadData.product,
+            price: deduplicationResult.leadData.price,
             duration: Date.now() - startTime,
         });
         // Compute processing time

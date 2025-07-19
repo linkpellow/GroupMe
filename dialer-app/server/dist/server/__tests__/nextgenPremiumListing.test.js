@@ -30,7 +30,7 @@ describe('NextGen Premium Listing Deduplication', () => {
         // Verify other fields mapped correctly
         expect(dataRecord.firstName).toBe('Yliana');
         expect(dataRecord.lastName).toBe('Vasquez');
-        expect(dataRecord.phone).toBe('2104611180');
+        expect(dataRecord.phone).toBe('(210) 461-1180'); // Phone is formatted
     });
     it('should handle ad record appearing before data record', async () => {
         // CSV with ad record first, then data record

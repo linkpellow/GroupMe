@@ -74,4 +74,43 @@ Test the webhook mapping:
 ```bash
 cd dialer-app/server
 npm run test:nextgen-sourcecode
-``` 
+```
+
+## Premium Listing Deduplication
+
+As of 2025-07-19, the webhook handler also implements premium listing deduplication:
+
+### How It Works
+- **Product Types**: `product="data"` (main lead) vs `product="ad"` (premium listing)
+- **Price**: Premium listings are always $5
+- **Deduplication**: Based on lead_id, nextgenId, phone, or email
+- **Result**: Single lead per person with combined pricing
+
+### Scenarios
+1. **Main → Premium**: Adds $5 to existing lead
+2. **Premium → Main**: Replaces with main data, keeps combined price
+3. **Duplicate mains**: Updates with latest data, logs warning
+
+### Example
+```
+// First webhook: Main lead
+POST /api/webhooks/nextgen
+{
+  "lead_id": "D-123",
+  "product": "data",
+  "price": "45",
+  "first_name": "John"
+}
+→ Creates lead with price=$45
+
+// Second webhook: Premium listing
+POST /api/webhooks/nextgen
+{
+  "lead_id": "D-123",
+  "product": "ad",
+  "price": "5"
+}
+→ Updates same lead to price=$50, adds premium note
+```
+
+See `NEXTGEN_PREMIUM_LISTING.md` for complete details. 
