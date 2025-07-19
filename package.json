@@ -50,8 +50,8 @@
     "postbuild": "echo '=== SERVER BUILD OUTPUT DIAGNOSIS ===' && echo 'Checking dialer-app/server/dist/:' && ls -la dialer-app/server/dist/ 2>/dev/null || echo 'dist/ directory not found' && echo 'Checking for index.js:' && ls -la dialer-app/server/dist/server/src/index.js 2>/dev/null || echo 'index.js not found' && echo '=== END DIAGNOSIS ==='",
     "heroku-postbuild": "npm run build",
     "test:groupme": "npx jest test/test-groupme-oauth.test.js",
-    "gen:map": "mkdir -p docs && npx -p node@20 -p dependency-cruiser@15 depcruise src --output-type dot --no-config | npx @aduh95/viz.js-cli --svg > docs/dependency-graph.svg",
-    "gen:docs": "typedoc --entryPoints src --out docs/site"
+    "gen:map": "mkdir -p docs && npx -p node@20 -p dependency-cruiser@15 depcruise src --output-type dot --no-config > docs/dependency-graph.dot && npx graphviz-cli -Tsvg docs/dependency-graph.dot > docs/dependency-graph.svg",
+    "gen:docs": "typedoc --entryPoints dialer-app/server/src dialer-app/client/src --entryPointStrategy expand --out docs/site"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

@@ -1,0 +1,22 @@
+strict digraph "dependency-cruiser output"{
+    rankdir="LR" splines="true" overlap="false" nodesep="0.16" ranksep="0.18" fontname="Helvetica-bold" fontsize="9" style="rounded,bold,filled" fillcolor="#ffffff" compound="true"
+    node [shape="box" style="rounded, filled" height="0.2" color="black" fillcolor="#ffffcc" fontcolor="black" fontname="Helvetica" fontsize="9"]
+    edge [arrowhead="normal" arrowsize="0.6" penwidth="2.0" color="#00000033" fontname="Helvetica" fontsize="9"]
+
+    subgraph "cluster_.." {label=".." subgraph "cluster_../models" {label="models" "../models/Lead" [label=<Lead> tooltip="Lead" ] } }
+    subgraph "cluster_.." {label=".." subgraph "cluster_../models" {label="models" "../models/User" [label=<User> tooltip="User" ] } }
+    "csv-parse" [label=<csv-parse> tooltip="csv-parse" ]
+    "dotenv" [label=<dotenv> tooltip="dotenv" ]
+    "fs" [label=<fs> tooltip="fs" URL="https://nodejs.org/api/fs.html" color="grey" fontcolor="grey"]
+    "mongoose" [label=<mongoose> tooltip="mongoose" ]
+    "path" [label=<path> tooltip="path" URL="https://nodejs.org/api/path.html" color="grey" fontcolor="grey"]
+    subgraph "cluster_src" {label="src" "src/index.ts" [label=<index.ts> tooltip="index.ts" URL="src/index.ts" fillcolor="#ccffcc"] }
+    subgraph "cluster_src" {label="src" subgraph "cluster_src/scripts" {label="scripts" "src/scripts/import-nextgen-today.ts" [label=<import-nextgen-today.ts> tooltip="import-nextgen-today.ts" URL="src/scripts/import-nextgen-today.ts" fillcolor="#ddfeff"] } }
+    "src/scripts/import-nextgen-today.ts" -> "../models/Lead"
+    "src/scripts/import-nextgen-today.ts" -> "../models/User"
+    "src/scripts/import-nextgen-today.ts" -> "csv-parse"
+    "src/scripts/import-nextgen-today.ts" -> "dotenv"
+    "src/scripts/import-nextgen-today.ts" -> "fs" [style="dashed" penwidth="1.0"]
+    "src/scripts/import-nextgen-today.ts" -> "mongoose"
+    "src/scripts/import-nextgen-today.ts" -> "path" [style="dashed" penwidth="1.0"]
+}
