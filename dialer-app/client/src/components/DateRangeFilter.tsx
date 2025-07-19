@@ -182,6 +182,7 @@ const DropdownContainer = styled.div`
     color: #000 !important;
   }
 
+  /* Fix arrow directions - flip right arrow horizontally */
   .rdrNextPrevButton {
     background: rgba(255, 255, 255, 0.1) !important;
     color: white !important;
@@ -191,6 +192,10 @@ const DropdownContainer = styled.div`
       background: rgba(239, 191, 4, 0.8) !important;
       color: #000 !important;
     }
+  }
+
+  .rdrNextButton {
+    transform: scaleX(-1); /* Flip right arrow horizontally */
   }
 
   .rdrPprevButton i,
@@ -288,6 +293,12 @@ interface DateRangeFilterProps {
   className?: string;
 }
 
+// Helper function to get current year maximum date
+const getCurrentYearMaxDate = () => {
+  const currentYear = new Date().getFullYear();
+  return new Date(currentYear, 11, 31); // December 31st of current year
+};
+
 const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
   startDate,
   endDate,
@@ -302,6 +313,7 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
   }]);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [closing, setClosing] = useState(false);
+  const [hoverCloseTimer, setHoverCloseTimer] = useState<NodeJS.Timeout | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Update local range when props change
@@ -323,6 +335,15 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
       });
     }
   }, [isOpen]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverCloseTimer) {
+        clearTimeout(hoverCloseTimer);
+      }
+    };
+  }, [hoverCloseTimer]);
 
   // Handle click outside to close
   useEffect(() => {
@@ -346,6 +367,22 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
       document.removeEventListener('click', handleClickOutside);
     };
   }, [isOpen]);
+
+  // Graceful close on hover-off with delay
+  const handleMouseLeave = () => {
+    const timer = setTimeout(() => {
+      handleClose();
+    }, 250); // 250ms delay for graceful UX
+    setHoverCloseTimer(timer);
+  };
+
+  // Cancel close on mouse re-enter
+  const handleMouseEnter = () => {
+    if (hoverCloseTimer) {
+      clearTimeout(hoverCloseTimer);
+      setHoverCloseTimer(null);
+    }
+  };
 
   // Format display text
   const getDisplayText = () => {
@@ -392,6 +429,13 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
 
   const handleClose = () => {
     if (closing) return;
+    
+    // Clear any pending hover close timer
+    if (hoverCloseTimer) {
+      clearTimeout(hoverCloseTimer);
+      setHoverCloseTimer(null);
+    }
+    
     setClosing(true);
     setTimeout(() => {
       setClosing(false);
@@ -428,6 +472,8 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
           }}
           className={closing ? 'closing' : ''}
           data-date-range-dropdown
+          onMouseLeave={handleMouseLeave}
+          onMouseEnter={handleMouseEnter}
         >
           <DateRangeContainer>
             <DateRangePicker
@@ -439,6 +485,8 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
               direction="horizontal"
               preventSnapRefocus={true}
               calendarFocus="backwards"
+              showDateDisplay={false}
+              maxDate={getCurrentYearMaxDate()}
             />
           </DateRangeContainer>
           <ActionButtons>
