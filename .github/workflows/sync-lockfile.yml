@@ -1,0 +1,57 @@
+name: Sync Lockfile Cross-Platform
+
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - '**/package.json'
+      - '.github/workflows/sync-lockfile.yml'
+  workflow_dispatch:
+
+jobs:
+  check-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Check if lockfile needs update
+        id: check
+        run: |
+          # Save current lockfile
+          cp package-lock.json package-lock.json.orig || true
+          
+          # Remove node_modules and lockfile
+          rm -rf node_modules package-lock.json
+          rm -rf dialer-app/client/node_modules
+          rm -rf dialer-app/server/node_modules
+          
+          # Regenerate lockfile (on Linux, this ensures all platform deps)
+          npm install
+          
+          # Check if lockfile changed
+          if ! diff -q package-lock.json.orig package-lock.json >/dev/null 2>&1; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit updated lockfile
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          git commit -m "chore: update lockfile for cross-platform compatibility
+
+          Regenerated lockfile on Linux to include all platform-specific
+          optional dependencies required for deployment."
+          git push 
