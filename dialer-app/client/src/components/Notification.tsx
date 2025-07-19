@@ -25,80 +25,154 @@ const NotificationItem = styled.div<NotificationItemProps>`
   background: ${
     (props) =>
       props.notificationType === 'marketplace'
-        ? 'rgba(75, 225, 208, 0.95)' // Marketplace teal
-        : 'rgba(146, 220, 126, 0.95)' // NextGen green
+        ? 'linear-gradient(135deg, rgba(75, 225, 208, 0.98) 0%, rgba(34, 197, 94, 0.95) 100%)' // Marketplace gradient
+        : 'linear-gradient(135deg, rgba(34, 197, 94, 0.98) 0%, rgba(16, 185, 129, 0.95) 100%)' // NextGen success gradient
   };
   color: ${
     (props) =>
       props.notificationType === 'marketplace'
-        ? '#2C4352' // Marketplace dark blue
-        : '#1a472a' // NextGen dark green
+        ? '#1F2937' // Marketplace dark
+        : '#1F2937' // NextGen dark
   };
-  padding: 16px 24px;
-  border-radius: 12px; // More rounded corners
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+  padding: 20px 28px;
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 25px rgba(34, 197, 94, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   display: flex;
-  align-items: center;
-  gap: 12px;
-  animation: ${(props) => (props.isClosing ? 'slideUp' : 'slideDown')} 0.5s
-    cubic-bezier(0.34, 1.56, 0.64, 1);
+  align-items: flex-start;
+  gap: 16px;
+  animation: ${(props) => (props.isClosing ? 'slideUp' : 'celebrationSlideDown')} 0.6s
+    cubic-bezier(0.175, 0.885, 0.32, 1.275);
   margin: 0 20px;
-  font-size: 16px;
   pointer-events: auto;
   will-change: transform, opacity;
   z-index: 9999;
   cursor: pointer;
   transition:
-    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 0.3s ease;
-  border: 1px solid
+    transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    box-shadow 0.4s ease,
+    scale 0.2s ease;
+  border: 2px solid
     ${
       (props) =>
         props.notificationType === 'marketplace'
-          ? 'rgba(75, 225, 208, 0.4)' // Marketplace teal border
-          : 'rgba(34, 197, 94, 0.4)' // NextGen green border
+          ? 'rgba(255, 255, 255, 0.5)' // Marketplace bright border
+          : 'rgba(255, 255, 255, 0.5)' // NextGen bright border
     };
+  position: relative;
+  overflow: hidden;
 
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
   }
 
-  @keyframes slideDown {
-    from {
-      transform: translateY(-120%);
+  &:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 
+      0 12px 35px rgba(34, 197, 94, 0.3),
+      0 6px 18px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+
+    &::before {
+      left: 100%;
+    }
+  }
+
+  &:active {
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  @keyframes celebrationSlideDown {
+    0% {
+      transform: translateY(-120%) scale(0.8);
       opacity: 0;
     }
-    to {
-      transform: translateY(0);
+    50% {
+      transform: translateY(-10%) scale(1.05);
+      opacity: 0.9;
+    }
+    100% {
+      transform: translateY(0) scale(1);
       opacity: 1;
     }
   }
 
   @keyframes slideUp {
     from {
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
       opacity: 1;
     }
     to {
-      transform: translateY(-120%);
+      transform: translateY(-120%) scale(0.9);
       opacity: 0;
     }
   }
 `;
 
 const NotificationLogo = styled.img`
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  filter: 
+    drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2))
+    drop-shadow(0 1px 2px rgba(255, 255, 255, 0.3));
+  animation: logoGlow 2s ease-in-out infinite alternate;
+  flex-shrink: 0;
+
+  @keyframes logoGlow {
+    0% {
+      filter: 
+        drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2))
+        drop-shadow(0 1px 2px rgba(255, 255, 255, 0.3));
+    }
+    100% {
+      filter: 
+        drop-shadow(0 4px 8px rgba(34, 197, 94, 0.3))
+        drop-shadow(0 2px 4px rgba(255, 255, 255, 0.5));
+    }
+  }
 `;
 
-const NotificationText = styled.div`
-  font-size: 16px;
-  font-weight: 600;
+const NotificationContent = styled.div`
   flex: 1;
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const NotificationTitle = styled.div`
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.5px;
+`;
+
+const NotificationLeadName = styled.div`
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.3px;
+  margin-top: 2px;
+`;
+
+const NotificationSubtext = styled.div`
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.9;
+  line-height: 1.3;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.6);
+  margin-top: 1px;
 `;
 
 // Keep a global audio element to prevent Chrome autoplay issues
@@ -179,6 +253,7 @@ interface NotificationProps {
   onClose: () => void;
   duration?: number;
   notificationType?: 'nextgen' | 'marketplace';
+  leadName?: string;
 }
 
 const Notification: React.FC<NotificationProps> = ({
@@ -186,6 +261,7 @@ const Notification: React.FC<NotificationProps> = ({
   onClose,
   duration = 8000,
   notificationType = 'nextgen',
+  leadName,
 }) => {
   const [isClosing, setIsClosing] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -256,7 +332,17 @@ const Notification: React.FC<NotificationProps> = ({
           }
           alt={notificationType === 'marketplace' ? 'Marketplace' : 'NextGen'}
         />
-        <NotificationText>{message}</NotificationText>
+        <NotificationContent>
+          {leadName ? (
+            <>
+              <NotificationTitle>🎉 New NextGen Lead!</NotificationTitle>
+              <NotificationLeadName>{leadName}</NotificationLeadName>
+              <NotificationSubtext>Ready to convert! 🚀</NotificationSubtext>
+            </>
+          ) : (
+            <NotificationTitle>{message}</NotificationTitle>
+          )}
+        </NotificationContent>
       </NotificationItem>
     </NotificationContainer>
   );

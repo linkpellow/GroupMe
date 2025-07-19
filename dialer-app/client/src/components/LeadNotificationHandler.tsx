@@ -5,6 +5,129 @@ import { webSocketService } from '../services/websocketService';
 import { useQueryClient } from '@tanstack/react-query';
 import { safeString } from '../utils/safeString';
 
+// Professional System Notification Service
+interface SystemNotificationOptions {
+  title: string;
+  body: string;
+  leadId: string;
+  leadName: string;
+}
+
+class SystemNotificationService {
+  private static instance: SystemNotificationService;
+  private permissionRequested = false;
+  private notificationQueue: SystemNotificationOptions[] = [];
+
+  static getInstance(): SystemNotificationService {
+    if (!SystemNotificationService.instance) {
+      SystemNotificationService.instance = new SystemNotificationService();
+    }
+    return SystemNotificationService.instance;
+  }
+
+  async requestPermission(): Promise<NotificationPermission> {
+    if (!('Notification' in window)) {
+      console.warn('[SystemNotification] Browser does not support notifications');
+      return 'denied';
+    }
+
+    if (Notification.permission === 'granted') {
+      return 'granted';
+    }
+
+    if (Notification.permission === 'denied') {
+      console.warn('[SystemNotification] Notification permission denied by user');
+      return 'denied';
+    }
+
+    // Request permission with user-friendly timing
+    if (!this.permissionRequested) {
+      this.permissionRequested = true;
+      
+      // Show a friendly prompt first
+      const userWantsNotifications = window.confirm(
+        '🎉 Get instant notifications for new NextGen leads!\n\nWould you like to enable desktop notifications so you never miss a lead, even when the browser is minimized?'
+      );
+
+      if (!userWantsNotifications) {
+        return 'denied';
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        console.log('[SystemNotification] Permission result:', permission);
+        return permission;
+      } catch (error) {
+        console.error('[SystemNotification] Permission request failed:', error);
+        return 'denied';
+      }
+    }
+
+    return Notification.permission;
+  }
+
+  async showNotification(options: SystemNotificationOptions): Promise<void> {
+    const permission = await this.requestPermission();
+    
+    if (permission !== 'granted') {
+      console.warn('[SystemNotification] Permission not granted, skipping system notification');
+      return;
+    }
+
+    try {
+      const notification = new Notification(options.title, {
+        body: options.body,
+        icon: '/images/nextgen.png',
+        badge: '/images/nextgen.png',
+        tag: `nextgen-lead-${options.leadId}`, // Prevents duplicate notifications
+        requireInteraction: false, // Allow auto-dismiss
+        silent: true, // We handle our own sound
+        data: {
+          leadId: options.leadId,
+          leadName: options.leadName,
+          url: window.location.origin
+        }
+      });
+
+      // Handle notification click - focus window and navigate to leads
+      notification.onclick = () => {
+        console.log('[SystemNotification] Notification clicked, focusing window');
+        
+        // Focus the browser window
+        if (window.parent) {
+          window.parent.focus();
+        }
+        window.focus();
+
+        // Close the notification
+        notification.close();
+
+        // Optional: Navigate to leads page or specific lead
+        // You could add navigation logic here if needed
+      };
+
+      // Auto-close after 12 seconds for better UX
+      setTimeout(() => {
+        if (notification) {
+          notification.close();
+        }
+      }, 12000);
+
+      console.log('[SystemNotification] System notification displayed successfully');
+
+    } catch (error) {
+      console.error('[SystemNotification] Failed to show notification:', error);
+    }
+  }
+}
+
+const systemNotificationService = SystemNotificationService.getInstance();
+
+// Helper function for easy access
+const showSystemNotification = async (options: SystemNotificationOptions): Promise<void> => {
+  return systemNotificationService.showNotification(options);
+};
+
 interface NewLeadNotification {
   type: 'new_lead_notification';
   data: {
@@ -61,7 +184,7 @@ const LeadNotificationHandler: React.FC = () => {
   useEffect(() => {
     console.log('[LeadNotification] Component mounted');
     
-    const handleNewLeadNotification = (data: NewLeadNotification) => {
+    const handleNewLeadNotification = async (data: NewLeadNotification) => {
       try {
         // Log full payload for debugging
         console.log('[WS] new_lead_notification payload:', JSON.stringify(data, null, 2));
@@ -88,8 +211,8 @@ const LeadNotificationHandler: React.FC = () => {
             }
           }
 
-          // 1. Trigger banner/SFX
-          showNotification(`New NextGen Lead! ${name}`, 'nextgen');
+          // 1. Trigger dopamine-triggering banner/SFX
+          showNotification('New NextGen Lead!', 'nextgen', name);
           
           // 2. Optimistically inject into any cached first-page query to avoid flicker
           const cachedQueries = queryClient.getQueriesData({ queryKey: ['leads'] }) as any[];
@@ -133,23 +256,16 @@ const LeadNotificationHandler: React.FC = () => {
             recentNotifications.delete(notificationKey);
           }, 60000);
           
-          // For Chrome, also try notification API as a backup
+          // Professional system-level notification
           try {
-            if ('Notification' in window && Notification.permission === 'granted') {
-              const notification = new Notification('New NextGen Lead!', {
-                body: name,
-                icon: '/images/nextgen.png',
-                silent: true // We'll play our own sound
-              });
-              
-              // Auto-close after 8 seconds
-              setTimeout(() => notification.close(), 8000);
-            } else if ('Notification' in window && Notification.permission !== 'denied') {
-              // Request permission
-              Notification.requestPermission();
-            }
+            await showSystemNotification({
+              title: '🎉 New NextGen Lead!',
+              body: `${name}\nReady to convert! 🚀`,
+              leadId,
+              leadName: name
+            });
           } catch (error) {
-            console.error('[Notification API] Error:', error);
+            console.error('[System Notification] Error:', error);
           }
         }
       } catch (error) {
@@ -242,7 +358,7 @@ const LeadNotificationHandler: React.FC = () => {
           if (!recentNotifications.has(notificationKey)) {
             console.log('[LeadNotification] Showing notification from polling:', lead.name);
             
-            showNotification(`New NextGen Lead! ${lead.name}`, 'nextgen');
+            showNotification('New NextGen Lead!', 'nextgen', lead.name);
             recentNotifications.add(notificationKey);
             
             // Increment counter

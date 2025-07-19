@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import Notification from '../components/Notification';
 
 interface NotificationContextType {
-  showNotification: (message: string, notificationType?: 'nextgen' | 'marketplace') => void;
+  showNotification: (message: string, notificationType?: 'nextgen' | 'marketplace', leadName?: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -19,14 +19,15 @@ interface NotificationItem {
   id: string;
   message: string;
   notificationType?: 'nextgen' | 'marketplace';
+  leadName?: string;
 }
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  const showNotification = useCallback((message: string, notificationType?: 'nextgen' | 'marketplace') => {
+  const showNotification = useCallback((message: string, notificationType?: 'nextgen' | 'marketplace', leadName?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
-    setNotifications((prev) => [...prev, { id, message, notificationType }]);
+    setNotifications((prev) => [...prev, { id, message, notificationType, leadName }]);
   }, []);
 
   const removeNotification = useCallback((id: string) => {
@@ -42,6 +43,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           message={notification.message}
           onClose={() => removeNotification(notification.id)}
           notificationType={notification.notificationType}
+          leadName={notification.leadName}
         />
       ))}
     </NotificationContext.Provider>
