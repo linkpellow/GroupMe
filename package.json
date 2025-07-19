@@ -99,7 +99,7 @@
     "kill-port": "^2.0.1",
     "nock": "^13.4.0",
     "rimraf": "^6.0.1",
-    "typedoc": "^0.25.13",
+    "typedoc": "0.28.7",
     "typescript": "^5.8.3"
   },
   "dependencies": {
