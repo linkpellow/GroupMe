@@ -93,7 +93,7 @@
     "@types/cheerio": "^0.22.35",
     "@types/cors": "^2.8.17",
     "@types/cron": "^2.0.1",
-    "@types/dotenv-safe": "^8.1.6",
+    "@types/dotenv-safe": "8.1.6",
     "@types/express": "^4.17.23",
     "@types/glob": "^8.1.0",
     "@types/gridfs-stream": "^0.5.36",
@@ -129,9 +129,7 @@
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.2",
-    "glob": "^10.3.10",
-    "@types/glob": "^8.1.0"
+    "typescript": "^5.3.2"
   },
   "engines": {
     "node": "18.x",
