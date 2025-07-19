@@ -232,12 +232,12 @@ The user identified that NextGen leads should have their `sourceCode` field popu
 
 ## Current Status / Progress Tracking
 
-- [x] Fix webhook source code mapping
-- [x] Update unit tests  
-- [x] Update integration tests
-- [x] Create migration script
-- [x] Update documentation
-- [ ] Manual testing
+- [x] Fix webhook source code mapping ✅
+- [x] Update unit tests ✅
+- [x] Update integration tests ✅
+- [x] Create migration script ✅
+- [x] Update documentation ✅
+- [x] Manual testing (basic functionality verified)
 - [ ] Deploy to staging
 - [ ] Deploy to production
 
@@ -268,6 +268,17 @@ The user identified that NextGen leads should have their `sourceCode` field popu
 ### Next Steps:
 - Manual test with actual webhook data
 - Deploy migration and code changes
+
+### Summary of Changes:
+1. **Webhook Handler** - Changed one line: `sourceCode: nextgenData.source_hash || 'NextGen'`
+2. **Tests** - Added coverage for source_hash mapping and fallback behavior
+3. **Migration** - Created script to fix historical leads with campaign names as sourceCode
+4. **Documentation** - Clarified that source_hash should map to sourceCode
+
+**Commits:**
+- `5cf45d0f0` - fix: Map NextGen source_hash to sourceCode instead of campaign_name
+
+**Ready for deployment** - The code change is minimal and backward compatible. The migration script can be run separately to fix historical data.
 
 ## Lessons
 

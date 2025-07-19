@@ -1,0 +1,33 @@
+// Manual verification script for NextGen source code mapping
+
+console.log('🔍 NextGen Source Code Mapping Verification\n');
+
+console.log('Expected Behavior:');
+console.log('- Webhook handler should map `source_hash` → `sourceCode`');
+console.log('- If source_hash is missing, fallback to "NextGen"');
+console.log('- This matches CSV import behavior\n');
+
+console.log('📝 Manual Verification Steps:');
+console.log('1. Send a test webhook with source_hash field:');
+console.log('   curl -X POST http://localhost:3005/api/webhooks/nextgen \\');
+console.log('     -H "Content-Type: application/json" \\');
+console.log('     -H "sid: your-sid" \\');
+console.log('     -H "apikey: your-key" \\');
+console.log('     -d \'{"lead_id": "TEST-123", "source_hash": "2kHewh", ...}\'');
+console.log('');
+console.log('2. Check database to verify sourceCode contains the hash:');
+console.log('   mongo crokodial');
+console.log('   db.leads.findOne({leadId: "TEST-123"}, {sourceCode: 1, sourceHash: 1})');
+console.log('   // Should show: { sourceCode: "2kHewh", sourceHash: "2kHewh" }');
+console.log('');
+console.log('3. Run migration to fix historical data:');
+console.log('   cd dialer-app/server');
+console.log('   npx ts-node src/migrations/20250719-fix-nextgen-sourcehash.ts');
+console.log('   // Add --fix-defaults flag to also update leads with default values');
+console.log('');
+console.log('✅ Success Criteria:');
+console.log('- New webhook leads have source_hash as sourceCode');
+console.log('- CSV imports continue to work correctly');
+console.log('- Migration updates historical leads');
+
+export {}; 
