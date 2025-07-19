@@ -2310,6 +2310,21 @@ export default function Leads() {
               height: '80px',
             }}
           >
+            {/* Meta column: Created date - Moved above buttons */}
+            <span
+              style={{
+                position: 'absolute',
+                bottom: '50px', // Moved up from 10px to 50px to be above buttons
+                right: '10px',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                color: '#000', // Ensure it's visible
+              }}
+              title="Created At"
+            >
+              {lead.createdAt && `Created: ${format(new Date(lead.createdAt), "EEE, MMM d yyyy @ h:mma")}`}
+            </span>
+
             {/* Call and Hang Up buttons - Left side */}
             <div
               style={{
@@ -2344,19 +2359,6 @@ export default function Leads() {
               >
                 <FaPhoneSlash /> Hang Up
               </HangUpButton>
-              {/* Meta column: Created date */}
-              <span
-                style={{
-                  position: 'absolute',
-                  bottom: '10px',
-                  right: '10px',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                }}
-                title="Created At"
-              >
-                {lead.createdAt && `Created: ${format(new Date(lead.createdAt), "EEE, MMM d yyyy @ h:mma")}`}
-              </span>
             </div>
           </div>
         </div>
