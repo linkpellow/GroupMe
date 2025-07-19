@@ -2240,8 +2240,18 @@ export default function Leads() {
           </div>
         </div>
 
-        {/* Utility row – local time + actions (moved back to original position) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '10px', marginBottom: '10px' }}>
+        {/* Bottom-right utilities cluster: local time, Textdrip, ellipsis menu */}
+        {/* removed from mid-card and relocated here for consistent UX */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '10px',
+            right: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
           <LocalTime
             zipCode={lead.zipcode}
             style={{
@@ -2254,6 +2264,7 @@ export default function Leads() {
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
             }}
           />
+
           <IconButton
             aria-label="Add to Textdrip Campaign"
             icon={<TextdripIcon boxSize="28px" />}
@@ -2265,6 +2276,7 @@ export default function Leads() {
             }}
             title="Add to Textdrip Campaign"
           />
+
           <LeadActionsMenu
             lead={lead}
             onEdit={handleEditLead}
