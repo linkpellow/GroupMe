@@ -2095,7 +2095,7 @@ export default function Leads() {
               })()}
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {lead.name}
-                { (lead.sourceCode || (lead as any).source || (lead as any).pipelineSource) && (
+                { ((lead as any).source_hash || lead.source || (lead as any).pipelineSource) && (
                    <span
                      style={{
                        color: '#666',
@@ -2105,7 +2105,7 @@ export default function Leads() {
                      }}
                      title="Source Code"
                    >
-                    {lead.sourceCode || (lead as any).source || (lead as any).pipelineSource}
+                    {(lead as any).source_hash || lead.source || (lead as any).pipelineSource}
                    </span>
                  )}
               </span>
