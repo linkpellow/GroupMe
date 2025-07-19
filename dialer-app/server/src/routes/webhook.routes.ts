@@ -197,7 +197,7 @@ const adaptNextGenLead = (nextgenData: NextGenLeadData) => {
 
     // Defaults
     source: 'NextGen' as const,  // Changed to match the enum in Lead model
-    sourceCode: nextgenData.campaign_name || nextgenData.vendor_name || 'NextGen', // Use campaign name as source code
+    sourceCode: nextgenData.source_hash || 'NextGen', // Use source hash as source code (e.g. "2kHewh")
     disposition: 'New Lead' as const,  // Changed to match other imports
     status: 'New' as const,
 

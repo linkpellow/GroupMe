@@ -38,7 +38,13 @@ describe('NextGen Webhook Premium Listing Integration', () => {
             sid: 'test-sid',
             apiKey: 'test-key',
             tenantId: 'test-tenant-id',
-            active: true
+            active: true,
+            lean: jest.fn().mockResolvedValue({
+                sid: 'test-sid',
+                apiKey: 'test-key',
+                tenantId: 'test-tenant-id',
+                active: true
+            })
         });
     });
     const baseLeadData = {
@@ -50,6 +56,7 @@ describe('NextGen Webhook Premium Listing Integration', () => {
         email: 'john.doe@example.com',
         product: 'data',
         campaign_name: 'Test Campaign',
+        source_hash: '2kHewh', // Add source hash
         price: '45.00'
     };
     const premiumLeadData = {
@@ -187,5 +194,93 @@ describe('NextGen Webhook Premium Listing Integration', () => {
                 lastName: 'Doe'
             })
         }), { new: true });
+    });
+    it('should map source_hash to sourceCode field', async () => {
+        // Test data with source_hash
+        const leadWithSourceHash = {
+            ...baseLeadData,
+            source_hash: 'ABC123def',
+            campaign_name: 'Some Campaign'
+        };
+        mockReq = {
+            body: leadWithSourceHash,
+            headers: {
+                sid: 'test-sid',
+                apikey: 'test-key'
+            }
+        };
+        // Mock no existing lead
+        Lead_1.default.findOne.mockResolvedValue({
+            lean: jest.fn().mockResolvedValue(null)
+        });
+        // Mock upsertLead
+        Lead_1.default.upsertLead = jest.fn().mockResolvedValue({
+            lead: {
+                _id: { toString: () => 'lead-789' },
+                sourceCode: 'ABC123def'
+            },
+            isNew: true
+        });
+        // Find the webhook handler
+        const router = webhook_routes_1.default;
+        const routes = router.stack;
+        const nextgenRoute = routes.find((r) => r.route?.path === '/nextgen');
+        const handler = nextgenRoute.route.stack.find((s) => s.method === 'post').handle;
+        // Mock next function
+        const next = jest.fn();
+        // Call auth middleware
+        const authMiddleware = nextgenRoute.route.stack[0].handle;
+        await authMiddleware(mockReq, mockRes, next);
+        // Call handler
+        await handler(mockReq, mockRes);
+        // Verify sourceCode was set from source_hash, not campaign_name
+        expect(Lead_1.default.upsertLead).toHaveBeenCalledWith(expect.objectContaining({
+            sourceCode: 'ABC123def', // Should use source_hash
+            source: 'NextGen'
+        }));
+    });
+    it('should fallback to "NextGen" when source_hash is missing', async () => {
+        // Test data without source_hash
+        const leadWithoutSourceHash = {
+            ...baseLeadData,
+            source_hash: undefined,
+            campaign_name: 'Some Campaign'
+        };
+        mockReq = {
+            body: leadWithoutSourceHash,
+            headers: {
+                sid: 'test-sid',
+                apikey: 'test-key'
+            }
+        };
+        // Mock no existing lead
+        Lead_1.default.findOne.mockResolvedValue({
+            lean: jest.fn().mockResolvedValue(null)
+        });
+        // Mock upsertLead
+        Lead_1.default.upsertLead = jest.fn().mockResolvedValue({
+            lead: {
+                _id: { toString: () => 'lead-890' },
+                sourceCode: 'NextGen'
+            },
+            isNew: true
+        });
+        // Find the webhook handler
+        const router = webhook_routes_1.default;
+        const routes = router.stack;
+        const nextgenRoute = routes.find((r) => r.route?.path === '/nextgen');
+        const handler = nextgenRoute.route.stack.find((s) => s.method === 'post').handle;
+        // Mock next function
+        const next = jest.fn();
+        // Call auth middleware
+        const authMiddleware = nextgenRoute.route.stack[0].handle;
+        await authMiddleware(mockReq, mockRes, next);
+        // Call handler
+        await handler(mockReq, mockRes);
+        // Verify sourceCode fallback to 'NextGen'
+        expect(Lead_1.default.upsertLead).toHaveBeenCalledWith(expect.objectContaining({
+            sourceCode: 'NextGen', // Should use fallback
+            source: 'NextGen'
+        }));
     });
 });

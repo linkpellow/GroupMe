@@ -23,12 +23,13 @@ async function testSourceCodeMapping() {
     });
 
     console.log('Response:', response.data);
-    console.log('\nExpected source code:', testPayload.campaign_name);
+    console.log('\nExpected source code:', testPayload.source_hash);
     
     // Verify the lead was created with correct source code
     if (response.data.leadId) {
       console.log('\n✅ Lead created successfully with ID:', response.data.leadId);
-      console.log('Check the database to verify sourceCode is set to:', testPayload.campaign_name);
+      console.log('Check the database to verify sourceCode is set to:', testPayload.source_hash);
+      console.log('(NOT the campaign_name:', testPayload.campaign_name + ')');
     }
 
   } catch (error: any) {

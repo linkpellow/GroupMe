@@ -1,35 +1,30 @@
 # NextGen Webhook Field Mapping
 
-## Overview
-This document describes how NextGen webhook data is mapped to our Lead schema.
+This document describes how NextGen webhook data is mapped to our internal lead schema.
 
-## Source Code Mapping
-As of 2025-07-19, NextGen leads now correctly map campaign information to the `sourceCode` field.
+## Field Mappings
 
-### Priority Order
-The system uses the following priority order for source code:
-1. `campaign_name` - The marketing campaign that generated the lead (e.g., "Health Insurance Q3")
-2. `vendor_name` - The vendor/partner name if campaign is missing (e.g., "NextGen Leads")
-3. `"NextGen"` - Fallback if both are missing
+### Core Lead Fields
+| NextGen Field | Our Field | Notes |
+|--------------|-----------|--------|
+| lead_id | leadId | Unique identifier from NextGen |
+| nextgen_id | nextgenId | Alternative ID |
+| first_name | firstName | |
+| last_name | lastName | |
+| phone | phone | Formatted as (XXX) XXX-XXXX |
+| email | email | |
 
-### Example
-```json
-// NextGen sends:
-{
-  "campaign_name": "Health Insurance Q3",
-  "vendor_name": "NextGen Leads",
-  "account_name": "Health Direct"
-}
+### Tracking Fields  
+| NextGen Field | Our Field | Notes |
+|--------------|-----------|--------|
+| source_hash | sourceCode | **The actual source tracking code (e.g. "2kHewh")** |
+| source_hash | sourceHash | Kept for backward compatibility |
+| campaign_name | campaignName | Human-readable campaign name |
+| sub_id_hash | subIdHash | Sub-affiliate tracking |
 
-// We store:
-{
-  "source": "NextGen",
-  "sourceCode": "Health Insurance Q3"
-}
-```
+⚠️ **Important**: The `sourceCode` field should contain the source hash (e.g., "2kHewh"), NOT the campaign name. This ensures consistency with CSV imports.
 
-## Complete Field Mapping
-
+### Address Fields
 | NextGen Field | Our Field | Notes |
 |--------------|-----------|--------|
 | `lead_id` or `nextgen_id` | `nextgenId` | Unique identifier from NextGen |
