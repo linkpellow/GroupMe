@@ -247,9 +247,11 @@ export const broadcastMessage = (message: object) => {
 export const broadcastNewLeadNotification = (leadData: {
   leadId?: string; // may be undefined for pre-DB stub notifications
   name: string;
+  phone?: string; // phone number for click-to-call functionality
   source: string;
   isNew: boolean;
   processMs?: number;
+  isStub?: boolean; // distinguish stub notifications from full notifications
 }) => {
   const notification = {
     type: 'new_lead_notification',

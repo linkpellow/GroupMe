@@ -251,13 +251,19 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
     // Get tenant ID for this request
     const tenantId = (req as any).tenantId;
 
+    // Track if we sent a stub notification to prevent duplicate broadcasts
+    let stubNotificationSent = false;
+    
     // Broadcast minimal stub ASAP for instant UI feedback (no DB wait)
     try {
       broadcastNewLeadNotification({
         name: fullLeadData.name,
+        phone: fullLeadData.phone, // Include phone for click-to-call
         source: 'NextGen',
         isNew: true,
+        isStub: true, // Mark as stub to differentiate from full notification
       });
+      stubNotificationSent = true;
     } catch (stubErr) {
       logger.warn('Stub notification failed', stubErr);
     }
@@ -302,7 +308,7 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
     
     if (deduplicationResult.action === 'create') {
       // Create new lead
-      const minimal = {
+    const minimal = {
         nextgenId: deduplicationResult.leadData.nextgenId,
         firstName: deduplicationResult.leadData.firstName,
         lastName: deduplicationResult.leadData.lastName,
@@ -310,25 +316,25 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
         email: deduplicationResult.leadData.email,
         phone: deduplicationResult.leadData.phone,
         createdAt: deduplicationResult.leadData.createdAt,
-        source: 'NextGen' as const,
+      source: 'NextGen' as const,
         sourceCode: deduplicationResult.leadData.sourceCode,
-        disposition: 'New Lead' as const,
-        status: 'New' as const,
-      };
+      disposition: 'New Lead' as const,
+      status: 'New' as const,
+    };
 
       const result = await (Lead as any).upsertLead({ ...minimal, tenantId });
       lead = result.lead;
       isNew = result.isNew;
-      leadId = lead._id.toString();
+    leadId = lead._id.toString();
 
       // Async update with heavy fields
-      setImmediate(async () => {
-        try {
+    setImmediate(async () => {
+      try {
           await Lead.updateOne({ _id: leadId }, { $set: deduplicationResult.leadData });
-        } catch (e) {
-          console.error('Async enrich lead failed', e);
-        }
-      });
+      } catch (e) {
+        console.error('Async enrich lead failed', e);
+      }
+    });
       
     } else if (deduplicationResult.action === 'update') {
       // Update existing lead with merged data
@@ -370,17 +376,29 @@ router.post('/nextgen', verifyNextGenAuth, async (req: Request, res: Response) =
     const processMs = Date.now() - startTime;
 
     // Broadcast notification if available
+    // Skip full broadcast if we already sent a stub notification for new leads (prevents duplicates)
     if (typeof broadcastNewLeadNotification === 'function' && leadId) {
-      try {
-        broadcastNewLeadNotification({
+      const shouldBroadcast = !isNew || !stubNotificationSent;
+      
+      if (shouldBroadcast) {
+        try {
+          broadcastNewLeadNotification({
+            leadId,
+            name: fullLeadData.name,
+            phone: fullLeadData.phone, // Include phone for click-to-call
+            source: 'NextGen',
+            isNew,
+            processMs,
+            isStub: false, // Mark as full notification
+          });
+        } catch (broadcastError) {
+          logger.error('Failed to broadcast lead notification', broadcastError);
+        }
+      } else {
+        logger.info('Skipping duplicate broadcast for new lead (stub already sent)', {
           leadId,
           name: fullLeadData.name,
-          source: 'NextGen',
-          isNew,
-          processMs,
         });
-      } catch (broadcastError) {
-        logger.error('Failed to broadcast lead notification', broadcastError);
       }
     }
 

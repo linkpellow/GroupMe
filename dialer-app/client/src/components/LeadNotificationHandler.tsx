@@ -4,6 +4,9 @@ import { useNotificationSound } from '../context/NotificationSoundContext';
 import { webSocketService } from '../services/websocketService';
 import { useQueryClient } from '@tanstack/react-query';
 import { safeString } from '../utils/safeString';
+import { dialPhone } from '../utils/dial';
+import { useLifetimeCounts } from '../context/LifetimeCountsContext';
+import { useCallCountsContext } from '../context/CallCountsContext';
 
 // Professional System Notification Service
 interface SystemNotificationOptions {
@@ -133,6 +136,7 @@ interface NewLeadNotification {
   data: {
     leadId: string;
     name: string;
+    phone?: string; // phone number for click-to-call functionality
     source: string;
     isNew: boolean;
   };
@@ -147,6 +151,8 @@ const LeadNotificationHandler: React.FC = () => {
   const { showNotification } = useNotification();
   const { soundEnabled } = useNotificationSound();
   const queryClient = useQueryClient();
+  const { incrementCount } = useLifetimeCounts();
+  const { increment } = useCallCountsContext();
   const [recentNotifications] = useState<Set<string>>(new Set());
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [showDebug, setShowDebug] = useState<boolean>(false);
@@ -179,6 +185,25 @@ const LeadNotificationHandler: React.FC = () => {
     source: safeString(source),
     createdAt: new Date().toISOString(),
   });
+
+  // Click-to-call handler for notifications
+  const handleCallLead = React.useCallback((phone: string, name: string, leadId?: string) => {
+    console.log('[LeadNotification] Initiating call to:', name, phone);
+    
+    if (!phone) {
+      console.warn('[LeadNotification] No phone number available for call');
+      return;
+    }
+
+    // Increment call tracking
+    if (leadId) {
+      increment(leadId); // Daily CRM counter
+    }
+    incrementCount(phone); // Lifetime counter
+    
+    // Make the actual call
+    dialPhone(phone);
+  }, [increment, incrementCount]);
   
   // 1. Set up WebSocket notification listener
   useEffect(() => {
@@ -189,7 +214,7 @@ const LeadNotificationHandler: React.FC = () => {
         // Log full payload for debugging
         console.log('[WS] new_lead_notification payload:', JSON.stringify(data, null, 2));
         
-        const { leadId, name, source, isNew } = data.data;
+        const { leadId, name, phone, source, isNew } = data.data;
         
         // Check if we've already shown this notification
         const notificationKey = `${leadId}-${data.timestamp}`;
@@ -211,8 +236,9 @@ const LeadNotificationHandler: React.FC = () => {
             }
           }
 
-          // 1. Trigger dopamine-triggering banner/SFX
-          showNotification('New NextGen Lead!', 'nextgen', name);
+          // 1. Trigger dopamine-triggering banner/SFX with click-to-call
+          const callHandler = phone ? (phoneNum: string, leadName: string) => handleCallLead(phoneNum, leadName, leadId) : undefined;
+          showNotification('New NextGen Lead!', 'nextgen', name, phone, callHandler);
           
           // 2. Optimistically inject into any cached first-page query to avoid flicker
           const cachedQueries = queryClient.getQueriesData({ queryKey: ['leads'] }) as any[];

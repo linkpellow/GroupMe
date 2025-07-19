@@ -19,6 +19,7 @@ const NotificationContainer = styled.div`
 interface NotificationItemProps {
   isClosing: boolean;
   notificationType?: 'nextgen' | 'marketplace';
+  hasClickAction?: boolean;
 }
 
 const NotificationItem = styled.div<NotificationItemProps>`
@@ -26,7 +27,7 @@ const NotificationItem = styled.div<NotificationItemProps>`
     (props) =>
       props.notificationType === 'marketplace'
         ? 'linear-gradient(135deg, rgba(75, 225, 208, 0.98) 0%, rgba(34, 197, 94, 0.95) 100%)' // Marketplace gradient
-        : 'linear-gradient(135deg, rgba(34, 197, 94, 0.98) 0%, rgba(16, 185, 129, 0.95) 100%)' // NextGen success gradient
+        : 'linear-gradient(135deg, rgba(134, 239, 172, 0.98) 0%, rgba(74, 222, 128, 0.95) 100%)' // Lighter NextGen green gradient
   };
   color: ${
     (props) =>
@@ -49,7 +50,7 @@ const NotificationItem = styled.div<NotificationItemProps>`
   pointer-events: auto;
   will-change: transform, opacity;
   z-index: 9999;
-  cursor: pointer;
+  cursor: ${(props) => props.hasClickAction ? 'pointer' : 'default'};
   transition:
     transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275),
     box-shadow 0.4s ease,
@@ -235,15 +236,38 @@ const getGlobalAudio = (): HTMLAudioElement => {
     globalAudio.volume = 0.3;
     globalAudio.preload = 'auto';
     
+    // Add error handling for audio loading
+    globalAudio.addEventListener('error', (e) => {
+      console.error('Audio loading failed:', e);
+    });
+    
+    globalAudio.addEventListener('canplaythrough', () => {
+      console.log('Audio loaded and ready to play');
+    });
+    
     // Preload the audio when the document is first interacted with
     const preloadAudio = () => {
-      globalAudio?.load();
+      if (globalAudio) {
+        globalAudio.load();
+        // Try to enable audio context on user interaction
+                 globalAudio.play().then(() => {
+           if (globalAudio) {
+             globalAudio.pause();
+             globalAudio.currentTime = 0;
+           }
+          console.log('Audio context enabled via user interaction');
+        }).catch(() => {
+          console.log('Audio context not yet enabled, will retry on notification');
+        });
+      }
       document.removeEventListener('click', preloadAudio);
       document.removeEventListener('touchstart', preloadAudio);
+      document.removeEventListener('keydown', preloadAudio);
     };
     
     document.addEventListener('click', preloadAudio, { once: true });
     document.addEventListener('touchstart', preloadAudio, { once: true });
+    document.addEventListener('keydown', preloadAudio, { once: true });
   }
   return globalAudio;
 };
@@ -254,6 +278,8 @@ interface NotificationProps {
   duration?: number;
   notificationType?: 'nextgen' | 'marketplace';
   leadName?: string;
+  leadPhone?: string;
+  onCallLead?: (phone: string, name: string) => void;
 }
 
 const Notification: React.FC<NotificationProps> = ({
@@ -262,6 +288,8 @@ const Notification: React.FC<NotificationProps> = ({
   duration = 8000,
   notificationType = 'nextgen',
   leadName,
+  leadPhone,
+  onCallLead,
 }) => {
   const [isClosing, setIsClosing] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -275,22 +303,33 @@ const Notification: React.FC<NotificationProps> = ({
       // For other browsers, create a new audio instance each time
       audioRef.current = new Audio('/sounds/Cash app sound.mp3');
       audioRef.current.volume = 0.3;
+      audioRef.current.preload = 'auto';
     }
 
-    // Add event listeners for debugging
+    // Enhanced audio playback with better error handling
     if (audioRef.current) {
       // Reset the audio to beginning for playback
       audioRef.current.currentTime = 0;
+      
+      console.log(`[Notification Sound] Attempting to play sound (Chrome: ${isChrome})`);
       
       if (isChrome) {
         // For Chrome, use our safe play method
         safePlayAudio(audioRef.current);
       } else {
-        // For other browsers, use standard approach
-        audioRef.current.play().catch((error) => {
-          console.error('Error playing notification sound:', error);
-        });
+        // For other browsers, use standard approach with better error handling
+        audioRef.current.play()
+          .then(() => {
+            console.log('[Notification Sound] Audio played successfully');
+          })
+          .catch((error) => {
+            console.error('[Notification Sound] Error playing notification sound:', error);
+            // Try the same fallback strategy as Chrome
+            safePlayAudio(audioRef.current!);
+          });
       }
+    } else {
+      console.warn('[Notification Sound] Audio element not available');
     }
 
     const timer = setTimeout(() => {
@@ -310,12 +349,26 @@ const Notification: React.FC<NotificationProps> = ({
   }, [duration, onClose, isChrome]);
 
   const handleClick = () => {
+    // If click-to-call is available, initiate call
+    if (onCallLead && leadPhone && leadName) {
+      console.log('[Notification] Initiating call to:', leadName, leadPhone);
+      onCallLead(leadPhone, leadName);
+    }
+    
     setIsClosing(true);
     setTimeout(onClose, 300);
     
-    // Try playing audio on click as a fallback
-    if (isChrome && audioRef.current && audioRef.current.paused) {
-      audioRef.current.play().catch(() => {});
+    // Try playing audio on click as a fallback (user interaction enables audio)
+    if (audioRef.current) {
+      console.log('[Notification Sound] User clicked, attempting audio playback');
+      audioRef.current.currentTime = 0;
+      audioRef.current.play()
+        .then(() => {
+          console.log('[Notification Sound] Audio played successfully on click');
+        })
+        .catch((error) => {
+          console.warn('[Notification Sound] Click audio playback failed:', error);
+        });
     }
   };
 
@@ -325,6 +378,7 @@ const Notification: React.FC<NotificationProps> = ({
         isClosing={isClosing}
         onClick={handleClick}
         notificationType={notificationType}
+        hasClickAction={!!(onCallLead && leadPhone && leadName)}
       >
         <NotificationLogo
           src={
