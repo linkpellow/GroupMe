@@ -1,0 +1,89 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  lockfile-check:
+    name: Verify Lockfile Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Check lockfile integrity
+        run: |
+          echo "Verifying lockfile can be restored on Linux..."
+          npm ci
+          echo "✅ Lockfile is valid for Linux platform"
+
+      - name: Check for Linux platform dependencies
+        run: |
+          echo "Checking for Linux-specific Rollup dependencies..."
+          if ! grep -q "@rollup/rollup-linux" package-lock.json; then
+            echo "❌ ERROR: Missing Linux platform dependencies in lockfile!"
+            echo "Please run 'npm run lockfile:linux' locally and commit the updated lockfile."
+            exit 1
+          fi
+          echo "✅ Linux platform dependencies found"
+
+  build-and-test:
+    name: Build and Test
+    needs: lockfile-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dialer-app/client/dist
+            dialer-app/server/dist
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: Run security audit
+        run: |
+          npm audit --production
+          echo "Note: Some dev dependency vulnerabilities may be acceptable" 

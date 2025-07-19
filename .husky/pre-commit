@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Check if package-lock.json has been modified
+if git diff --cached --name-only | grep -q "package-lock.json"; then
+  echo "⚠️  WARNING: package-lock.json has been modified!"
+  echo ""
+  echo "If you've updated dependencies, you MUST regenerate the lockfile for Linux:"
+  echo ""
+  echo "  npm run lockfile:linux"
+  echo ""
+  echo "This ensures Heroku deployments will succeed."
+  echo ""
+  echo "Continue anyway? (y/n)"
+  read -r response
+  if [ "$response" != "y" ]; then
+    echo "Commit aborted. Please run 'npm run lockfile:linux' and try again."
+    exit 1
+  fi
+fi
+
+# Run tests if available
+npm test --if-present
