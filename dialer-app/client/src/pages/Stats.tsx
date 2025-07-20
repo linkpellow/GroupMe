@@ -262,9 +262,26 @@ const Stats: React.FC = () => {
         axiosInstance.get('/analytics/sold/demographics', { params: { timePeriod } })
       ]);
 
-      // Use real analytics data from backend instead of mock data
-      const realTimeline = leadDetailsRes.data?.timeline || [];
+      // Use real analytics data from backend - fix data structure mapping
+      const leadDetailsArray = leadDetailsRes.data?.data || [];
       const realCpaData = cpaRes.data?.data || {};
+      
+      // Create timeline from lead details data grouped by date
+      const timelineMap = new Map<string, { date: string; leads: number; sold: number; revenue: number }>();
+      leadDetailsArray.forEach((lead: any) => {
+        const date = new Date(lead.purchaseDate).toISOString().split('T')[0];
+        if (!timelineMap.has(date)) {
+          timelineMap.set(date, { date, leads: 0, sold: 0, revenue: 0 });
+        }
+        const entry = timelineMap.get(date)!;
+        entry.leads += 1;
+        entry.sold += 1; // All leads in this endpoint are SOLD
+        entry.revenue += parseFloat(lead.price) || 0;
+      });
+      
+      const realTimeline = Array.from(timelineMap.values()).sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
       
       setAnalyticsData({
         sourceCodes: sourceCodesRes.data?.data || [],
@@ -272,8 +289,8 @@ const Stats: React.FC = () => {
         demographics: demographicsRes.data?.data || [],
         timeline: realTimeline,
         cpa: realCpaData,
-        totalLeads: leadDetailsRes.data?.totalLeads || 0,
-        totalRevenue: leadDetailsRes.data?.totalRevenue || 0,
+        totalLeads: leadDetailsRes.data?.meta?.totalSOLDLeads || leadDetailsArray.length,
+        totalRevenue: leadDetailsArray.reduce((sum: number, lead: any) => sum + (parseFloat(lead.price) || 0), 0),
       });
     } catch (err) {
       console.error('Error fetching analytics:', err);
