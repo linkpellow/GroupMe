@@ -53,6 +53,7 @@ import {
   FaCheck,
   FaExclamationCircle,
   FaTrashAlt,
+  FaCode,
 } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import { useDropzone } from 'react-dropzone';
@@ -708,7 +709,7 @@ const Clients: React.FC = () => {
                         {selectedClient.name}
                       </Heading>
                       <Text color="gray.500" fontSize="sm">
-                        {formatClientSince(selectedClient.createdAt)}
+                        {formatClientSince(selectedClient.createdAt || '')}
                       </Text>
                     </Flex>
 
@@ -784,6 +785,16 @@ const Clients: React.FC = () => {
                         <Text>Weight: {selectedClient.weight || 'N/A'}</Text>
                         <Text>Gender: {selectedClient.gender || 'N/A'}</Text>
                       </HStack>
+
+                      {/* Source Hash Information */}
+                      {((selectedClient as any).source_hash || (selectedClient as any).sourceHash || (selectedClient as any).sourceCode) && (
+                        <HStack mt={2}>
+                          <FaCode color="gray" />
+                          <Text fontSize="sm" color="gray.600" fontStyle="italic">
+                            Source Code: {(selectedClient as any).source_hash || (selectedClient as any).sourceHash || (selectedClient as any).sourceCode}
+                          </Text>
+                        </HStack>
+                      )}
                     </Box>
                   </VStack>
                 </GridItem>
@@ -961,7 +972,7 @@ const Clients: React.FC = () => {
                             {client.name}
                           </Heading>
                           <Text color={secondaryTextColor} fontSize="sm">
-                            {formatClientSince(client.createdAt)}
+                            {formatClientSince(client.createdAt || '')}
                           </Text>
                         </Flex>
                         <Avatar name={client.name} bg={highlightColor} size="md" />
@@ -986,6 +997,16 @@ const Clients: React.FC = () => {
                           <FaMapMarkerAlt color="gray" size="14px" />
                           <Text>{client.state}</Text>
                         </HStack>
+
+                        {/* Source Hash Display */}
+                        {((client as any).source_hash || (client as any).sourceHash || (client as any).sourceCode) && (
+                          <HStack>
+                            <FaCode color="gray" size="14px" />
+                            <Text fontSize="sm" color="gray.600" fontStyle="italic">
+                              Source: {(client as any).source_hash || (client as any).sourceHash || (client as any).sourceCode}
+                            </Text>
+                          </HStack>
+                        )}
                       </VStack>
 
                       {/* Notes Preview */}
