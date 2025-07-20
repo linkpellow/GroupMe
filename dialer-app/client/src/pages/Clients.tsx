@@ -201,8 +201,26 @@ const Clients: React.FC = () => {
     }
   };
 
-  // Fetch clients
+  // Circuit breaker state to prevent excessive API calls
+  const lastRefreshTime = useRef(0);
+  const refreshCooldownMs = 1000; // Minimum 1 second between refresh calls
+
+  // Use ref to store the getNotes function to avoid dependency issues
+  const getNotesRef = useRef(getNotes);
+  useEffect(() => {
+    getNotesRef.current = getNotes;
+  }, [getNotes]);
+
+  // Fetch clients with circuit breaker protection
   const refreshClients = useCallback(async () => {
+      // Circuit breaker: Prevent calling if we've called recently
+      const now = Date.now();
+      if (now - lastRefreshTime.current < refreshCooldownMs) {
+        console.log('Clients refresh rate limited');
+        return;
+      }
+      lastRefreshTime.current = now;
+
       setIsLoading(true);
       setError(null);
       try {
@@ -218,7 +236,7 @@ const Clients: React.FC = () => {
           // Process clients one by one to ensure we get the most up-to-date notes
           const clientsWithLatestNotes = response.data.leads.map((client: Client) => {
             // First check the NotesContext for the most up-to-date notes
-            const notesFromContext = getNotes(client._id);
+            const notesFromContext = getNotesRef.current(client._id);
 
             // If we have notes from context, use those (highest priority)
             if (notesFromContext) {
@@ -255,7 +273,7 @@ const Clients: React.FC = () => {
       } finally {
         setIsLoading(false);
       }
-  }, [getNotes]);
+  }, []); // Remove getNotes dependency to prevent infinite loops
 
   // Listen for notes updates
   useEffect(() => {
@@ -327,7 +345,7 @@ const Clients: React.FC = () => {
   // Initial fetch on component mount
   useEffect(() => {
     refreshClients();
-  }, [refreshClients]);
+  }, []); // Empty dependency array since refreshClients is now stable
 
   const handleViewDetails = (client: Client) => {
     setSelectedClient(client);
@@ -612,10 +630,18 @@ const Clients: React.FC = () => {
   };
 
   // Periodic refresh every 30s to keep in sync with disposition changes
+  // Use stable reference to prevent interval recreation
+  const refreshClientsRef = useRef(refreshClients);
   useEffect(() => {
-    const id = setInterval(refreshClients, 30000);
-    return () => clearInterval(id);
+    refreshClientsRef.current = refreshClients;
   }, [refreshClients]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      refreshClientsRef.current();
+    }, 30000);
+    return () => clearInterval(id);
+  }, []); // Empty dependency array to prevent interval recreation
 
   return (
     <Box bg={bgColor} minHeight="100vh">
