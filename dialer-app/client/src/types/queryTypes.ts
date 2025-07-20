@@ -115,6 +115,7 @@ export interface Lead {
   callLogId?: string;
   callDuration?: string;
   sourceHash?: string;
+  source_hash?: string;
   subIdHash?: string;
   vendor_id?: string;
   nextgenId?: string;

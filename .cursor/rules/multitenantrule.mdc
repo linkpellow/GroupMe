@@ -1,0 +1,10 @@
+---
+alwaysApply: false
+---
+- Every record, query, and mutation must include a tenant/user identifier (e.g., userId, tenantId) in its primary key or query filter.
+- Never return or manipulate data unless the authenticated user owns it.
+- Always apply user/tenant-scoped filters at the ORM/SQL view/model layer—not just in controllers—so leakage cannot occur via forgotten WHERE clauses.
+- All endpoints, background jobs, message-queue consumers, and scheduled tasks must verify the caller’s identity and tenant scope before accessing or modifying data.
+- Bulk operations, caching layers, and real-time broadcasts (WebSocket/SSE/push) must be scoped to the tenant/user. No “global” read/write unless admin-only and security-reviewed.
+- Each new feature must include automated tests proving that User A cannot view, update, or delete User B’s data—even via edge cases (pagination, search filters, file uploads, etc.).
+- Reviewer must confirm the above points before merging.

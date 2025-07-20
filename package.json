@@ -52,7 +52,8 @@
     "heroku-postbuild": "npm run build",
     "test:groupme": "npx jest test/test-groupme-oauth.test.js",
     "gen:map": "mkdir -p docs && npx -p node@20 -p dependency-cruiser@15 depcruise src --output-type dot --no-config > docs/dependency-graph.dot && npx graphviz-cli -Tsvg docs/dependency-graph.dot > docs/dependency-graph.svg",
-    "gen:docs": "typedoc --entryPoints dialer-app/server/src dialer-app/client/src --entryPointStrategy expand --out docs/site"
+    "gen:docs": "typedoc --entryPoints dialer-app/server/src dialer-app/client/src --entryPointStrategy expand --out docs/site",
+    "prepare": "husky"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -95,6 +96,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "glob": "^10.3.10",
     "graphviz-cli": "^2.0.0",
+    "husky": "9.1.7",
     "jest": "^29.7.0",
     "kill-port": "^2.0.1",
     "nock": "^13.4.0",

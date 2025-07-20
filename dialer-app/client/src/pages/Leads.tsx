@@ -230,6 +230,7 @@ interface Lead {
   callLogId: string;
   callDuration: string;
   sourceHash: string;
+  source_hash?: string;
   subIdHash: string;
   sourceCode?: string;
   vendor_id?: string;
@@ -2110,7 +2111,7 @@ export default function Leads() {
               })()}
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {lead.name}
-                { ((lead as any).source_hash || lead.source || (lead as any).pipelineSource) && (
+                { (lead.source_hash || lead.sourceHash || lead.sourceCode || lead.source || (lead as any).pipelineSource) && (
                    <span
                      style={{
                        color: '#666',
@@ -2120,7 +2121,7 @@ export default function Leads() {
                      }}
                      title="Source Code"
                    >
-                    {(lead as any).source_hash || lead.source || (lead as any).pipelineSource}
+                    {lead.source_hash || lead.sourceHash || lead.sourceCode || lead.source || (lead as any).pipelineSource}
                    </span>
                  )}
               </span>

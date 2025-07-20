@@ -20,6 +20,8 @@ const ALLOWED_FILTERS = [
     'requestId', // Added for request tracking
     'getAllResults', // Added for getting all results without pagination
     'format', // Allow CSV or other formats without triggering 400
+    'createdAtStart', // Date range filter - start date
+    'createdAtEnd', // Date range filter - end date
 ];
 const ALLOWED_SORTS = ['createdAt', 'name', 'email', 'phone', 'state', 'disposition', 'timeZone'];
 // Helper function to parse array parameters
@@ -76,6 +78,8 @@ const validateQuery = (req, res, next) => {
             pipelineSource: query.pipelineSource,
             requestId: query.requestId,
             getAllResults: query.getAllResults === 'true' || query.format === 'csv',
+            createdAtStart: query.createdAtStart,
+            createdAtEnd: query.createdAtEnd,
         };
         console.log('[ValidateQuery] Validated query:', validatedQuery);
         // Attach validated query to request
