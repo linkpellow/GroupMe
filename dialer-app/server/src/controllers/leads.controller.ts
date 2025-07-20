@@ -11,6 +11,7 @@ import { format as csvFormat } from '@fast-csv/format';
 import { Writable } from 'stream';
 import { sanitizeNotes } from '../utils/notesUtils';
 import { withTenant } from '../utils/tenantFilter';
+import { autoAssignQuality } from './sourceCodeQuality.controller';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -414,6 +415,19 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     // After successful update
+    // Handle SOLD disposition - auto-assign quality to source code
+    if (updateData.disposition === 'SOLD' && updatedLead.sourceHash && req.user?.id) {
+      try {
+        const success = await autoAssignQuality(req.user.id, updatedLead.sourceHash, 'quality');
+        if (success) {
+          console.log(`Auto-assigned Quality to source code ${updatedLead.sourceHash} for SOLD lead ${updatedLead._id}`);
+        }
+      } catch (error) {
+        console.error('Auto-quality assignment failed for SOLD lead:', error);
+        // Don't fail the disposition update if quality assignment fails
+      }
+    }
+
     // Emit WebSocket event if notes were changed to keep other tabs in sync
     if (updateData.notes !== undefined) {
       try {
@@ -1000,7 +1014,7 @@ export const getLeadStats = async (req: AuthenticatedRequest, res: Response) => 
 
       // Advanced filters with value conditions (professional approach)
       const [prices, sourceHashes, campaigns, sourceCodes, cities] = await Promise.all([
-        LeadModel.distinct('price', { tenantId: userId, price: { $exists: true, $gt: 0 } }),
+        LeadModel.distinct('price', { tenantId: userId, price: { $exists: true, $nin: [null, '', '0'] } }),
         LeadModel.distinct('sourceHash', { tenantId: userId, sourceHash: { $exists: true, $nin: [null, ''] } }),
         LeadModel.distinct('campaignName', { tenantId: userId, campaignName: { $exists: true, $nin: [null, ''] } }),
         LeadModel.distinct('sourceCode', { tenantId: userId, sourceCode: { $exists: true, $nin: [null, ''] } }),
@@ -1023,11 +1037,11 @@ export const getLeadStats = async (req: AuthenticatedRequest, res: Response) => 
           
           // Advanced breakdowns (professional enhancement)
           breakdowns: {
-            prices: prices.filter(p => p > 0).sort((a, b) => b - a).slice(0, 20),
-            sourceHashes: sourceHashes.slice(0, 20),
-            campaigns: campaigns.slice(0, 20),
-            sourceCodes: sourceCodes.slice(0, 20),
-            cities: cities.slice(0, 20)
+            prices: prices.filter(p => p && String(p) !== '0').sort((a, b) => parseFloat(String(b)) - parseFloat(String(a))).slice(0, 50),
+            sourceHashes: sourceHashes.slice(0, 100),
+            campaigns: campaigns.slice(0, 100),
+            sourceCodes: sourceCodes.slice(0, 100),
+            cities: cities.slice(0, 50)
           },
           
           // Summary counts (professional insight)

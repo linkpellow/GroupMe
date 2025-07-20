@@ -806,6 +806,8 @@ router.get('/sync-nextgen', auth_1.auth, auth_1.isAdmin, async (req, res) => {
 });
 // CSV export route – placed before parameterised routes to avoid shadowing
 router.get('/export', auth_1.auth, validateQuery_middleware_1.validateQueryMiddleware, validateQuery_middleware_1.rateLimitMiddleware, (req, res) => leadsController.exportLeadsCsv(req, res));
+// Stats route - placed before parameterised routes to avoid shadowing
+router.get('/stats', auth_1.auth, leadsController.getLeadStats);
 // Get lead by ID - MUST be the last route
 router.get('/:id', auth_1.auth, validateObjectId, leadsController.getLeadById);
 // Create new lead

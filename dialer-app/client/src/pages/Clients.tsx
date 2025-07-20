@@ -64,6 +64,8 @@ import { Lead } from '../types/Lead';
 import NotesEditor from '../components/NotesEditor';
 import { dialPhone } from '../utils/dial';
 import { useCallCountsContext } from '../context/CallCountsContext';
+import { useSourceCodeQuality } from '../hooks/useSourceCodeQuality';
+import SourceCodeBadge from '../components/SourceCodeBadge';
 
 interface Client extends Lead {
   policyDocuments?: PolicyDocument[];
@@ -132,6 +134,12 @@ const Clients: React.FC = () => {
 
   // CRM unique call counter
   const { increment } = useCallCountsContext();
+
+  // Quality management for source codes
+  const {
+    getQuality,
+    cycleQuality,
+  } = useSourceCodeQuality();
 
   // Theme colors
   const bgColor = useColorModeValue('rgba(248, 250, 252, 0.9)', 'rgba(26, 32, 44, 0.9)');
@@ -790,9 +798,15 @@ const Clients: React.FC = () => {
                       {((selectedClient as any).source_hash || (selectedClient as any).sourceHash || (selectedClient as any).sourceCode) && (
                         <HStack mt={2}>
                           <FaCode color="gray" />
-                          <Text fontSize="sm" color="gray.600" fontStyle="italic">
-                            Source Code: {(selectedClient as any).source_hash || (selectedClient as any).sourceHash || (selectedClient as any).sourceCode}
+                          <Text fontSize="sm" color="gray.600" fontStyle="italic" mr={2}>
+                            Source:
                           </Text>
+                          <SourceCodeBadge
+                            code={(selectedClient as any).source_hash || (selectedClient as any).sourceHash || (selectedClient as any).sourceCode}
+                            quality={getQuality((selectedClient as any).source_hash || (selectedClient as any).sourceHash || (selectedClient as any).sourceCode)}
+                            onQualityChange={cycleQuality}
+                            size="sm"
+                          />
                         </HStack>
                       )}
                     </Box>
@@ -1002,9 +1016,15 @@ const Clients: React.FC = () => {
                         {((client as any).source_hash || (client as any).sourceHash || (client as any).sourceCode) && (
                           <HStack>
                             <FaCode color="gray" size="14px" />
-                            <Text fontSize="sm" color="gray.600" fontStyle="italic">
-                              Source: {(client as any).source_hash || (client as any).sourceHash || (client as any).sourceCode}
+                            <Text fontSize="sm" color="gray.600" fontStyle="italic" mr={1}>
+                              Source:
                             </Text>
+                            <SourceCodeBadge
+                              code={(client as any).source_hash || (client as any).sourceHash || (client as any).sourceCode}
+                              quality={getQuality((client as any).source_hash || (client as any).sourceHash || (client as any).sourceCode)}
+                              onQualityChange={cycleQuality}
+                              size="sm"
+                            />
                           </HStack>
                         )}
                       </VStack>

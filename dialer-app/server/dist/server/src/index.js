@@ -73,6 +73,7 @@ const documents_routes_1 = __importDefault(require("./routes/documents.routes"))
 const textdrip_routes_1 = __importDefault(require("./routes/textdrip.routes"));
 const dialCounts_routes_1 = __importDefault(require("./routes/dialCounts.routes"));
 const test_routes_1 = __importDefault(require("./routes/test.routes"));
+const sourceCodeQuality_routes_1 = __importDefault(require("./routes/sourceCodeQuality.routes"));
 // Comment out routes for files confirmed missing from ./routes/ directory
 // import clientRoutes from './routes/clients.routes';
 const csvUpload_routes_1 = __importDefault(require("./routes/csvUpload.routes"));
@@ -343,6 +344,7 @@ app.use('/api/documents', documents_routes_1.default);
 app.use('/api/textdrip', textdrip_routes_1.default);
 app.use('/api/dial-counts', dialCounts_routes_1.default);
 app.use('/api/csv-upload', csvUpload_routes_1.default);
+app.use('/api/source-code-quality', sourceCodeQuality_routes_1.default);
 // Register test routes only in non-production environments for security
 if (process.env.NODE_ENV !== 'production') {
     app.use('/api/test', test_routes_1.default);

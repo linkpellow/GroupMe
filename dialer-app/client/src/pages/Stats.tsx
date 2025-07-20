@@ -33,6 +33,9 @@ import {
 } from '@chakra-ui/react';
 import { FaChartBar, FaMapMarkerAlt, FaDollarSign, FaHashtag, FaBuilding } from 'react-icons/fa';
 import axiosInstance from '../api/axiosInstance';
+import { useSourceCodeQuality } from '../hooks/useSourceCodeQuality';
+import SourceCodeBadge from '../components/SourceCodeBadge';
+import QualityFilter, { QualityFilter as QualityFilterType } from '../components/QualityFilter';
 
 interface FilterOptions {
   states: string[];
@@ -72,6 +75,16 @@ const Stats: React.FC = () => {
   const [statsData, setStatsData] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [qualityFilter, setQualityFilter] = useState<QualityFilterType>('all');
+
+  // Quality management
+  const {
+    qualityMap,
+    qualityCounts,
+    getQuality,
+    cycleQuality,
+    isLoading: qualityLoading
+  } = useSourceCodeQuality();
 
   // Theme colors
   const bgColor = useColorModeValue('rgba(248, 250, 252, 0.9)', 'rgba(26, 32, 44, 0.9)');
@@ -96,6 +109,55 @@ const Stats: React.FC = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Filter source codes based on quality
+  const getFilteredSourceCodes = useCallback(() => {
+    if (!statsData?.breakdowns?.sourceCodes) return [];
+    
+    return statsData.breakdowns.sourceCodes.filter(code => {
+      const quality = getQuality(code);
+      
+      switch (qualityFilter) {
+        case 'quality':
+          return quality === 'quality';
+        case 'low-quality':
+          return quality === 'low-quality';
+        case 'unassigned':
+          return quality === null;
+        case 'all':
+        default:
+          return true;
+      }
+    });
+  }, [statsData?.breakdowns?.sourceCodes, qualityFilter, getQuality]);
+
+  // Calculate quality counts for the current source codes
+  const getQualityFilterCounts = useCallback(() => {
+    if (!statsData?.breakdowns?.sourceCodes) {
+      return { total: 0, quality: 0, 'low-quality': 0, unassigned: 0 };
+    }
+
+    const sourceCodes = statsData.breakdowns.sourceCodes;
+    const counts = {
+      total: sourceCodes.length,
+      quality: 0,
+      'low-quality': 0,
+      unassigned: 0
+    };
+
+    sourceCodes.forEach(code => {
+      const quality = getQuality(code);
+      if (quality === 'quality') {
+        counts.quality++;
+      } else if (quality === 'low-quality') {
+        counts['low-quality']++;
+      } else {
+        counts.unassigned++;
+      }
+    });
+
+    return counts;
+  }, [statsData?.breakdowns?.sourceCodes, getQuality]);
 
   // Initial fetch on component mount
   useEffect(() => {
@@ -315,24 +377,65 @@ const Stats: React.FC = () => {
                     </Box>
                   )}
 
-                  {/* Source Codes Analysis */}
+                  {/* Source Codes Analysis with Quality System */}
                   {statsData.breakdowns.sourceCodes.length > 0 && (
                     <Box>
-                      <Flex align="center" mb={3}>
-                        <FaHashtag color="#805AD5" style={{ marginRight: '8px' }} />
-                        <Heading size="sm" color={textColor}>
-                          Source Codes ({Math.min(statsData.breakdowns.sourceCodes.length, 8)})
-                        </Heading>
-                      </Flex>
-                      <Wrap spacing={2}>
-                        {statsData.breakdowns.sourceCodes.slice(0, 8).map((code, index) => (
-                          <WrapItem key={index}>
-                            <Badge colorScheme="purple" variant="outline">
-                              {code}
+                      <VStack align="stretch" spacing={4}>
+                        {/* Header and Filter */}
+                        <Flex align="center" justify="space-between" wrap="wrap" gap={4}>
+                          <Flex align="center">
+                            <FaHashtag color="#805AD5" style={{ marginRight: '8px' }} />
+                            <Heading size="sm" color={textColor}>
+                              Source Codes ({getFilteredSourceCodes().length} of {statsData.breakdowns.sourceCodes.length})
+                            </Heading>
+                          </Flex>
+                          
+                          <Box minW="200px">
+                            <QualityFilter
+                              value={qualityFilter}
+                              onChange={setQualityFilter}
+                              counts={getQualityFilterCounts()}
+                              isLoading={qualityLoading}
+                            />
+                          </Box>
+                        </Flex>
+
+                        {/* Source Code Badges */}
+                        <Wrap spacing={2}>
+                          {getFilteredSourceCodes().slice(0, 20).map((code, index) => (
+                            <WrapItem key={index}>
+                              <SourceCodeBadge
+                                code={code}
+                                quality={getQuality(code)}
+                                onQualityChange={cycleQuality}
+                                size="md"
+                              />
+                            </WrapItem>
+                          ))}
+                          {getFilteredSourceCodes().length > 20 && (
+                            <WrapItem>
+                              <Badge colorScheme="gray" variant="outline">
+                                +{getFilteredSourceCodes().length - 20} more
+                              </Badge>
+                            </WrapItem>
+                          )}
+                        </Wrap>
+
+                        {/* Quality Summary */}
+                        {qualityFilter === 'all' && (
+                          <HStack spacing={4} pt={2}>
+                            <Badge colorScheme="green" variant="solid" px={2} py={1}>
+                              ✓ Quality: {getQualityFilterCounts().quality}
                             </Badge>
-                          </WrapItem>
-                        ))}
-                      </Wrap>
+                            <Badge colorScheme="red" variant="solid" px={2} py={1}>
+                              ✗ Low Quality: {getQualityFilterCounts()['low-quality']}
+                            </Badge>
+                            <Badge colorScheme="gray" variant="outline" px={2} py={1}>
+                              ? Unassigned: {getQualityFilterCounts().unassigned}
+                            </Badge>
+                          </HStack>
+                        )}
+                      </VStack>
                     </Box>
                   )}
                 </SimpleGrid>

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateLeadNotes = exports.exportLeadsCsv = exports.getFilterOptions = exports.getCallCounts = exports.createTestLead = exports.reverseOrder = exports.reorderLead = exports.getLeadsByState = exports.testDb = exports.deleteLead = exports.updateLead = exports.initializeOrder = exports.createLead = exports.getLeadById = exports.getLeads = void 0;
+exports.getLeadStats = exports.updateLeadNotes = exports.exportLeadsCsv = exports.getFilterOptions = exports.getCallCounts = exports.createTestLead = exports.reverseOrder = exports.reorderLead = exports.getLeadsByState = exports.testDb = exports.deleteLead = exports.updateLead = exports.initializeOrder = exports.createLead = exports.getLeadById = exports.getLeads = void 0;
 exports.buildCsvFilename = buildCsvFilename;
 const express_validator_1 = require("express-validator");
 const Lead_1 = __importDefault(require("../models/Lead"));
@@ -14,6 +14,7 @@ const queryConfig_1 = require("@shared/config/queryConfig");
 const format_1 = require("@fast-csv/format");
 const notesUtils_1 = require("../utils/notesUtils");
 const tenantFilter_1 = require("../utils/tenantFilter");
+const sourceCodeQuality_controller_1 = require("./sourceCodeQuality.controller");
 // Helper function to format lead data as JSON
 const formatLeadAsJson = (lead) => {
     const formattedLead = {
@@ -368,6 +369,19 @@ const updateLead = async (req, res) => {
             fieldsUpdated: Object.keys(updateData),
         });
         // After successful update
+        // Handle SOLD disposition - auto-assign quality to source code
+        if (updateData.disposition === 'SOLD' && updatedLead.sourceHash && req.user?.id) {
+            try {
+                const success = await (0, sourceCodeQuality_controller_1.autoAssignQuality)(req.user.id, updatedLead.sourceHash, 'quality');
+                if (success) {
+                    console.log(`Auto-assigned Quality to source code ${updatedLead.sourceHash} for SOLD lead ${updatedLead._id}`);
+                }
+            }
+            catch (error) {
+                console.error('Auto-quality assignment failed for SOLD lead:', error);
+                // Don't fail the disposition update if quality assignment fails
+            }
+        }
         // Emit WebSocket event if notes were changed to keep other tabs in sync
         if (updateData.notes !== undefined) {
             try {
@@ -867,3 +881,86 @@ const updateLeadNotes = async (req, res) => {
     }
 };
 exports.updateLeadNotes = updateLeadNotes;
+// Step 2: Working stats endpoint with basic count
+const getLeadStats = async (req, res) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ message: 'User not authenticated' });
+        }
+        const userId = new mongoose_1.default.Types.ObjectId(req.user.id);
+        // Simple count query - verified working
+        const totalLeads = await Lead_1.default.countDocuments({ tenantId: userId });
+        // Professional enhancement: Add comprehensive distinct queries (backward compatible)
+        // Using validated $nin syntax for better MongoDB performance
+        try {
+            // Core filter breakdowns (always useful)
+            const [states, dispositions, sources] = await Promise.all([
+                Lead_1.default.distinct('state', { tenantId: userId }),
+                Lead_1.default.distinct('disposition', { tenantId: userId }),
+                Lead_1.default.distinct('source', { tenantId: userId })
+            ]);
+            // Advanced filters with value conditions (professional approach)
+            const [prices, sourceHashes, campaigns, sourceCodes, cities] = await Promise.all([
+                Lead_1.default.distinct('price', { tenantId: userId, price: { $exists: true, $nin: [null, '', '0'] } }),
+                Lead_1.default.distinct('sourceHash', { tenantId: userId, sourceHash: { $exists: true, $nin: [null, ''] } }),
+                Lead_1.default.distinct('campaignName', { tenantId: userId, campaignName: { $exists: true, $nin: [null, ''] } }),
+                Lead_1.default.distinct('sourceCode', { tenantId: userId, sourceCode: { $exists: true, $nin: [null, ''] } }),
+                Lead_1.default.distinct('city', { tenantId: userId, city: { $exists: true, $nin: [null, ''] } })
+            ]);
+            res.json({
+                success: true,
+                message: 'Stats data retrieved successfully',
+                data: {
+                    // Existing data (unchanged for backward compatibility)
+                    totalLeads,
+                    // Filter options (always useful for dropdowns)
+                    filterOptions: {
+                        states: states.filter(s => s).sort().slice(0, 50),
+                        dispositions: dispositions.filter(d => d).sort().slice(0, 50),
+                        sources: sources.filter(s => s).sort()
+                    },
+                    // Advanced breakdowns (professional enhancement)
+                    breakdowns: {
+                        prices: prices.filter(p => p && String(p) !== '0').sort((a, b) => parseFloat(String(b)) - parseFloat(String(a))).slice(0, 50),
+                        sourceHashes: sourceHashes.slice(0, 100),
+                        campaigns: campaigns.slice(0, 100),
+                        sourceCodes: sourceCodes.slice(0, 100),
+                        cities: cities.slice(0, 50)
+                    },
+                    // Summary counts (professional insight)
+                    counts: {
+                        uniqueStates: states.length,
+                        uniqueDispositions: dispositions.length,
+                        uniqueSources: sources.length,
+                        uniquePrices: prices.length,
+                        uniqueCampaigns: campaigns.length,
+                        uniqueSourceCodes: sourceCodes.length,
+                        uniqueCities: cities.length
+                    }
+                }
+            });
+        }
+        catch (distinctError) {
+            console.warn('[getLeadStats] Distinct queries failed, using fallback:', distinctError instanceof Error ? distinctError.message : String(distinctError));
+            // Professional fallback: Return basic stats if distinct queries fail
+            res.json({
+                success: true,
+                message: 'Stats data retrieved successfully (basic mode)',
+                data: {
+                    totalLeads,
+                    filterOptions: { states: [], dispositions: [], sources: [] },
+                    breakdowns: { prices: [], sourceHashes: [], campaigns: [], sourceCodes: [], cities: [] },
+                    counts: { uniqueStates: 0, uniqueDispositions: 0, uniqueSources: 0, uniquePrices: 0, uniqueCampaigns: 0, uniqueSourceCodes: 0, uniqueCities: 0 }
+                }
+            });
+        }
+    }
+    catch (error) {
+        console.error('[getLeadStats] Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get stats'
+        });
+    }
+};
+exports.getLeadStats = getLeadStats;
