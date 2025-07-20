@@ -138,7 +138,7 @@ interface StatsData {
 interface AnalyticsData {
   sourceCodes: Array<{
     code: string;
-    totalLeads: number;
+  totalLeads: number;
     soldLeads: number;
     conversionRate: number;
     revenue: number;
@@ -415,7 +415,7 @@ const Stats: React.FC = () => {
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
                 <FaGem color={GAME_COLORS.secondary} size={24} />
-              </Flex>
+          </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   AVG CONVERSION
@@ -435,7 +435,7 @@ const Stats: React.FC = () => {
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
                 <FaFire color={GAME_COLORS.info} size={24} />
-              </Flex>
+        </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   TOTAL REVENUE
@@ -457,7 +457,7 @@ const Stats: React.FC = () => {
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
                 Source Code Performance Arena
               </Heading>
-            </Flex>
+          </Flex>
           </CardHeader>
           <CardBody>
             <Box height="400px">
@@ -573,7 +573,7 @@ const Stats: React.FC = () => {
     };
 
     return (
-      <VStack spacing={6} align="stretch">
+          <VStack spacing={6} align="stretch">
         {/* CPA Overview Cards */}
         <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
           <Card bg={cardBg} border="2px solid" borderColor={GAME_COLORS.primary} borderRadius="12px" 
@@ -582,7 +582,7 @@ const Stats: React.FC = () => {
               <Flex align="center" justify="center" mb={2}>
                 <FaDollarSign color={GAME_COLORS.primary} size={24} />
               </Flex>
-              <Stat>
+                <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   AVG CPA
                 </StatLabel>
@@ -592,7 +592,7 @@ const Stats: React.FC = () => {
                     : '0.00'
                   }
                 </StatNumber>
-              </Stat>
+                </Stat>
             </CardBody>
           </Card>
 
@@ -602,14 +602,14 @@ const Stats: React.FC = () => {
               <Flex align="center" justify="center" mb={2}>
                 <FaBullseye color={GAME_COLORS.success} size={24} />
               </Flex>
-              <Stat>
+                    <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   BEST CPA
                 </StatLabel>
                 <StatNumber color={GAME_COLORS.success} fontFamily="Tektur, monospace" fontSize="2xl">
                   ${cpaData[0]?.cpa.toFixed(2) || '0.00'}
                 </StatNumber>
-              </Stat>
+                    </Stat>
             </CardBody>
           </Card>
 
@@ -619,7 +619,7 @@ const Stats: React.FC = () => {
               <Flex align="center" justify="center" mb={2}>
                 <FaCalculator color={GAME_COLORS.warning} size={24} />
               </Flex>
-              <Stat>
+                    <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   AVG ROI
                 </StatLabel>
@@ -629,7 +629,7 @@ const Stats: React.FC = () => {
                     : '0%'
                   }
                 </StatNumber>
-              </Stat>
+                    </Stat>
             </CardBody>
           </Card>
 
@@ -639,14 +639,14 @@ const Stats: React.FC = () => {
               <Flex align="center" justify="center" mb={2}>
                 <FaLightbulb color={GAME_COLORS.info} size={24} />
               </Flex>
-              <Stat>
+                    <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   EFFICIENCY
                 </StatLabel>
                 <StatNumber color={GAME_COLORS.info} fontFamily="Tektur, monospace" fontSize="2xl">
                   {cpaData.filter(item => item.roi > 100).length}
                 </StatNumber>
-              </Stat>
+                    </Stat>
             </CardBody>
           </Card>
         </SimpleGrid>
@@ -659,8 +659,8 @@ const Stats: React.FC = () => {
               <FaDollarSign color={GAME_COLORS.primary} size={24} />
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
                 Cost Distribution Matrix
-              </Heading>
-            </Flex>
+                    </Heading>
+                  </Flex>
           </CardHeader>
           <CardBody>
             <Box height="400px" display="flex" justifyContent="center" alignItems="center">
@@ -681,7 +681,7 @@ const Stats: React.FC = () => {
                     },
                   },
                 }} />
-              </Box>
+                </Box>
             </Box>
           </CardBody>
         </Card>
@@ -693,8 +693,8 @@ const Stats: React.FC = () => {
               <FaTrophy color={GAME_COLORS.secondary} size={24} />
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
                 ROI Champions
-              </Heading>
-            </Flex>
+                    </Heading>
+                  </Flex>
           </CardHeader>
           <CardBody>
             <TableContainer>
@@ -837,7 +837,7 @@ const Stats: React.FC = () => {
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
                 <FaBuilding color={GAME_COLORS.primary} size={24} />
-              </Flex>
+                  </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   ACTIVE CAMPAIGNS
@@ -902,7 +902,7 @@ const Stats: React.FC = () => {
               </Stat>
             </CardBody>
           </Card>
-        </SimpleGrid>
+              </SimpleGrid>
 
         {/* Dual Axis Chart */}
         <Card bg={cardBg} border="2px solid" borderColor={borderColor} borderRadius="12px"
@@ -912,13 +912,13 @@ const Stats: React.FC = () => {
               <FaRocket color={GAME_COLORS.primary} size={24} />
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
                 Campaign Battle Arena
-              </Heading>
-            </Flex>
+                        </Heading>
+                      </Flex>
           </CardHeader>
           <CardBody>
             <Box height="400px">
               <Bar data={barData} options={campaignChartOptions} />
-            </Box>
+                    </Box>
           </CardBody>
         </Card>
 
@@ -929,8 +929,8 @@ const Stats: React.FC = () => {
               <FaTrophy color={GAME_COLORS.secondary} size={24} />
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
                 Campaign Rankings
-              </Heading>
-            </Flex>
+                        </Heading>
+                      </Flex>
           </CardHeader>
           <CardBody>
             <TableContainer>
@@ -980,7 +980,7 @@ const Stats: React.FC = () => {
                           fontSize="xs"
                         >
                           {item.roi.toFixed(1)}%
-                        </Badge>
+                            </Badge>
                       </Td>
                       <Td>
                         {item.roi > 200 ? (
@@ -1129,13 +1129,13 @@ const Stats: React.FC = () => {
               <FaChartBar color={GAME_COLORS.primary} size={24} />
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
                 Performance Timeline
-              </Heading>
-            </Flex>
+                        </Heading>
+                      </Flex>
           </CardHeader>
           <CardBody>
             <Box height="400px">
               <Line data={lineData} options={chartOptions} />
-            </Box>
+                    </Box>
           </CardBody>
         </Card>
 
@@ -1146,8 +1146,8 @@ const Stats: React.FC = () => {
               <FaFire color={GAME_COLORS.secondary} size={24} />
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
                 Recent Activity Log
-              </Heading>
-            </Flex>
+                            </Heading>
+                          </Flex>
           </CardHeader>
           <CardBody>
             <TableContainer>
@@ -1185,7 +1185,7 @@ const Stats: React.FC = () => {
                             fontSize="xs"
                           >
                             {conversionRate.toFixed(1)}%
-                          </Badge>
+                              </Badge>
                         </Td>
                         <Td fontFamily="Tektur, monospace" color={GAME_COLORS.info} fontWeight="bold">
                           ${item.revenue.toLocaleString()}
@@ -1207,7 +1207,7 @@ const Stats: React.FC = () => {
             </TableContainer>
           </CardBody>
         </Card>
-      </VStack>
+                      </VStack>
     );
   };
 
@@ -1223,7 +1223,7 @@ const Stats: React.FC = () => {
     return (
       <VStack spacing={6} align="stretch">
         {/* Geographic Overview */}
-        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                    <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
           <Card bg={cardBg} border="2px solid" borderColor={GAME_COLORS.primary} borderRadius="12px" 
                 boxShadow="0 8px 16px rgba(255, 140, 0, 0.2)">
             <CardBody textAlign="center">
@@ -1237,7 +1237,7 @@ const Stats: React.FC = () => {
                 <StatNumber color={GAME_COLORS.primary} fontFamily="Tektur, monospace" fontSize="2xl">
                   {demographics.length}
                 </StatNumber>
-              </Stat>
+                      </Stat>
             </CardBody>
           </Card>
 
@@ -1254,7 +1254,7 @@ const Stats: React.FC = () => {
                 <StatNumber color={GAME_COLORS.success} fontFamily="Tektur, monospace" fontSize="2xl">
                   {demographics[0]?.state || 'N/A'}
                 </StatNumber>
-              </Stat>
+                      </Stat>
             </CardBody>
           </Card>
 
@@ -1274,7 +1274,7 @@ const Stats: React.FC = () => {
                     : 0
                   }
                 </StatNumber>
-              </Stat>
+                      </Stat>
             </CardBody>
           </Card>
 
@@ -1291,10 +1291,10 @@ const Stats: React.FC = () => {
                 <StatNumber color={GAME_COLORS.warning} fontFamily="Tektur, monospace" fontSize="2xl">
                   ${demographics.reduce((acc, item) => acc + item.revenue, 0).toLocaleString()}
                 </StatNumber>
-              </Stat>
+                      </Stat>
             </CardBody>
           </Card>
-        </SimpleGrid>
+                    </SimpleGrid>
 
         {/* Geographic Distribution */}
         <Card bg={cardBg} border="2px solid" borderColor={borderColor} borderRadius="12px"
@@ -1346,7 +1346,7 @@ const Stats: React.FC = () => {
                   />
                 </BarChart>
               </ResponsiveContainer>
-            </Box>
+              </Box>
           </CardBody>
         </Card>
 
@@ -1444,7 +1444,7 @@ const Stats: React.FC = () => {
       <Box minHeight="100vh" bg={bgColor} p={8}>
         <Container maxW="container.xl">
           <Alert status="error" borderRadius="12px">
-            <AlertIcon />
+                <AlertIcon />
             <Text fontFamily="Tektur, monospace">{error}</Text>
             <Button 
               ml={4} 
@@ -1455,7 +1455,7 @@ const Stats: React.FC = () => {
             >
               Retry
             </Button>
-          </Alert>
+              </Alert>
         </Container>
       </Box>
     );

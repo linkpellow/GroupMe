@@ -73,6 +73,166 @@ axiosInstance.ts:82 [API] Response error from /analytics/sold/campaign-performan
 - [ ] Optimize MongoDB aggregation queries if needed
 - [ ] Implement caching if response times > 2 seconds
 
+### **🚨 CRITICAL DATA MAPPING VERIFICATION REQUIRED**
+
+**USER REQUIREMENT**: Ensure all critical fields are correctly mapped and sent to stats page:
+- `"price"` - For revenue calculations and CPA metrics
+- `"state"` - For demographic analytics and geographic distribution  
+- `"city"` - For detailed location analytics
+- `"first_name"` - For lead identification and display
+- `"last_name"` - For complete lead identification  
+- `"created_at"` - For time-based analytics and filtering
+- `"campaign_name"` - For campaign performance tracking
+
+### **🔍 PROFESSIONAL DATA MAPPING VERIFICATION APPROACH**
+
+**As a senior developer, here's the systematic approach to ensure 100% data accuracy:**
+
+### **PHASE 1: DATABASE SCHEMA ANALYSIS** ⚡
+**Task 1.1**: Verify Database Field Names
+- [ ] Query actual SOLD leads to see exact field names in MongoDB
+- [ ] Check for field name variations (`firstName` vs `first_name`, `campaignName` vs `campaign_name`)
+- [ ] Identify any missing fields or null values in existing data
+- [ ] Document exact schema structure for 28 SOLD leads
+
+**Task 1.2**: Field Mapping Audit
+- [ ] Compare database field names with analytics controller field references
+- [ ] Verify frontend expects correct field names from API responses
+- [ ] Check for case sensitivity issues (camelCase vs snake_case)
+- [ ] Identify any data transformation needed between layers
+
+### **PHASE 2: ANALYTICS CONTROLLER VERIFICATION** 
+**Task 2.1**: Controller Field References Audit
+- [ ] Review all 5 analytics controller functions for correct field names
+- [ ] Verify MongoDB aggregation queries use exact database field names
+- [ ] Check projection statements include all required fields
+- [ ] Ensure no typos in field references that cause undefined values
+
+**Task 2.2**: Data Processing Logic Review
+- [ ] Verify price calculations use correct field (`price` not `cost` or `amount`)
+- [ ] Check state/city grouping uses exact field names from database
+- [ ] Confirm name concatenation logic handles `first_name` + `last_name` correctly
+- [ ] Validate date filtering uses `created_at` field properly
+
+### **PHASE 3: SYSTEMATIC TESTING APPROACH**
+**Task 3.1**: Create Data Mapping Test Script
+```javascript
+// Test script to verify all fields are correctly mapped
+async function testDataMapping() {
+  // 1. Query actual database structure
+  const sampleLead = await LeadModel.findOne({ disposition: 'SOLD' });
+  console.log('Actual database fields:', Object.keys(sampleLead));
+  
+  // 2. Test each analytics endpoint response
+  const endpoints = [
+    '/analytics/sold/source-codes',
+    '/analytics/sold/cpa', 
+    '/analytics/sold/campaign-performance',
+    '/analytics/sold/lead-details',
+    '/analytics/sold/demographics'
+  ];
+  
+  for (const endpoint of endpoints) {
+    const response = await testEndpoint(endpoint);
+    console.log(`${endpoint} fields:`, extractFieldsUsed(response));
+  }
+  
+  // 3. Verify required fields present
+  const requiredFields = ['price', 'state', 'city', 'first_name', 'last_name', 'created_at', 'campaign_name'];
+  const missingFields = findMissingFields(sampleLead, requiredFields);
+  console.log('Missing required fields:', missingFields);
+}
+```
+
+**Task 3.2**: Field-by-Field Validation Tests
+- [ ] **Price Field**: Verify revenue calculations use correct field and handle NextGen consolidation
+- [ ] **State Field**: Test demographic analytics group by correct state field
+- [ ] **City Field**: Confirm city-level analytics use proper field reference
+- [ ] **Name Fields**: Validate lead details display combines first_name + last_name correctly
+- [ ] **Created At**: Test time-based filtering uses correct date field
+- [ ] **Campaign Name**: Verify campaign performance analytics group by correct field
+
+### **PHASE 4: PROFESSIONAL DEBUGGING METHODOLOGY**
+
+**Approach 1: Database-First Verification**
+```bash
+# 1. Check actual database schema
+mongo <connection_string>
+db.leads.findOne({disposition: "SOLD"})
+
+# 2. Verify field names and data types
+db.leads.aggregate([
+  {$match: {disposition: "SOLD"}},
+  {$limit: 1},
+  {$project: {
+    price: 1, state: 1, city: 1, 
+    first_name: 1, last_name: 1, 
+    created_at: 1, campaign_name: 1
+  }}
+])
+```
+
+**Approach 2: API Response Testing**
+```javascript
+// Test each analytics endpoint for correct field usage
+const testFieldMapping = async () => {
+  const response = await fetch('/api/analytics/sold/lead-details');
+  const data = await response.json();
+  
+  // Verify each lead has required fields
+  data.data.forEach(lead => {
+    const requiredFields = ['price', 'state', 'city', 'first_name', 'last_name', 'created_at', 'campaign_name'];
+    const missingFields = requiredFields.filter(field => !lead[field]);
+    if (missingFields.length > 0) {
+      console.error(`Lead ${lead._id} missing fields:`, missingFields);
+    }
+  });
+};
+```
+
+**Approach 3: Frontend Data Reception Validation**
+```javascript
+// In Stats.tsx - add field validation
+const validateAnalyticsData = (data) => {
+  const requiredFields = ['price', 'state', 'city', 'first_name', 'last_name', 'created_at', 'campaign_name'];
+  
+  data.forEach((item, index) => {
+    requiredFields.forEach(field => {
+      if (!item[field]) {
+        console.warn(`Item ${index} missing field: ${field}`, item);
+      }
+    });
+  });
+};
+```
+
+### **PHASE 5: CRITICAL FIELD MAPPING ISSUES TO CHECK**
+
+**Common Field Mapping Problems:**
+1. **Case Sensitivity**: `firstName` in DB but expecting `first_name` in code
+2. **Field Name Variations**: `campaignName` vs `campaign_name` vs `campaign`
+3. **Nested Objects**: Fields buried in nested objects not being extracted
+4. **Null/Undefined Values**: Fields existing but containing null/undefined
+5. **Data Type Mismatches**: Expecting string but getting number, etc.
+
+**Professional Verification Checklist:**
+- [ ] Database field names match exactly what analytics controllers expect
+- [ ] All 7 required fields exist and have valid data in 28 SOLD leads
+- [ ] MongoDB aggregation queries project all required fields correctly
+- [ ] Frontend receives all fields in expected format from API responses
+- [ ] No field name typos causing silent failures (undefined values)
+- [ ] Date fields are properly formatted and parseable
+- [ ] Price fields are numeric and handle NextGen consolidation correctly
+
+### **EXPECTED OUTCOMES AFTER VERIFICATION**
+- ✅ All 28 SOLD leads display with complete field data
+- ✅ Revenue calculations accurate using correct price field
+- ✅ Geographic analytics show proper state/city distribution
+- ✅ Lead names display correctly using first_name + last_name
+- ✅ Time-based analytics work with proper created_at field
+- ✅ Campaign performance shows accurate campaign_name grouping
+- ✅ No undefined or null values in critical analytics displays
+
 ## Current Status / Progress Tracking
 
 ### ✅ **COMPLETED TASKS**

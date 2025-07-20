@@ -35,7 +35,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         style={{
           flex: 1,
           overflow: 'visible',
-          paddingTop: '70px',
+          paddingTop: '100px',
           backgroundColor: backgroundColor,
         }}
         className="main-content"
