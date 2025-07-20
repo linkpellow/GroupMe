@@ -63,22 +63,23 @@ async function fixAllNextGenLeads() {
       // Strategy 3: Generate based on creation date (fallback)
       else {
         // Use a deterministic hash based on lead ID for consistency
-        const leadIdHash = lead._id.toString().slice(-6);
+        const leadIdHash = (lead._id as any).toString().slice(-6);
         newSourceCode = `NG${leadIdHash}`;
         console.log(`  📋 Generated fallback: "${newSourceCode}"`);
       }
 
       if (newSourceCode) {
         // Update the lead
+        const updateData: any = { sourceCode: newSourceCode };
+        
+        // Also set sourceHash if it was missing
+        if (!lead.sourceHash || lead.sourceHash.trim() === '') {
+          updateData.sourceHash = newSourceCode;
+        }
+        
         await Lead.updateOne(
           { _id: lead._id },
-          { 
-            $set: { 
-              sourceCode: newSourceCode,
-              // Also set sourceHash if it was missing
-              ...((!lead.sourceHash || lead.sourceHash.trim() === '') && { sourceHash: newSourceCode })
-            }
-          }
+          { $set: updateData }
         );
         
         console.log(`  ✅ Updated sourceCode to: "${newSourceCode}"`);
