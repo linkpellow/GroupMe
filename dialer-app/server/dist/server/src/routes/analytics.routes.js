@@ -16,7 +16,7 @@ router.get('/sold/source-codes', auth_1.auth, analytics_controller_1.getSourceCo
 // CPA Analytics - Cost Per Acquisition analysis
 router.get('/sold/cpa', auth_1.auth, analytics_controller_1.getCPAAnalytics);
 // Campaign Analytics - Campaign performance based on SOLD conversions
-router.get('/sold/campaigns', auth_1.auth, analytics_controller_1.getCampaignAnalytics);
+router.get('/sold/campaign-performance', auth_1.auth, analytics_controller_1.getCampaignAnalytics);
 // Lead Details Analytics - Comprehensive lead data with source codes
 router.get('/sold/lead-details', auth_1.auth, analytics_controller_1.getLeadDetailsAnalytics);
 // Demographics Analytics - Geographic SOLD distribution analysis
