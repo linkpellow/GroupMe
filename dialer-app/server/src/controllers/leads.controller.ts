@@ -988,13 +988,76 @@ export const getLeadStats = async (req: AuthenticatedRequest, res: Response) => 
     // Simple count query - verified working
     const totalLeads = await LeadModel.countDocuments({ tenantId: userId });
     
-    res.json({
-      success: true,
-      message: 'Stats endpoint working',
-      data: {
-        totalLeads
-      }
-    });
+    // Professional enhancement: Add comprehensive distinct queries (backward compatible)
+    // Using validated $nin syntax for better MongoDB performance
+    try {
+      // Core filter breakdowns (always useful)
+      const [states, dispositions, sources] = await Promise.all([
+        LeadModel.distinct('state', { tenantId: userId }),
+        LeadModel.distinct('disposition', { tenantId: userId }),
+        LeadModel.distinct('source', { tenantId: userId })
+      ]);
+
+      // Advanced filters with value conditions (professional approach)
+      const [prices, sourceHashes, campaigns, sourceCodes, cities] = await Promise.all([
+        LeadModel.distinct('price', { tenantId: userId, price: { $exists: true, $gt: 0 } }),
+        LeadModel.distinct('sourceHash', { tenantId: userId, sourceHash: { $exists: true, $nin: [null, ''] } }),
+        LeadModel.distinct('campaignName', { tenantId: userId, campaignName: { $exists: true, $nin: [null, ''] } }),
+        LeadModel.distinct('sourceCode', { tenantId: userId, sourceCode: { $exists: true, $nin: [null, ''] } }),
+        LeadModel.distinct('city', { tenantId: userId, city: { $exists: true, $nin: [null, ''] } })
+      ]);
+
+      res.json({
+        success: true,
+        message: 'Stats data retrieved successfully',
+        data: {
+          // Existing data (unchanged for backward compatibility)
+          totalLeads,
+          
+          // Filter options (always useful for dropdowns)
+          filterOptions: {
+            states: states.filter(s => s).sort().slice(0, 50),
+            dispositions: dispositions.filter(d => d).sort().slice(0, 50),
+            sources: sources.filter(s => s).sort()
+          },
+          
+          // Advanced breakdowns (professional enhancement)
+          breakdowns: {
+            prices: prices.filter(p => p > 0).sort((a, b) => b - a).slice(0, 20),
+            sourceHashes: sourceHashes.slice(0, 20),
+            campaigns: campaigns.slice(0, 20),
+            sourceCodes: sourceCodes.slice(0, 20),
+            cities: cities.slice(0, 20)
+          },
+          
+          // Summary counts (professional insight)
+          counts: {
+            uniqueStates: states.length,
+            uniqueDispositions: dispositions.length,
+            uniqueSources: sources.length,
+            uniquePrices: prices.length,
+            uniqueCampaigns: campaigns.length,
+            uniqueSourceCodes: sourceCodes.length,
+            uniqueCities: cities.length
+          }
+        }
+      });
+
+    } catch (distinctError) {
+      console.warn('[getLeadStats] Distinct queries failed, using fallback:', distinctError instanceof Error ? distinctError.message : String(distinctError));
+      
+      // Professional fallback: Return basic stats if distinct queries fail
+      res.json({
+        success: true,
+        message: 'Stats data retrieved successfully (basic mode)',
+        data: {
+          totalLeads,
+          filterOptions: { states: [], dispositions: [], sources: [] },
+          breakdowns: { prices: [], sourceHashes: [], campaigns: [], sourceCodes: [], cities: [] },
+          counts: { uniqueStates: 0, uniqueDispositions: 0, uniqueSources: 0, uniquePrices: 0, uniqueCampaigns: 0, uniqueSourceCodes: 0, uniqueCities: 0 }
+        }
+      });
+    }
 
   } catch (error) {
     console.error('[getLeadStats] Error:', error);

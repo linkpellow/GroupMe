@@ -22,12 +22,47 @@ import {
   TableContainer,
   useColorModeValue,
   useToast,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatGroup,
+  Wrap,
+  WrapItem,
+  Divider,
 } from '@chakra-ui/react';
-import { FaChartBar } from 'react-icons/fa';
+import { FaChartBar, FaMapMarkerAlt, FaDollarSign, FaHashtag, FaBuilding } from 'react-icons/fa';
 import axiosInstance from '../api/axiosInstance';
+
+interface FilterOptions {
+  states: string[];
+  dispositions: string[];
+  sources: string[];
+}
+
+interface Breakdowns {
+  prices: number[];
+  sourceHashes: string[];
+  campaigns: string[];
+  sourceCodes: string[];
+  cities: string[];
+}
+
+interface Counts {
+  uniqueStates: number;
+  uniqueDispositions: number;
+  uniqueSources: number;
+  uniquePrices: number;
+  uniqueCampaigns: number;
+  uniqueSourceCodes: number;
+  uniqueCities: number;
+}
 
 interface StatsData {
   totalLeads: number;
+  filterOptions?: FilterOptions;
+  breakdowns?: Breakdowns;
+  counts?: Counts;
 }
 
 const Stats: React.FC = () => {
@@ -107,19 +142,238 @@ const Stats: React.FC = () => {
         {/* Stats Content */}
         {!isLoading && !error && statsData && (
           <VStack spacing={6} align="stretch">
+            {/* Overview Section */}
             <Box bg="white" p={6} borderRadius="lg" boxShadow="md">
               <Heading size="md" mb={4} color={textColor}>
-                Lead Statistics
+                Lead Overview
               </Heading>
-              <VStack spacing={4} align="stretch">
-                <Flex justify="space-between" align="center">
-                  <Text fontSize="lg">Total Leads:</Text>
-                  <Badge colorScheme="orange" fontSize="lg" px={3} py={1}>
-                    {statsData.totalLeads}
-                  </Badge>
-                </Flex>
-              </VStack>
+              <StatGroup>
+                <Stat>
+                  <StatLabel>Total Leads</StatLabel>
+                  <StatNumber color="orange.500">{statsData.totalLeads}</StatNumber>
+                </Stat>
+                {statsData.counts && (
+                  <>
+                    <Stat>
+                      <StatLabel>Unique States</StatLabel>
+                      <StatNumber color="blue.500">{statsData.counts.uniqueStates}</StatNumber>
+                    </Stat>
+                    <Stat>
+                      <StatLabel>Unique Sources</StatLabel>
+                      <StatNumber color="green.500">{statsData.counts.uniqueSources}</StatNumber>
+                    </Stat>
+                    <Stat>
+                      <StatLabel>Active Campaigns</StatLabel>
+                      <StatNumber color="purple.500">{statsData.counts.uniqueCampaigns}</StatNumber>
+                    </Stat>
+                  </>
+                )}
+              </StatGroup>
             </Box>
+
+            {/* Filter Options Section */}
+            {statsData.filterOptions && (
+              <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+                <Box bg="white" p={6} borderRadius="lg" boxShadow="md">
+                  <Flex align="center" mb={4}>
+                    <FaMapMarkerAlt color="#3182CE" style={{ marginRight: '8px' }} />
+                    <Heading size="sm" color={textColor}>
+                      States ({statsData.filterOptions.states.length})
+                    </Heading>
+                  </Flex>
+                  <Wrap spacing={2}>
+                    {statsData.filterOptions.states.slice(0, 10).map((state) => (
+                      <WrapItem key={state}>
+                        <Badge colorScheme="blue" variant="outline">
+                          {state}
+                        </Badge>
+                      </WrapItem>
+                    ))}
+                    {statsData.filterOptions.states.length > 10 && (
+                      <WrapItem>
+                        <Badge colorScheme="gray">
+                          +{statsData.filterOptions.states.length - 10} more
+                        </Badge>
+                      </WrapItem>
+                    )}
+                  </Wrap>
+                </Box>
+
+                <Box bg="white" p={6} borderRadius="lg" boxShadow="md">
+                  <Flex align="center" mb={4}>
+                    <FaBuilding color="#38A169" style={{ marginRight: '8px' }} />
+                    <Heading size="sm" color={textColor}>
+                      Sources ({statsData.filterOptions.sources.length})
+                    </Heading>
+                  </Flex>
+                  <Wrap spacing={2}>
+                    {statsData.filterOptions.sources.map((source) => (
+                      <WrapItem key={source}>
+                        <Badge colorScheme="green" variant="outline">
+                          {source}
+                        </Badge>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
+                </Box>
+
+                <Box bg="white" p={6} borderRadius="lg" boxShadow="md">
+                  <Flex align="center" mb={4}>
+                    <FaHashtag color="#805AD5" style={{ marginRight: '8px' }} />
+                    <Heading size="sm" color={textColor}>
+                      Dispositions ({statsData.filterOptions.dispositions.length})
+                    </Heading>
+                  </Flex>
+                  <Wrap spacing={2}>
+                    {statsData.filterOptions.dispositions.slice(0, 8).map((disposition) => (
+                      <WrapItem key={disposition}>
+                        <Badge colorScheme="purple" variant="outline">
+                          {disposition}
+                        </Badge>
+                      </WrapItem>
+                    ))}
+                    {statsData.filterOptions.dispositions.length > 8 && (
+                      <WrapItem>
+                        <Badge colorScheme="gray">
+                          +{statsData.filterOptions.dispositions.length - 8} more
+                        </Badge>
+                      </WrapItem>
+                    )}
+                  </Wrap>
+                </Box>
+              </SimpleGrid>
+            )}
+
+            {/* Advanced Breakdowns Section */}
+            {statsData.breakdowns && (
+              <Box bg="white" p={6} borderRadius="lg" boxShadow="md">
+                <Heading size="md" mb={4} color={textColor}>
+                  Data Insights
+                </Heading>
+                
+                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+                  {/* Price Analysis */}
+                  {statsData.breakdowns.prices.length > 0 && (
+                    <Box>
+                      <Flex align="center" mb={3}>
+                        <FaDollarSign color="#D69E2E" style={{ marginRight: '8px' }} />
+                        <Heading size="sm" color={textColor}>
+                          Lead Prices (Top {Math.min(statsData.breakdowns.prices.length, 10)})
+                        </Heading>
+                      </Flex>
+                      <Wrap spacing={2}>
+                        {statsData.breakdowns.prices.slice(0, 10).map((price, index) => (
+                          <WrapItem key={index}>
+                            <Badge colorScheme="yellow" variant="solid">
+                              ${price}
+                            </Badge>
+                          </WrapItem>
+                        ))}
+                      </Wrap>
+                    </Box>
+                  )}
+
+                  {/* Campaign Analysis */}
+                  {statsData.breakdowns.campaigns.length > 0 && (
+                    <Box>
+                      <Flex align="center" mb={3}>
+                        <FaBuilding color="#38A169" style={{ marginRight: '8px' }} />
+                        <Heading size="sm" color={textColor}>
+                          Active Campaigns (Top {Math.min(statsData.breakdowns.campaigns.length, 8)})
+                        </Heading>
+                      </Flex>
+                      <Wrap spacing={2}>
+                        {statsData.breakdowns.campaigns.slice(0, 8).map((campaign, index) => (
+                          <WrapItem key={index}>
+                            <Badge colorScheme="green" variant="outline">
+                              {campaign}
+                            </Badge>
+                          </WrapItem>
+                        ))}
+                      </Wrap>
+                    </Box>
+                  )}
+
+                  {/* Cities Analysis */}
+                  {statsData.breakdowns.cities.length > 0 && (
+                    <Box>
+                      <Flex align="center" mb={3}>
+                        <FaMapMarkerAlt color="#3182CE" style={{ marginRight: '8px' }} />
+                        <Heading size="sm" color={textColor}>
+                          Top Cities ({Math.min(statsData.breakdowns.cities.length, 10)})
+                        </Heading>
+                      </Flex>
+                      <Wrap spacing={2}>
+                        {statsData.breakdowns.cities.slice(0, 10).map((city, index) => (
+                          <WrapItem key={index}>
+                            <Badge colorScheme="blue" variant="outline">
+                              {city}
+                            </Badge>
+                          </WrapItem>
+                        ))}
+                      </Wrap>
+                    </Box>
+                  )}
+
+                  {/* Source Codes Analysis */}
+                  {statsData.breakdowns.sourceCodes.length > 0 && (
+                    <Box>
+                      <Flex align="center" mb={3}>
+                        <FaHashtag color="#805AD5" style={{ marginRight: '8px' }} />
+                        <Heading size="sm" color={textColor}>
+                          Source Codes ({Math.min(statsData.breakdowns.sourceCodes.length, 8)})
+                        </Heading>
+                      </Flex>
+                      <Wrap spacing={2}>
+                        {statsData.breakdowns.sourceCodes.slice(0, 8).map((code, index) => (
+                          <WrapItem key={index}>
+                            <Badge colorScheme="purple" variant="outline">
+                              {code}
+                            </Badge>
+                          </WrapItem>
+                        ))}
+                      </Wrap>
+                    </Box>
+                  )}
+                </SimpleGrid>
+
+                {/* Summary Metrics */}
+                {statsData.counts && (
+                  <>
+                    <Divider my={6} />
+                    <Heading size="sm" mb={4} color={textColor}>
+                      Data Summary
+                    </Heading>
+                    <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
+                      <Stat size="sm">
+                        <StatLabel>Unique Prices</StatLabel>
+                        <StatNumber fontSize="lg">{statsData.counts.uniquePrices}</StatNumber>
+                      </Stat>
+                      <Stat size="sm">
+                        <StatLabel>Source Hashes</StatLabel>
+                        <StatNumber fontSize="lg">{statsData.counts.uniqueSourceCodes}</StatNumber>
+                      </Stat>
+                      <Stat size="sm">
+                        <StatLabel>Cities</StatLabel>
+                        <StatNumber fontSize="lg">{statsData.counts.uniqueCities}</StatNumber>
+                      </Stat>
+                      <Stat size="sm">
+                        <StatLabel>Dispositions</StatLabel>
+                        <StatNumber fontSize="lg">{statsData.counts.uniqueDispositions}</StatNumber>
+                      </Stat>
+                    </SimpleGrid>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {/* Fallback for basic mode */}
+            {!statsData.filterOptions && !statsData.breakdowns && (
+              <Alert status="info" borderRadius="md">
+                <AlertIcon />
+                Showing basic stats mode. Enhanced analytics will be available when data is loaded.
+              </Alert>
+            )}
           </VStack>
         )}
       </Container>
