@@ -40,6 +40,7 @@ import textdripRoutes from './routes/textdrip.routes';
 import dialCountsRoutes from './routes/dialCounts.routes';
 import testRoutes from './routes/test.routes';
 import sourceCodeQualityRoutes from './routes/sourceCodeQuality.routes';
+import analyticsRoutes from './routes/analytics.routes';
 
 // Comment out routes for files confirmed missing from ./routes/ directory
 // import clientRoutes from './routes/clients.routes';
@@ -354,6 +355,7 @@ app.use('/api/textdrip', textdripRoutes);
 app.use('/api/dial-counts', dialCountsRoutes);
 app.use('/api/csv-upload', csvUploadRoutes);
 app.use('/api/source-code-quality', sourceCodeQualityRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Register test routes only in non-production environments for security
 if (process.env.NODE_ENV !== 'production') {
