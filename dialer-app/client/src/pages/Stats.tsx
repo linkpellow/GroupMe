@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Container,
@@ -214,6 +214,11 @@ const Stats: React.FC = () => {
   const [timePeriod, setTimePeriod] = useState('monthly');
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  
+  // 🔍 RENDER TRACKING - Detect infinite re-renders
+  const renderCount = useRef(0);
+  renderCount.current += 1;
+  console.log('[STATS] 🎨 Component render #', renderCount.current, 'timePeriod:', timePeriod, 'activeTab:', activeTab);
 
   // Quality management
   const {
@@ -224,14 +229,35 @@ const Stats: React.FC = () => {
     isLoading: qualityLoading
   } = useSourceCodeQuality();
 
-  // Theme colors with game-like styling
-  const bgColor = useColorModeValue('#f5f2e9', 'rgba(26, 32, 44, 0.95)');
-  const cardBg = useColorModeValue('rgba(255, 255, 255, 0.85)', 'rgba(45, 55, 72, 0.85)');
-  const textColor = useColorModeValue('gray.800', 'white');
-  const borderColor = useColorModeValue('rgba(0, 0, 0, 0.1)', 'rgba(255, 255, 255, 0.1)');
+  // Modern dark theme - forced dark mode for professional appearance
+  const bgColor = 'linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%)';
+  const cardBg = 'rgba(30, 41, 59, 0.95)';
+  const textColor = '#f8fafc';
+  const borderColor = 'rgba(148, 163, 184, 0.2)';
+  
+  // Glass morphism effects
+  const glassCardStyle = {
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+    transition: 'all 0.3s ease',
+    _hover: {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15)',
+    }
+  };
+  
+  // Additional dark theme colors for enhanced styling
+  const surfaceBg = 'rgba(51, 65, 85, 0.8)';
+  const secondaryText = '#cbd5e1';
+  const mutedText = '#94a3b8';
+  const hoverColor = 'rgba(239, 191, 4, 0.1)';
+  const activeColor = 'rgba(239, 191, 4, 0.2)';
 
   // Fetch original stats data (backward compatibility)
+  console.log('[STATS] 🔧 Creating refreshStats function');
   const refreshStats = useCallback(async () => {
+    console.log('[STATS] 🔄 refreshStats called');
     setIsLoading(true);
     setError(null);
     try {
@@ -261,7 +287,9 @@ const Stats: React.FC = () => {
   }, []);
 
   // Fetch analytics data
+  console.log('[STATS] 🔧 Creating fetchAnalyticsData function, timePeriod:', timePeriod);
   const fetchAnalyticsData = useCallback(async () => {
+    console.log('[STATS] 🔄 fetchAnalyticsData called, timePeriod:', timePeriod);
     setAnalyticsLoading(true);
     try {
       const [sourceCodesRes, cpaRes, campaignRes, leadDetailsRes, demographicsRes] = await Promise.all([
@@ -317,9 +345,15 @@ const Stats: React.FC = () => {
       console.log('[STATS] CPA Data:', realCpaData);
       
       // Create timeline from lead details data grouped by date
+      // Use createdAt since purchaseDate doesn't exist in database
       const timelineMap = new Map<string, { date: string; leads: number; sold: number; revenue: number }>();
       leadDetailsArray.forEach((lead: any) => {
-        const date = new Date(lead.purchaseDate).toISOString().split('T')[0];
+        const dateField = lead.purchaseDate || lead.createdAt;
+        if (!dateField) {
+          console.warn('[STATS] Lead missing both purchaseDate and createdAt:', lead._id);
+          return;
+        }
+        const date = new Date(dateField).toISOString().split('T')[0];
         if (!timelineMap.has(date)) {
           timelineMap.set(date, { date, leads: 0, sold: 0, revenue: 0 });
         }
@@ -375,12 +409,13 @@ const Stats: React.FC = () => {
     } finally {
       setAnalyticsLoading(false);
     }
-  }, [timePeriod]); // Remove toast dependency as it's stable
+  }, [timePeriod, toast]); // Include toast but it should be stable from useToast
 
   useEffect(() => {
+    console.log('[STATS] 🔄 useEffect triggered, timePeriod:', timePeriod);
     refreshStats();
     fetchAnalyticsData();
-  }, [timePeriod]); // Only depend on timePeriod, not the functions themselves
+  }, [refreshStats, fetchAnalyticsData]); // Depend on the memoized functions
 
   // Chart configurations with 3D-like effects
   const chartOptions = {
@@ -394,7 +429,7 @@ const Stats: React.FC = () => {
             family: 'Tektur, monospace',
             weight: 'bold' as const,
           },
-          color: textColor === 'white' ? '#ffffff' : '#2d3748',
+          color: '#ffffff',
         },
       },
       tooltip: {
@@ -416,10 +451,10 @@ const Stats: React.FC = () => {
     scales: {
       x: {
         grid: {
-          color: 'rgba(255, 140, 0, 0.1)',
+          color: 'rgba(148, 163, 184, 0.1)',
         },
         ticks: {
-          color: textColor === 'white' ? '#ffffff' : '#2d3748',
+          color: '#cbd5e1',
           font: {
             family: 'Tektur, monospace',
           },
@@ -427,10 +462,10 @@ const Stats: React.FC = () => {
       },
       y: {
         grid: {
-          color: 'rgba(255, 140, 0, 0.1)',
+          color: 'rgba(148, 163, 184, 0.1)',
         },
         ticks: {
-          color: textColor === 'white' ? '#ffffff' : '#2d3748',
+          color: '#cbd5e1',
           font: {
             family: 'Tektur, monospace',
           },
@@ -472,7 +507,12 @@ const Stats: React.FC = () => {
         {/* Header with Game-like Stats */}
         <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
           <Card bg={cardBg} border="2px solid" borderColor={GAME_COLORS.primary} borderRadius="12px" 
-                boxShadow="0 8px 16px rgba(255, 140, 0, 0.2)">
+                {...glassCardStyle}
+                boxShadow="0 8px 32px rgba(255, 140, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)"
+                _hover={{
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 12px 40px rgba(255, 140, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15)',
+                }}>
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
                 <FaRocket color={GAME_COLORS.primary} size={24} />
@@ -489,7 +529,12 @@ const Stats: React.FC = () => {
           </Card>
 
           <Card bg={cardBg} border="2px solid" borderColor={GAME_COLORS.success} borderRadius="12px"
-                boxShadow="0 8px 16px rgba(0, 255, 127, 0.2)">
+                {...glassCardStyle}
+                boxShadow="0 8px 32px rgba(0, 255, 127, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)"
+                _hover={{
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 12px 40px rgba(0, 255, 127, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.15)',
+                }}>
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
                 <FaTrophy color={GAME_COLORS.success} size={24} />
@@ -545,7 +590,8 @@ const Stats: React.FC = () => {
 
         {/* Main Chart */}
         <Card bg={cardBg} border="2px solid" borderColor={borderColor} borderRadius="12px"
-              boxShadow="0 8px 24px rgba(0, 0, 0, 0.1)">
+              {...glassCardStyle}
+              boxShadow="0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)">
           <CardHeader>
             <Flex align="center" gap={3}>
               <FaChartBar color={GAME_COLORS.primary} size={24} />
@@ -771,7 +817,7 @@ const Stats: React.FC = () => {
                           family: 'Tektur, monospace',
                           weight: 'bold' as const,
                         },
-                        color: textColor === 'white' ? '#ffffff' : '#2d3748',
+                        color: '#ffffff',
                       },
                     },
                   },
@@ -897,7 +943,7 @@ const Stats: React.FC = () => {
           title: {
             display: true,
             text: 'Leads',
-            color: textColor === 'white' ? '#ffffff' : '#2d3748',
+            color: '#ffffff',
             font: {
               family: 'Tektur, monospace',
             },
@@ -911,7 +957,7 @@ const Stats: React.FC = () => {
           title: {
             display: true,
             text: 'Revenue ($)',
-            color: textColor === 'white' ? '#ffffff' : '#2d3748',
+            color: '#ffffff',
             font: {
               family: 'Tektur, monospace',
             },
@@ -1409,10 +1455,10 @@ const Stats: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 140, 0, 0.1)" />
                   <XAxis 
                     dataKey="state" 
-                    tick={{ fill: textColor === 'white' ? '#ffffff' : '#2d3748', fontFamily: 'Tektur, monospace' }}
+                    tick={{ fill: '#ffffff', fontFamily: 'Tektur, monospace' }}
                   />
                   <YAxis 
-                    tick={{ fill: textColor === 'white' ? '#ffffff' : '#2d3748', fontFamily: 'Tektur, monospace' }}
+                    tick={{ fill: '#ffffff', fontFamily: 'Tektur, monospace' }}
                   />
                   <RechartsTooltip 
                     contentStyle={{
