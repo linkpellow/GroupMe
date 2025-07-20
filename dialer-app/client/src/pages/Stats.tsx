@@ -282,6 +282,7 @@ const Stats: React.FC = () => {
       console.error('Error fetching stats:', err);
       setError('Failed to load stats. Please try again.');
     } finally {
+      console.log('[STATS] 🏁 Setting isLoading = false in refreshStats');
       setIsLoading(false);
     }
   }, []);
@@ -407,6 +408,7 @@ const Stats: React.FC = () => {
         isClosable: true,
       });
     } finally {
+      console.log('[STATS] 🏁 Setting analyticsLoading = false in fetchAnalyticsData');
       setAnalyticsLoading(false);
     }
   }, [timePeriod, toast]); // Include toast but it should be stable from useToast
@@ -415,7 +417,8 @@ const Stats: React.FC = () => {
     console.log('[STATS] 🔄 useEffect triggered, timePeriod:', timePeriod);
     refreshStats();
     fetchAnalyticsData();
-  }, [refreshStats, fetchAnalyticsData]); // Depend on the memoized functions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timePeriod]); // Only depend on timePeriod, not the functions themselves
 
   // Chart configurations with 3D-like effects
   const chartOptions = {
