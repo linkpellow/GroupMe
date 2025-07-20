@@ -52,11 +52,21 @@ export const setToken = (token: string): void => {
   axios.defaults.headers.common['Authorization'] = formattedToken;
   
   // Update any global axios instance
-  if (typeof window !== 'undefined' && window.axiosInstance) {
-    window.axiosInstance.defaults.headers.common['Authorization'] = formattedToken;
-    console.log('Updated axiosInstance Authorization header');
-  } else {
-    console.warn('Global axiosInstance not available when setting token');
+  if (typeof window !== 'undefined') {
+    if (window.axiosInstance) {
+      window.axiosInstance.defaults.headers.common['Authorization'] = formattedToken;
+      console.log('Updated axiosInstance Authorization header');
+    } else {
+      // Axios instance might not be initialized yet, try to set it after a brief delay
+      setTimeout(() => {
+        if (window.axiosInstance) {
+          window.axiosInstance.defaults.headers.common['Authorization'] = formattedToken;
+          console.log('Updated axiosInstance Authorization header (delayed)');
+        } else {
+          console.debug('Global axiosInstance still not available - this is normal during app initialization');
+        }
+      }, 100);
+    }
   }
   
   // Notify listeners

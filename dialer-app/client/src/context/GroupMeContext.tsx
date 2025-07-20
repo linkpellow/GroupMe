@@ -215,8 +215,12 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
       let groupsData = [];
       
       if (response.data && response.data.success && response.data.data) {
-        // Handle wrapped response format
+        // Handle wrapped response format {success: true, data: [...]}
         console.log("✅ GroupMeContext: Using wrapped response format");
+        groupsData = response.data.data;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        // Handle format {data: Array(8)}
+        console.log("✅ GroupMeContext: Using {data: Array} format");
         groupsData = response.data.data;
       } else if (Array.isArray(response.data)) {
         // Handle direct array format
@@ -224,7 +228,10 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
         groupsData = response.data;
       } else {
         console.error("❌ GroupMeContext: Unexpected response format:", response.data);
-        throw new Error('Unexpected API response format');
+        // Don't throw - gracefully handle by setting empty array
+        console.warn("⚠️ GroupMeContext: Setting empty groups array due to format mismatch");
+        setGroups([]);
+        return;
       }
       
       console.log("🔍 GroupMeContext: Raw groups data:", groupsData);
@@ -241,8 +248,12 @@ export const GroupMeProvider: React.FC<{ children: ReactNode }> = ({
         console.log("🔍 GroupMeContext: Raw group data fields:", Object.keys(group));
         
         const formatted = {
-          groupId: group.groupId || group.id || group.group_id,
-          groupName: group.groupName || group.name,
+          groupId: group.groupId || group.id || group.group_id || '',
+          groupName: group.groupName || group.name || 'Unknown Group',
+          botId: group.botId || '',
+          enabled: group.enabled ?? false,
+          displayOrder: group.displayOrder ?? 0,
+          displayInDashboard: group.displayInDashboard ?? false,
           image_url: group.image_url,
           last_message: group.last_message,
           messages_count: group.messages_count

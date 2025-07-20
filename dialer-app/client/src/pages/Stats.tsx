@@ -138,7 +138,7 @@ interface StatsData {
 interface AnalyticsData {
   sourceCodes: Array<{
     code: string;
-    totalLeads: number;
+  totalLeads: number;
     soldLeads: number;
     conversionRate: number;
     revenue: number;
@@ -508,7 +508,7 @@ const Stats: React.FC = () => {
       ],
     };
 
-    return (
+  return (
       <VStack spacing={6} align="stretch">
         {/* Header with Game-like Stats */}
         <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
@@ -522,7 +522,7 @@ const Stats: React.FC = () => {
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
                 <FaRocket color={GAME_COLORS.primary} size={24} />
-              </Flex>
+          </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   ACTIVE SOURCES
@@ -544,7 +544,7 @@ const Stats: React.FC = () => {
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
                 <FaTrophy color={GAME_COLORS.success} size={24} />
-              </Flex>
+        </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
                   TOP PERFORMER
@@ -876,7 +876,7 @@ const Stats: React.FC = () => {
                       </Td>
                       <Td fontFamily="Tektur, monospace">${item.cpa.toFixed(2)}</Td>
                       <Td fontFamily="Tektur, monospace" color={GAME_COLORS.info} fontWeight="bold">
-                        ${item.revenue.toLocaleString()}
+                        ${typeof item?.revenue === 'number' ? item.revenue.toLocaleString() : '0'}
                       </Td>
                       <Td>
                         <Badge 
@@ -916,7 +916,7 @@ const Stats: React.FC = () => {
     const campaigns = analyticsData?.campaigns || [];
     
     const barData = {
-      labels: campaigns.slice(0, 8).map(item => item.name.substring(0, 10) + '...'),
+      labels: campaigns.slice(0, 8).map(item => (item?.name ? item.name.substring(0, 10) + '...' : 'Unknown')),
       datasets: [
         {
           label: 'Leads',
@@ -1110,15 +1110,15 @@ const Stats: React.FC = () => {
                         )}
                       </Td>
                       <Td fontFamily="Tektur, monospace" fontWeight="bold" color={GAME_COLORS.primary}>
-                        {item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name}
+                        {item?.name ? (item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name) : 'Unknown'}
                       </Td>
                       <Td fontFamily="Tektur, monospace">{item.leads}</Td>
                       <Td fontFamily="Tektur, monospace" color={GAME_COLORS.success} fontWeight="bold">
                         {item.sold}
                       </Td>
-                      <Td fontFamily="Tektur, monospace">${item.cost.toLocaleString()}</Td>
+                      <Td fontFamily="Tektur, monospace">${typeof item?.cost === 'number' ? item.cost.toLocaleString() : '0'}</Td>
                       <Td fontFamily="Tektur, monospace" color={GAME_COLORS.info} fontWeight="bold">
-                        ${item.revenue.toLocaleString()}
+                        ${typeof item?.revenue === 'number' ? item.revenue.toLocaleString() : '0'}
                       </Td>
                       <Td>
                         <Badge 
@@ -1335,7 +1335,7 @@ const Stats: React.FC = () => {
                               </Badge>
                         </Td>
                         <Td fontFamily="Tektur, monospace" color={GAME_COLORS.info} fontWeight="bold">
-                          ${item.revenue.toLocaleString()}
+                          ${typeof item?.revenue === 'number' ? item.revenue.toLocaleString() : '0'}
                         </Td>
                         <Td>
                           {trend === 'up' ? (
@@ -1540,7 +1540,7 @@ const Stats: React.FC = () => {
                       </Td>
                       <Td fontFamily="Tektur, monospace">{item.count}</Td>
                       <Td fontFamily="Tektur, monospace" color={GAME_COLORS.success} fontWeight="bold">
-                        ${item.revenue.toLocaleString()}
+                        ${typeof item?.revenue === 'number' ? item.revenue.toLocaleString() : '0'}
                       </Td>
                       <Td fontFamily="Tektur, monospace">{Math.round(item.avgAge)}</Td>
                       <Td>
