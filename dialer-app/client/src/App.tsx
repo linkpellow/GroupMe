@@ -16,6 +16,7 @@ import CsvUpload from './pages/CsvUpload';
 import Gmail from './pages/Gmail';
 import Integrations from './pages/Integrations';
 import Clients from './pages/Clients';
+import Stats from './pages/Stats';
 import GroupMePage from './pages/GroupMePage';
 import { NotificationProvider } from './context/NotificationContext';
 import { NotificationSoundProvider } from './context/NotificationSoundContext';
@@ -294,6 +295,17 @@ function App() {
                                         <Layout>
                                           <DailyGoals />
                                           <Clients />
+                                        </Layout>
+                                      </AuthenticatedRoute>
+                                    }
+                                  />
+                                  <Route
+                                    path="/stats"
+                                    element={
+                                      <AuthenticatedRoute>
+                                        <Layout>
+                                          <DailyGoals />
+                                          <Stats />
                                         </Layout>
                                       </AuthenticatedRoute>
                                     }

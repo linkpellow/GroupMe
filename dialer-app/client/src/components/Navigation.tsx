@@ -27,6 +27,7 @@ import {
   FaTimes,
   FaFile,
   FaFileAlt,
+  FaChartBar,
 } from 'react-icons/fa';
 import GroupMeChatWrapper from './GroupMeChatWrapper';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
@@ -302,6 +303,7 @@ const Navigation: React.FC = () => {
   const menuPages = [
     [
       { title: 'Clients', path: '/clients', icon: FaUserTie },
+      { title: 'Stats', path: '/stats', icon: FaChartBar },
       { title: 'GMAIL', path: '/gmail', icon: FaEnvelope },
       { title: 'Spreadsheet', path: '/spreadsheet', icon: FaTable },
       { title: 'CSV Upload', path: '/csv-upload', icon: FaFileUpload },

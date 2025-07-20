@@ -1537,4 +1537,7 @@ router.get('/recent', async (req: Request, res: Response) => {
   }
 });
 
+// Step 1: Minimal stats endpoint
+router.get('/stats', auth, leadsController.getLeadStats);
+
 export default router;

@@ -975,3 +975,32 @@ export const updateLeadNotes = async (req: AuthenticatedRequest, res: Response) 
     return res.status(500).json({ message: 'Error updating notes' });
   }
 };
+
+// Step 2: Working stats endpoint with basic count
+export const getLeadStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    
+    // Simple count query - verified working
+    const totalLeads = await LeadModel.countDocuments({ tenantId: userId });
+    
+    res.json({
+      success: true,
+      message: 'Stats endpoint working',
+      data: {
+        totalLeads
+      }
+    });
+
+  } catch (error) {
+    console.error('[getLeadStats] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get stats'
+    });
+  }
+};
