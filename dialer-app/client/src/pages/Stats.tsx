@@ -220,34 +220,7 @@ const Stats: React.FC = () => {
   renderCount.current += 1;
   console.log('[STATS] 🎨 Component render #', renderCount.current, 'timePeriod:', timePeriod, 'activeTab:', activeTab);
 
-  // 🛡️ PROFESSIONAL CIRCUIT BREAKER - Prevent infinite API calls
-  const apiCallHistory = useRef<number[]>([]);
-  const MAX_API_CALLS = 5;
-  const TIME_WINDOW = 10000; // 10 seconds
-
-  const canMakeAPICall = useCallback(() => {
-    const now = Date.now();
-    
-    // Clean old calls
-    apiCallHistory.current = apiCallHistory.current.filter(time => now - time < TIME_WINDOW);
-    
-    // Check if we've exceeded max calls
-    if (apiCallHistory.current.length >= MAX_API_CALLS) {
-      console.error('🛑 CIRCUIT BREAKER: Too many API calls, blocking request');
-      toast({
-        title: 'System Protection',
-        description: 'Too many requests detected. Please wait a moment.',
-        status: 'warning',
-        duration: 5000,
-        isClosable: true,
-      });
-      return false;
-    }
-    
-    // Record this call
-    apiCallHistory.current.push(now);
-    return true;
-  }, []);
+  // Circuit breaker removed - was causing the loading loop by blocking API calls
 
   // Quality management
   const {
@@ -445,20 +418,6 @@ const Stats: React.FC = () => {
 
   useEffect(() => {
     console.log('[STATS] 🔄 useEffect triggered, timePeriod:', timePeriod);
-    
-    // 🛡️ PROFESSIONAL PROTECTION: Use circuit breaker
-    if (!canMakeAPICall()) {
-      console.warn('[STATS] 🛑 API calls blocked by circuit breaker');
-      return;
-    }
-    
-    // 🛡️ PROFESSIONAL PROTECTION: Prevent concurrent calls
-    if (isLoading || analyticsLoading) {
-      console.warn('[STATS] 🛑 API calls blocked - already loading');
-      return;
-    }
-    
-    console.log('[STATS] ✅ Making API calls - circuit breaker passed');
     refreshStats();
     fetchAnalyticsData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
