@@ -416,15 +416,22 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response) => {
 
     // After successful update
     // Handle SOLD disposition - auto-assign quality to source code
-    if (updateData.disposition === 'SOLD' && updatedLead.sourceHash && req.user?.id) {
-      try {
-        const success = await autoAssignQuality(req.user.id, updatedLead.sourceHash, 'quality');
-        if (success) {
-          console.log(`Auto-assigned Quality to source code ${updatedLead.sourceHash} for SOLD lead ${updatedLead._id}`);
+    if (updateData.disposition === 'SOLD' && req.user?.id) {
+      // Check for source code in multiple possible field names
+      const sourceCode = updatedLead.sourceHash || updatedLead.sourceCode || (updatedLead as any).source_hash;
+      
+      if (sourceCode) {
+        try {
+          const success = await autoAssignQuality(req.user.id, sourceCode, 'quality');
+          if (success) {
+            console.log(`Auto-assigned Quality to source code ${sourceCode} for SOLD lead ${updatedLead._id}`);
+          }
+        } catch (error) {
+          console.error('Auto-quality assignment failed for SOLD lead:', error);
+          // Don't fail the disposition update if quality assignment fails
         }
-      } catch (error) {
-        console.error('Auto-quality assignment failed for SOLD lead:', error);
-        // Don't fail the disposition update if quality assignment fails
+      } else {
+        console.log(`SOLD lead ${updatedLead._id} has no source code to auto-assign quality to`);
       }
     }
 
