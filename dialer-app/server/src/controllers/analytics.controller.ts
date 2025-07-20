@@ -53,10 +53,15 @@ export const getSourceCodeAnalytics = async (req: AuthenticatedRequest, res: Res
     const timeRange = getTimeRange(period as string);
 
     // Get source code performance with SOLD conversion tracking
+    // Use flexible tenant filtering like /leads endpoint to handle legacy data
+    const tenantFilter = req.user?.role === 'admin'
+      ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+      : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
+
     const sourceCodeData = await LeadModel.aggregate([
       {
         $match: {
-          tenantId: userId,
+          ...tenantFilter,
           createdAt: { $gte: timeRange.start, $lte: timeRange.end },
           $or: [
             { sourceHash: { $exists: true, $nin: [null, ''] } },
@@ -159,9 +164,13 @@ export const getCPAAnalytics = async (req: AuthenticatedRequest, res: Response) 
     const { period = 'weekly' } = req.query;
     const timeRange = getTimeRange(period as string);
 
-    // SOLD leads base query
+    // SOLD leads base query with flexible tenant filtering
+    const tenantFilter = req.user?.role === 'admin'
+      ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+      : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
+
     const soldQuery = {
-      tenantId: userId,
+      ...tenantFilter,
       disposition: 'SOLD',
       createdAt: { $gte: timeRange.start, $lte: timeRange.end }
     };
@@ -238,10 +247,15 @@ export const getCampaignAnalytics = async (req: AuthenticatedRequest, res: Respo
     const { period = 'weekly' } = req.query;
     const timeRange = getTimeRange(period as string);
 
+    // Use flexible tenant filtering for campaign data
+    const tenantFilter = req.user?.role === 'admin'
+      ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+      : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
+
     const campaignData = await LeadModel.aggregate([
       {
         $match: {
-          tenantId: userId,
+          ...tenantFilter,
           createdAt: { $gte: timeRange.start, $lte: timeRange.end },
           campaignName: { $exists: true, $nin: [null, ''] }
         }
@@ -325,10 +339,15 @@ export const getLeadDetailsAnalytics = async (req: AuthenticatedRequest, res: Re
     const { period = 'weekly' } = req.query;
     const timeRange = getTimeRange(period as string);
 
+    // Use flexible tenant filtering for lead details
+    const tenantFilter = req.user?.role === 'admin'
+      ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+      : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
+
     const leadDetails = await LeadModel.aggregate([
       {
         $match: {
-          tenantId: userId,
+          ...tenantFilter,
           disposition: 'SOLD',
           createdAt: { $gte: timeRange.start, $lte: timeRange.end }
         }
@@ -389,10 +408,15 @@ export const getDemographicsAnalytics = async (req: AuthenticatedRequest, res: R
     const { period = 'weekly' } = req.query;
     const timeRange = getTimeRange(period as string);
 
+    // Use flexible tenant filtering for demographics
+    const tenantFilter = req.user?.role === 'admin'
+      ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+      : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
+
     const demographicsData = await LeadModel.aggregate([
       {
         $match: {
-          tenantId: userId,
+          ...tenantFilter,
           disposition: 'SOLD',
           createdAt: { $gte: timeRange.start, $lte: timeRange.end },
           state: { $exists: true, $nin: [null, ''] }

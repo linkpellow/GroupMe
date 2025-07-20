@@ -44,10 +44,14 @@ const getSourceCodeAnalytics = async (req, res) => {
         const { period = 'weekly' } = req.query;
         const timeRange = getTimeRange(period);
         // Get source code performance with SOLD conversion tracking
+        // Use flexible tenant filtering like /leads endpoint to handle legacy data
+        const tenantFilter = req.user?.role === 'admin'
+            ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+            : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
         const sourceCodeData = await Lead_1.default.aggregate([
             {
                 $match: {
-                    tenantId: userId,
+                    ...tenantFilter,
                     createdAt: { $gte: timeRange.start, $lte: timeRange.end },
                     $or: [
                         { sourceHash: { $exists: true, $nin: [null, ''] } },
@@ -143,9 +147,12 @@ const getCPAAnalytics = async (req, res) => {
         const userId = new mongoose_1.default.Types.ObjectId(req.user.id);
         const { period = 'weekly' } = req.query;
         const timeRange = getTimeRange(period);
-        // SOLD leads base query
+        // SOLD leads base query with flexible tenant filtering
+        const tenantFilter = req.user?.role === 'admin'
+            ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+            : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
         const soldQuery = {
-            tenantId: userId,
+            ...tenantFilter,
             disposition: 'SOLD',
             createdAt: { $gte: timeRange.start, $lte: timeRange.end }
         };
@@ -218,10 +225,14 @@ const getCampaignAnalytics = async (req, res) => {
         const userId = new mongoose_1.default.Types.ObjectId(req.user.id);
         const { period = 'weekly' } = req.query;
         const timeRange = getTimeRange(period);
+        // Use flexible tenant filtering for campaign data
+        const tenantFilter = req.user?.role === 'admin'
+            ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+            : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
         const campaignData = await Lead_1.default.aggregate([
             {
                 $match: {
-                    tenantId: userId,
+                    ...tenantFilter,
                     createdAt: { $gte: timeRange.start, $lte: timeRange.end },
                     campaignName: { $exists: true, $nin: [null, ''] }
                 }
@@ -302,10 +313,14 @@ const getLeadDetailsAnalytics = async (req, res) => {
         const userId = new mongoose_1.default.Types.ObjectId(req.user.id);
         const { period = 'weekly' } = req.query;
         const timeRange = getTimeRange(period);
+        // Use flexible tenant filtering for lead details
+        const tenantFilter = req.user?.role === 'admin'
+            ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+            : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
         const leadDetails = await Lead_1.default.aggregate([
             {
                 $match: {
-                    tenantId: userId,
+                    ...tenantFilter,
                     disposition: 'SOLD',
                     createdAt: { $gte: timeRange.start, $lte: timeRange.end }
                 }
@@ -363,10 +378,14 @@ const getDemographicsAnalytics = async (req, res) => {
         const userId = new mongoose_1.default.Types.ObjectId(req.user.id);
         const { period = 'weekly' } = req.query;
         const timeRange = getTimeRange(period);
+        // Use flexible tenant filtering for demographics
+        const tenantFilter = req.user?.role === 'admin'
+            ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
+            : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
         const demographicsData = await Lead_1.default.aggregate([
             {
                 $match: {
-                    tenantId: userId,
+                    ...tenantFilter,
                     disposition: 'SOLD',
                     createdAt: { $gte: timeRange.start, $lte: timeRange.end },
                     state: { $exists: true, $nin: [null, ''] }
