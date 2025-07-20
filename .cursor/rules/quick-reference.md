@@ -136,6 +136,37 @@ const useTimeoutLoading = (loading: boolean, timeoutMs: number = 10000) => {
 
 ---
 
+## 🔄 CSV Import Standards
+
+### Format Detection (ALWAYS CHECK FIRST)
+```typescript
+const isNextGen = headers.includes('source_hash') && headers.includes('data_source_hash');
+const isMarketplace = headers.includes('leadID') && headers.includes('trustedFormCertID');
+```
+
+### NextGen Format
+- **Pattern**: `purchases-YYYY-MM-DD-to-YYYY-MM-DD.csv`
+- **Columns**: 42 columns, exact order required
+- **Key Fields**: `source_hash`, `data_source_hash`, `sub_id_hash` (ONLY NextGen)
+- **Dates**: ISO 8601 format
+- **Source Code**: `sourceCode` = `source_hash` field
+
+### Marketplace Format  
+- **Pattern**: `lead-report-*.csv`
+- **Columns**: 22 columns, exact order required
+- **Key Fields**: `leadID`, `trustedFormCertID` (NO hash columns)
+- **Dates**: `MM-DD-YYYY HH:MM:SS` (requires conversion)
+- **Source Code**: Derived from `campaignName` or defaults to "Marketplace"
+
+### Critical Rules
+- ❌ **NEVER** mix CSV formats in single import
+- ✅ **ALWAYS** validate header before parsing rows
+- ✅ **ALWAYS** convert dates to ISO 8601 internally
+- ✅ **NEVER** modify column order without updating all mappers
+- ✅ **TEST** both formats when changing import logic
+
+---
+
 ## ✅ MANDATORY STANDARDS
 
 ### Code Quality

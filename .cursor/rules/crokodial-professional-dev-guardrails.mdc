@@ -1105,3 +1105,115 @@ echo "✅ All pre-merge checks passed!"
 - [ ] Fix memory leaks in long-running sessions
 
 *This enhanced rule provides god-like professional developer context and will ensure seamless completion of the Crokodial CRM project with zero confusion and maximum efficiency.*
+
+---
+
+## 🔄 Lead Import CSV Standards: NextGen vs. Marketplace
+
+**CRITICAL:** To ensure seamless, automated, and error-free lead imports, this repo distinguishes between **NextGen** and **Marketplace** CSV formats. Agents, contributors, and import code must always check the format and apply the correct mapping/parsing logic.
+
+### 1. NextGen CSV Format
+
+**File Naming Pattern:**  
+`purchases-YYYY-MM-DD-to-YYYY-MM-DD.csv` or similar date-ranged naming.
+
+**Header Row (42 columns, exact order):**
+```csv
+created_at,purchase_id,product,lead_id,vendor_id,vendor_name,vertical_id,account_id,account_name,campaign_id,campaign_name,bid_type,first_name,last_name,phone,street_1,street_2,email,city,state,zipcode,dob,gender,height,household_size,household_income,weight,military,pregnant,tobacco_user,has_prescription,has_medicare_parts_a_b,has_medical_condition,medical_conditions,insurance_timeframe,price,status,disposition,call_log_id,call_duration,source_hash,data_source_hash,sub_id_hash
+```
+
+**Column Conventions:**
+- **Exact order required** - no column reordering allowed
+- String fields: unquoted unless containing commas (then double quotes)
+- Numeric fields: `price`, `height`, `weight`, `call_duration` (integer/decimal)
+- Boolean fields: `true`/`false` (never 1/0)
+- Array fields: JSON serialized (`[]` or `["diabetes","heart_disease"]`)
+- Empty fields: blank (`,, `)
+- Dates: ISO 8601 (`YYYY-MM-DD` or `YYYY-MM-DDTHH:MM:SS.sssZ`)
+- **🔑 CRITICAL:** `source_hash`, `data_source_hash`, `sub_id_hash` are **ONLY** in NextGen leads
+- Used for deduplication, tracking, and source code mapping
+
+**Example NextGen Row:**
+```csv
+2025-07-18T14:06:37.359Z,01K0EXQFSFXS9Y54EBDRTJCJQD,ad,D-V6FJ-FDYD,nextgenleads,NextGen Leads,health_insurance,GRF-981-168,Link Pellow,01JXXNQFBDDB87MBFS97Q2WFR0,Randy Bobandy,exclusive,Lynette,Boley,8634562968,511 North Dolphin,,nboley1765@comcast.net,Placida,FL,33946,1971-01-13,female,65,4,"$97,000 or Over",115,false,false,false,true,,false,[],Unknown,5,complete,,,,yBXw2,yBXw2,1PpBIL
+```
+
+### 2. Marketplace CSV Format
+
+**File Naming Pattern:**  
+`lead-report-*.csv` or `marketplace-*.csv`
+
+**Header Row (22 columns, exact order):**
+```csv
+leadID,created,email,primaryPhone,firstName,lastName,dateOfBirth,addressOne,addressTwo,addressThree,city,state,postalCode,income,age,household,gender,trustedFormCertID,jornayaLeadID,crmLastCallUsername,crmLastOfCallHistoryNameLastFirst,campaignName
+```
+
+**Column Conventions:**
+- **Exact order required** - no column reordering allowed
+- Dates: Often `MM-DD-YYYY HH:MM:SS` (NOT ISO) - requires conversion
+- Empty values: blank fields
+- No complex/array fields
+- **🔑 CRITICAL:** Marketplace leads **NEVER** contain `source_hash` columns
+- Uniqueness: Based on `leadID` field
+- Optional fields: `trustedFormCertID`, `jornayaLeadID` may be blank
+- Source info: Usually in `campaignName` field
+
+**Example Marketplace Row:**
+```csv
+c84dbe9c-903c-4492-97dc-0e81575141a4,06-19-2025 22:07:11,rosee0306@yahoo.com,9545881042,Rosemarie,Eckhardt,03-06-1979,141 NW 28th St,,,Pompano Beach,FL,33064,55000,46,0,Male,ba81b1a2075e403716fd2082260b4a3826a7ef4d,,,,GOOD JOB LARRY
+```
+
+### 3. Import Logic Requirements
+
+**🚨 MANDATORY HEADER VALIDATION:**
+```typescript
+// Always validate header before parsing
+const isNextGenFormat = headers.includes('source_hash') && headers.includes('data_source_hash');
+const isMarketplaceFormat = headers.includes('leadID') && headers.includes('trustedFormCertID');
+
+if (isNextGenFormat) {
+  // Use: import-nextgen-today.ts, nextgenDeduplicationService.ts
+} else if (isMarketplaceFormat) {
+  // Use: marketplace import logic
+} else {
+  throw new Error('Unknown CSV format - header validation failed');
+}
+```
+
+**🔧 CRITICAL IMPLEMENTATION RULES:**
+1. **Header Check First:** Always validate CSV format before parsing any rows
+2. **Date Normalization:** Convert all dates to ISO 8601 internally
+3. **No Column Changes:** Never add/remove/reorder columns without:
+   - Updating TypeScript definitions (`types/Lead.ts`)
+   - Updating field mappers and validation
+   - Updating import scripts and tests
+   - Regenerating code map (`npm run gen:map`)
+4. **Error Handling:** Surface TODO for unknown formats before proceeding
+5. **Testing:** All CSV changes require test coverage for both formats
+
+**🎯 SOURCE CODE MAPPING:**
+- **NextGen leads:** `sourceCode` = `source_hash` field (primary source tracking)
+- **Marketplace leads:** `sourceCode` = derived from `campaignName` or defaults to "Marketplace"
+- **Never mix formats** in a single import operation
+
+### 4. Format Detection & Validation
+
+**Quick Reference Table:**
+| CSV Source   | Filename Pattern         | Header Signature (first 3 cols)       | Date Format      | Hash Columns Present |
+|--------------|-------------------------|----------------------------------------|------------------|---------------------|
+| NextGen      | purchases-YYYY-MM-DD... | created_at, purchase_id, product       | ISO8601          | ✅ source_hash, data_source_hash, sub_id_hash |
+| Marketplace  | lead-report-*.csv       | leadID, created, email                 | MM-DD-YYYY HH:MM | ❌ Never has hash columns |
+
+**🔍 VALIDATION CHECKLIST:**
+- [ ] Header matches expected format exactly
+- [ ] Column count matches specification (42 for NextGen, 22 for Marketplace)
+- [ ] Required columns present and in correct order
+- [ ] Date formats validated and converted to ISO
+- [ ] Hash columns present ONLY in NextGen format
+- [ ] Import script selected based on format detection
+- [ ] Error handling for malformed/unknown formats
+
+---
+
+**⚠️ PRODUCTION SAFETY:**
+Any changes to CSV structure, column order, or field mappings must be tested in staging with real data samples before production deployment. Always maintain backward compatibility and document format changes in this section.
