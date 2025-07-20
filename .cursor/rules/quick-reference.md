@@ -1,4 +1,4 @@
-# 🚀 Crokodial CRM Quick Reference
+# 🚀 Crokodial CRM Quick Reference (ENHANCED)
 
 ## 🚨 CRITICAL VIOLATIONS (Fix Immediately)
 
@@ -16,6 +16,124 @@
 - ❌ **No React.memo** → MUST optimize expensive renders
 - ❌ **Memory leaks** → MUST audit useEffect cleanup
 
+### Current Production Blockers
+- ❌ **Search broken** → Client-side search fails at 500+ leads (line ~6083 Leads.tsx)
+- ❌ **WebSocket auth failing** → JWT signature mismatch causing connection errors
+- ❌ **Loading timeouts** → AuthContext can hang indefinitely
+
+---
+
+## 🔥 NEW: 5 CRITICAL ENHANCEMENTS
+
+### 1. Integration-Specific Patterns (BUSINESS CRITICAL)
+```typescript
+// MANDATORY: Twilio call tracking with error handling
+const makeCall = async (phone: string, userId: string) => {
+  try {
+    const call = await twilio.calls.create({
+      to: phone,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      statusCallback: `${process.env.BASE_URL}/api/twilio/status`
+    });
+    await Call.create({ twilioSid: call.sid, userId, phoneNumber: phone });
+  } catch (error) {
+    logger.error('Twilio call failed', { phone, userId, error });
+    throw new Error(`Call failed: ${error.message}`);
+  }
+};
+
+// MANDATORY: NextGen webhook deduplication
+const processNextGenWebhook = async (payload) => {
+  const existing = await Lead.findOne({ email: payload.email, phone: payload.phone });
+  if (existing) return { status: 'duplicate', leadId: existing._id };
+  // Process new lead...
+};
+```
+
+### 2. Current Issue Resolution Patterns (IMMEDIATELY APPLICABLE)
+```typescript
+// ❌ BROKEN: Current search (Leads.tsx line ~6083)
+useEffect(() => {
+  fetchLeads({ getAllResults: 'true', limit: 1000 }).then(allLeads => {
+    const filtered = allLeads.filter(lead => lead.name.startsWith(searchQuery));
+  });
+}, [searchQuery]);
+
+// ✅ FIXED: Server-side search
+useEffect(() => {
+  if (searchQuery.trim()) {
+    const abortController = new AbortController();
+    const timeout = setTimeout(() => {
+      fetchLeads({ 
+        search: searchQuery.trim(), // Server searches ALL leads
+        page: currentPage,
+        limit: 50 
+      }, { signal: abortController.signal })
+      .then(response => setLeads(response.data.leads));
+    }, 300);
+    return () => { clearTimeout(timeout); abortController.abort(); };
+  }
+}, [searchQuery, currentPage]);
+```
+
+### 3. Deployment & Build Reliability (HEROKU CRITICAL)
+```bash
+# MANDATORY: Pre-deployment checklist
+pre_deploy_checklist() {
+  npm run lockfile:linux || exit 1  # CRITICAL for Heroku
+  npm audit --audit-level=high || exit 1
+  npx tsc --noEmit || exit 1
+  npm test -- --coverage --passWithNoTests || exit 1
+  npm run build || exit 1
+}
+
+# MANDATORY: Post-deployment verification
+curl -s https://crokodial.com/api/health | jq '.'
+curl -s https://crokodial.com/api/leads?limit=1 | jq '.data[0]'
+```
+
+### 4. Component Refactoring Strategy (TECHNICAL DEBT RESOLUTION)
+```typescript
+// IMMEDIATE PRIORITY: Break down Leads.tsx (6879 lines → <500 each)
+// 1. LeadListContainer.tsx (<300 lines)
+// 2. LeadCard.tsx (<200 lines) 
+// 3. LeadFilters.tsx (<250 lines)
+// 4. Custom hooks: useLeadsData, useLeadActions, useLeadFilters
+
+// IMMEDIATE PRIORITY: Break down Dialer.tsx (3506 lines → <500 each)
+// 1. DialerContainer.tsx (<300 lines)
+// 2. CallControls.tsx (<200 lines)
+// 3. CallHistory.tsx (<200 lines)
+// 4. DetachedDialerWindow.tsx (<300 lines)
+```
+
+### 5. Error Handling & Recovery Patterns (PRODUCTION STABILITY)
+```typescript
+// MANDATORY: Error boundaries for all major sections
+class CRMErrorBoundary extends React.Component {
+  componentDidCatch(error, errorInfo) {
+    logger.error('CRM Error Boundary caught error', { error, errorInfo });
+  }
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback resetError={() => this.setState({ hasError: false })} />;
+    }
+    return this.props.children;
+  }
+}
+
+// MANDATORY: Loading timeout prevention
+const useTimeoutLoading = (loading: boolean, timeoutMs: number = 10000) => {
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    if (!loading) { setTimedOut(false); return; }
+    const timeout = setTimeout(() => setTimedOut(true), timeoutMs);
+    return () => clearTimeout(timeout);
+  }, [loading, timeoutMs]);
+  return { loading: loading && !timedOut, timedOut };
+};
+```
+
 ---
 
 ## ✅ MANDATORY STANDARDS
@@ -24,169 +142,78 @@
 - **Component Size**: <500 lines maximum
 - **Test Coverage**: 80% minimum for new code
 - **TypeScript**: Strict mode, no `any` types
-- **Multi-Tenant**: Every query MUST include userId/tenantId
+- **Multi-Tenant**: Every query includes userId scope
+- **Error Handling**: Comprehensive try/catch blocks
 
 ### Performance Targets
 - **Lead List**: <200ms for 100 leads, <500ms for 1000 leads
-- **Search**: <300ms server-side search
-- **API Response**: <200ms average
-- **Memory**: <100MB steady state
+- **Search Response**: <300ms server-side search
+- **Call Initiation**: <100ms click to Twilio API
+- **Page Load**: <2s initial, <500ms navigation
 
 ### Security Requirements
-- **JWT**: httpOnly cookies with CSRF protection
+- **JWT Storage**: httpOnly cookies with CSRF protection
+- **API Keys**: Environment variables only
+- **Rate Limiting**: Auth and import endpoints
 - **Input Validation**: Zod schemas for all endpoints
-- **Rate Limiting**: Auth (5/15min), Import (100/hour)
-- **Multi-Tenant**: Built into data access layer
+- **Audit Logging**: Track all lead access/modifications
 
 ---
 
-## 🔧 DEPLOYMENT CHECKLIST
+## 🚀 DEPLOYMENT CHECKLIST
 
-### Pre-Deploy (MANDATORY)
+### Pre-Deployment (MANDATORY)
+- [ ] `npm run lockfile:linux` (CRITICAL for Heroku)
+- [ ] `npm audit` shows no critical/high vulnerabilities
+- [ ] `npm test` passes with 80%+ coverage
+- [ ] `npx tsc --noEmit` successful
+- [ ] Component size check (<500 lines)
+- [ ] Multi-tenant security tests pass
+
+### Post-Deployment Verification
 ```bash
-# 1. Linux lockfile (CRITICAL for Heroku)
-npm run lockfile:linux
-
-# 2. Security audit
-npm audit
-
-# 3. Test coverage
-npm test
-
-# 4. Lint check
-npm run lint
-
-# 5. TypeScript check
-npx tsc --noEmit
-```
-
-### Post-Deploy Verification
-```bash
-# Health checks
 curl -s https://crokodial.com/api/health | jq '.'
-curl -s https://crokodial.com/api/leads?limit=1 | jq '.data[0]'
+curl -s https://crokodial.com/api/leads?limit=1 | jq '.data.pagination.total'
+curl -s https://crokodial.com/index.html | grep -o "assets/index-[a-f0-9]*\.js"
 ```
 
 ---
 
-## 📋 QUICK FIXES
+## 🔧 QUICK FIXES
 
-### JWT Security Migration
-```typescript
-// BEFORE (VULNERABLE):
-localStorage.setItem('token', jwt);
+### Fix Search Issue (PRODUCTION BLOCKER)
+1. Open `dialer-app/client/src/pages/Leads.tsx`
+2. Find line ~6083: `getAllResults: 'true',`
+3. Replace entire useEffect with server-side search pattern above
+4. Test with "anthony" search - should find ALL leads, not just first 500
 
-// AFTER (SECURE):
-res.cookie('auth_token', jwt, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 24 * 60 * 60 * 1000
-});
-```
+### Fix WebSocket Auth
+1. Ensure consistent `JWT_SECRET` across all environments
+2. Update token generation to use consistent payload structure
+3. Add proper error handling for WebSocket authentication failures
 
-### Multi-Tenant Data Access
-```typescript
-// ALWAYS include userId in queries
-const leads = await Lead.find({ userId }).lean();
-
-// NEVER do global queries without user scoping
-const leads = await Lead.find({}); // ❌ SECURITY VIOLATION
-```
-
-### Server-Side Pagination
-```typescript
-// Replace client-side filtering with server pagination
-const getLeads = async (userId: string, page = 1, limit = 50) => {
-  const skip = (page - 1) * limit;
-  return Lead.find({ userId })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
-};
-```
+### Fix Loading Timeouts
+1. Add timeout handling to all loading states (max 10-15 seconds)
+2. Implement fallback UI for timeout scenarios
+3. Add cleanup functions to prevent memory leaks
 
 ---
 
-## 🎯 REFACTORING PRIORITIES
+## 🎯 IMMEDIATE NEXT ACTIONS
 
-### 1. Break Down Leads.tsx (6,879 lines)
-```typescript
-// Extract to separate components:
-- LeadCard (< 200 lines)
-- LeadFilters (< 200 lines)  
-- LeadList (< 200 lines)
-- LeadActions (< 200 lines)
-- LeadPagination (< 200 lines)
-```
+### This Session Priority
+1. **Fix Search** - Replace client-side with server-side (line ~6083 Leads.tsx)
+2. **Component Refactor** - Start breaking down Leads.tsx into smaller components
+3. **Security Hardening** - Move JWT to httpOnly cookies
+4. **Testing Setup** - Implement Jest + Cypress with 80% coverage target
+5. **Performance** - Add React.memo and virtual scrolling for large lists
 
-### 2. Break Down Dialer.tsx (3,506 lines)
-```typescript
-// Extract to separate components:
-- CallControls (< 200 lines)
-- CallHistory (< 200 lines)
-- CallStatus (< 200 lines)
-- DialerWindow (< 200 lines)
-```
+### Success Criteria
+- [ ] Search works for ALL 2,182+ leads (not limited to 500)
+- [ ] No components >500 lines
+- [ ] 80% test coverage for new code
+- [ ] JWT stored in httpOnly cookies
+- [ ] All integrations (Twilio, NextGen, Calendly) working
+- [ ] Production deployment successful with evidence verification
 
-### 3. Feature-Based Organization
-```
-src/features/
-  ├── leads/     # All lead-related code
-  ├── dialer/    # All dialer-related code
-  ├── auth/      # Authentication code
-  └── integrations/ # 3rd-party services
-```
-
----
-
-## 🔍 TESTING STRATEGY
-
-### Component Tests (80% Coverage)
-```typescript
-describe('LeadCard', () => {
-  it('displays lead info correctly', () => {
-    const lead = createMockLead({ userId: 'user123' });
-    render(<LeadCard lead={lead} />);
-    expect(screen.getByText(lead.name)).toBeInTheDocument();
-  });
-
-  it('prevents cross-tenant access', () => {
-    const userALead = createMockLead({ userId: 'userA' });
-    render(<LeadCard lead={userALead} />, { user: { id: 'userB' } });
-    expect(screen.queryByText(userALead.name)).not.toBeInTheDocument();
-  });
-});
-```
-
-### API Tests (Multi-Tenant)
-```typescript
-describe('Leads API', () => {
-  it('returns only user-scoped leads', async () => {
-    const response = await request(app)
-      .get('/api/leads')
-      .set('Authorization', `Bearer ${userToken}`)
-      .expect(200);
-    
-    expect(response.body.data.every(lead => lead.userId === userId)).toBe(true);
-  });
-});
-```
-
----
-
-## 🚨 NEVER DO THIS
-
-- ❌ Create components >500 lines
-- ❌ Store JWT in localStorage  
-- ❌ Skip multi-tenant scoping in queries
-- ❌ Use client-side filtering >100 records
-- ❌ Deploy without `npm run lockfile:linux`
-- ❌ Hardcode API keys in code
-- ❌ Skip error boundaries
-- ❌ Ignore test coverage requirements
-
----
-
-*Keep this reference handy for professional CRM development standards!* 
+*This enhanced quick reference provides immediate context for the 5 critical improvements that make the rules 100% bulletproof for professional CRM development.* 
