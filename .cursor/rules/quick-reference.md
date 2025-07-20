@@ -167,6 +167,37 @@ const isMarketplace = headers.includes('leadID') && headers.includes('trustedFor
 
 ---
 
+## 💎 NextGen Premium Listing Logic
+
+### The Dual-File Problem
+NextGen sends **2 files per purchase**:
+- **Main Lead** (`product: "data"`) - Full data + base price
+- **Premium Listing** (`product: "ad"`) - Minimal data + $5 upsell
+
+### Critical Rules
+- ❌ **NEVER** create 2 separate leads for same `lead_id`
+- ✅ **ALWAYS** merge premium price into main lead: `base + $5`
+- ✅ **DISCARD** the premium listing record after merging
+- ✅ **HANDLE** both processing orders (main→premium, premium→main)
+
+### Quick Implementation Check
+```typescript
+const isMainLead = record.product === 'data';
+const isPremiumListing = record.product === 'ad' && record.price === 5;
+
+if (existingLead && isPremiumListing) {
+  // MERGE: Add $5 to existing lead, discard premium record
+  totalPrice = existingLead.price + 5;
+}
+```
+
+### Expected Result
+- **1 lead** per purchase (not 2)
+- **Combined price** (e.g., $45 + $5 = $50)
+- **Notes** showing premium application
+
+---
+
 ## ✅ MANDATORY STANDARDS
 
 ### Code Quality

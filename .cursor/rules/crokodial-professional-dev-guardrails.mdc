@@ -1217,3 +1217,145 @@ if (isNextGenFormat) {
 
 **⚠️ PRODUCTION SAFETY:**
 Any changes to CSV structure, column order, or field mappings must be tested in staging with real data samples before production deployment. Always maintain backward compatibility and document format changes in this section.
+
+---
+
+## 💎 NextGen Premium Listing Deduplication Logic
+
+**CRITICAL BUSINESS RULE:** NextGen sends **TWO separate files per purchase** that must be merged into a single lead record. This is essential for accurate pricing and preventing duplicate leads.
+
+### 🔄 The NextGen Dual-File System
+
+**File 1: Main Lead Record**
+- Contains full lead data (name, phone, address, etc.)
+- Has base price (e.g., $45 for data leads)
+- Product type: `"data"` (main lead information)
+
+**File 2: Premium Listing Record**  
+- Contains minimal data (same lead_id, basic info)
+- Has upsell price: `$5` (always $5 for premium listing)
+- Product type: `"ad"` (premium listing upsell)
+
+### 🎯 Required Deduplication Logic
+
+**MANDATORY PROCESSING RULES:**
+
+1. **Identify Related Records:**
+   ```typescript
+   // Both records share the same lead_id but different product types
+   const mainLead = record.product === 'data';
+   const premiumListing = record.product === 'ad' && record.price === 5;
+   ```
+
+2. **Merge Strategy:**
+   ```typescript
+   if (existingLead && isPremiumListing) {
+     // Add premium price to existing lead
+     const totalPrice = existingLead.price + premiumRecord.price; // base + $5
+     
+     // Update lead with combined price
+     await Lead.findByIdAndUpdate(existingLead._id, {
+       $set: {
+         price: totalPrice,
+         notes: `${existingLead.notes}\n💎 Premium Listing Applied: +$${premiumRecord.price} = $${totalPrice} total`
+       }
+     });
+     
+     // DO NOT create separate lead record for premium listing
+     return; // Discard the premium listing record
+   }
+   ```
+
+3. **Processing Order Handling:**
+   - **Main Lead First:** Create lead, then merge premium when it arrives
+   - **Premium First:** Create placeholder, replace with main lead data when it arrives
+   - **Never create two separate leads for the same lead_id**
+
+### 🔧 Implementation Requirements
+
+**CRITICAL CODE PATTERNS:**
+
+```typescript
+// In nextgenDeduplicationService.ts or similar
+export async function processNextGenRecord(record: NextGenRecord) {
+  const existingLead = await Lead.findOne({ 
+    lead_id: record.lead_id,
+    source: 'NextGen' 
+  });
+
+  const isMainLead = record.product === 'data';
+  const isPremiumListing = record.product === 'ad' && record.price === 5;
+
+  if (existingLead && isPremiumListing) {
+    // MERGE: Add premium price to existing main lead
+    await mergePremiumListing(existingLead, record);
+    return { action: 'merged', leadId: existingLead._id };
+  }
+  
+  if (existingLead && isMainLead) {
+    // REPLACE: Main lead data overwrites premium placeholder
+    await replaceWithMainLead(existingLead, record);
+    return { action: 'replaced', leadId: existingLead._id };
+  }
+  
+  // CREATE: First record for this lead_id
+  const newLead = await createNewLead(record);
+  return { action: 'created', leadId: newLead._id };
+}
+```
+
+### 📊 Expected Results
+
+**✅ CORRECT OUTCOME:**
+- **One lead record** in the system per purchase
+- **Combined pricing:** Base price + $5 premium = Total price
+- **Complete data:** Full lead information from main record
+- **Clear audit trail:** Notes showing premium listing was applied
+
+**❌ INCORRECT OUTCOMES TO PREVENT:**
+- Two separate lead records for same purchase
+- Missing premium pricing (only base price)
+- Premium listing without main lead data
+- Duplicate charges or billing issues
+
+### 🚨 Critical Validation Checklist
+
+**BEFORE DEPLOYING NEXTGEN CHANGES:**
+- [ ] Test with both processing orders (main→premium, premium→main)
+- [ ] Verify no duplicate leads created for same lead_id
+- [ ] Confirm pricing is correctly summed (base + $5)
+- [ ] Check notes field shows premium application
+- [ ] Validate deduplication service handles edge cases
+- [ ] Test with real NextGen webhook payloads
+- [ ] Verify database constraints prevent duplicate lead_ids
+
+### 🔍 Debugging & Monitoring
+
+**LOG WHAT MATTERS:**
+```typescript
+logger.info('NextGen deduplication decision', {
+  leadId: record.lead_id,
+  product: record.product,
+  price: record.price,
+  action: 'merged|replaced|created',
+  totalPrice: finalLead.price,
+  service: 'nextgen-deduplication'
+});
+```
+
+**METRICS TO TRACK:**
+- Merge success rate (should be ~50% for premium listings)
+- Duplicate lead detection (should be 0)
+- Average final price (should be base + $5 for premium purchases)
+- Processing order variations
+
+---
+
+**⚠️ BUSINESS IMPACT:**
+Incorrect implementation of this logic results in:
+- **Revenue tracking errors** (double-counting or under-counting)
+- **Lead management confusion** (duplicate entries)
+- **Client billing issues** (incorrect pricing)
+- **Data integrity problems** (incomplete lead records)
+
+This deduplication logic is **mission-critical** for NextGen lead processing and must be thoroughly tested before any changes to the import system.
