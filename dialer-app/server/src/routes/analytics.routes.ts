@@ -22,7 +22,7 @@ router.get('/sold/source-codes', auth, getSourceCodeAnalytics);
 router.get('/sold/cpa', auth, getCPAAnalytics);
 
 // Campaign Analytics - Campaign performance based on SOLD conversions
-router.get('/sold/campaigns', auth, getCampaignAnalytics);
+router.get('/sold/campaign-performance', auth, getCampaignAnalytics);
 
 // Lead Details Analytics - Comprehensive lead data with source codes
 router.get('/sold/lead-details', auth, getLeadDetailsAnalytics);
