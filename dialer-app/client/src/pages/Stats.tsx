@@ -220,6 +220,35 @@ const Stats: React.FC = () => {
   renderCount.current += 1;
   console.log('[STATS] 🎨 Component render #', renderCount.current, 'timePeriod:', timePeriod, 'activeTab:', activeTab);
 
+  // 🛡️ PROFESSIONAL CIRCUIT BREAKER - Prevent infinite API calls
+  const apiCallHistory = useRef<number[]>([]);
+  const MAX_API_CALLS = 5;
+  const TIME_WINDOW = 10000; // 10 seconds
+
+  const canMakeAPICall = useCallback(() => {
+    const now = Date.now();
+    
+    // Clean old calls
+    apiCallHistory.current = apiCallHistory.current.filter(time => now - time < TIME_WINDOW);
+    
+    // Check if we've exceeded max calls
+    if (apiCallHistory.current.length >= MAX_API_CALLS) {
+      console.error('🛑 CIRCUIT BREAKER: Too many API calls, blocking request');
+      toast({
+        title: 'System Protection',
+        description: 'Too many requests detected. Please wait a moment.',
+        status: 'warning',
+        duration: 5000,
+        isClosable: true,
+      });
+      return false;
+    }
+    
+    // Record this call
+    apiCallHistory.current.push(now);
+    return true;
+  }, [toast]);
+
   // Quality management
   const {
     qualityMap,
@@ -400,6 +429,7 @@ const Stats: React.FC = () => {
       setAnalyticsData(finalAnalyticsData);
     } catch (err) {
       console.error('Error fetching analytics:', err);
+      // 🔧 PROFESSIONAL FIX: Use toast directly instead of in dependencies
       toast({
         title: 'Analytics Error',
         description: 'Failed to load analytics data',
@@ -411,10 +441,24 @@ const Stats: React.FC = () => {
       console.log('[STATS] 🏁 Setting analyticsLoading = false in fetchAnalyticsData');
       setAnalyticsLoading(false);
     }
-  }, [timePeriod, toast]); // Include toast but it should be stable from useToast
+  }, [timePeriod]); // 🚨 CRITICAL FIX: Remove unstable toast dependency
 
   useEffect(() => {
     console.log('[STATS] 🔄 useEffect triggered, timePeriod:', timePeriod);
+    
+    // 🛡️ PROFESSIONAL PROTECTION: Use circuit breaker
+    if (!canMakeAPICall()) {
+      console.warn('[STATS] 🛑 API calls blocked by circuit breaker');
+      return;
+    }
+    
+    // 🛡️ PROFESSIONAL PROTECTION: Prevent concurrent calls
+    if (isLoading || analyticsLoading) {
+      console.warn('[STATS] 🛑 API calls blocked - already loading');
+      return;
+    }
+    
+    console.log('[STATS] ✅ Making API calls - circuit breaker passed');
     refreshStats();
     fetchAnalyticsData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
