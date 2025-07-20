@@ -247,7 +247,7 @@ const Stats: React.FC = () => {
     // Record this call
     apiCallHistory.current.push(now);
     return true;
-  }, [toast]);
+  }, []);
 
   // Quality management
   const {
