@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateLeadNotes = exports.exportLeadsCsv = exports.getFilterOptions = exports.getCallCounts = exports.createTestLead = exports.reverseOrder = exports.reorderLead = exports.getLeadsByState = exports.testDb = exports.deleteLead = exports.updateLead = exports.initializeOrder = exports.createLead = exports.getLeadById = exports.getLeads = void 0;
+exports.getLeadsStats = exports.updateLeadNotes = exports.exportLeadsCsv = exports.getFilterOptions = exports.getCallCounts = exports.createTestLead = exports.reverseOrder = exports.reorderLead = exports.getLeadsByState = exports.testDb = exports.deleteLead = exports.updateLead = exports.initializeOrder = exports.createLead = exports.getLeadById = exports.getLeads = void 0;
 exports.buildCsvFilename = buildCsvFilename;
 const express_validator_1 = require("express-validator");
 const Lead_1 = __importDefault(require("../models/Lead"));
@@ -867,3 +867,112 @@ const updateLeadNotes = async (req, res) => {
     }
 };
 exports.updateLeadNotes = updateLeadNotes;
+// Get leads statistics
+const getLeadsStats = async (req, res) => {
+    try {
+        const startTime = Date.now();
+        // Use tenant filtering for consistent data access
+        const tenantFilter = req.user?.role === 'admin'
+            ? { $or: [{ tenantId: req.user?.id }, { tenantId: { $exists: false } }] }
+            : { tenantId: req.user?.id };
+        // Basic stats aggregation with timeout protection
+        const stats = await Promise.race([
+            Lead_1.default.aggregate([
+                { $match: tenantFilter },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: 1 },
+                        bySource: {
+                            $push: {
+                                source: "$source",
+                                count: 1
+                            }
+                        },
+                        byStatus: {
+                            $push: {
+                                status: "$status",
+                                count: 1
+                            }
+                        },
+                        byDisposition: {
+                            $push: {
+                                disposition: "$disposition",
+                                count: 1
+                            }
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        total: 1,
+                        bySource: {
+                            $reduce: {
+                                input: "$bySource",
+                                initialValue: [],
+                                in: {
+                                    $concatArrays: [
+                                        "$$value",
+                                        [{ source: "$$this.source", count: "$$this.count" }]
+                                    ]
+                                }
+                            }
+                        },
+                        byStatus: {
+                            $reduce: {
+                                input: "$byStatus",
+                                initialValue: [],
+                                in: {
+                                    $concatArrays: [
+                                        "$$value",
+                                        [{ status: "$$this.status", count: "$$this.count" }]
+                                    ]
+                                }
+                            }
+                        },
+                        byDisposition: {
+                            $reduce: {
+                                input: "$byDisposition",
+                                initialValue: [],
+                                in: {
+                                    $concatArrays: [
+                                        "$$value",
+                                        [{ disposition: "$$this.disposition", count: "$$this.count" }]
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            ]),
+            // Timeout after 5 seconds to prevent hanging
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Stats query timeout')), 5000))
+        ]);
+        const result = stats[0] || {
+            total: 0,
+            bySource: [],
+            byStatus: [],
+            byDisposition: []
+        };
+        const queryTime = Date.now() - startTime;
+        res.json({
+            ...result,
+            queryTime,
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('getLeadsStats error:', error);
+        // Return minimal stats on error to prevent client-side infinite loops
+        res.json({
+            total: 0,
+            bySource: [],
+            byStatus: [],
+            byDisposition: [],
+            error: 'Failed to load statistics',
+            timestamp: new Date().toISOString()
+        });
+    }
+};
+exports.getLeadsStats = getLeadsStats;

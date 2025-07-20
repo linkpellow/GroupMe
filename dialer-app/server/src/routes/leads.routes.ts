@@ -1537,4 +1537,7 @@ router.get('/recent', async (req: Request, res: Response) => {
   }
 });
 
+// Stats endpoint for dashboard/analytics
+router.get('/stats', auth, leadsController.getLeadsStats);
+
 export default router;

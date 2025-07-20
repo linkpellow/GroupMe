@@ -1304,4 +1304,6 @@ router.get('/recent', async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch recent leads' });
     }
 });
+// Stats endpoint for dashboard/analytics
+router.get('/stats', auth_1.auth, leadsController.getLeadsStats);
 exports.default = router;

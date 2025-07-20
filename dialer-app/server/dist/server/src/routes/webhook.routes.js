@@ -248,13 +248,18 @@ router.post('/nextgen', verifyNextGenAuth, async (req, res) => {
         const fullLeadData = adaptNextGenLead(validationResult.data);
         // Get tenant ID for this request
         const tenantId = req.tenantId;
+        // Track if we sent a stub notification to prevent duplicate broadcasts
+        let stubNotificationSent = false;
         // Broadcast minimal stub ASAP for instant UI feedback (no DB wait)
         try {
             (0, index_1.broadcastNewLeadNotification)({
                 name: fullLeadData.name,
+                phone: fullLeadData.phone, // Include phone for click-to-call
                 source: 'NextGen',
                 isNew: true,
+                isStub: true, // Mark as stub to differentiate from full notification
             });
+            stubNotificationSent = true;
         }
         catch (stubErr) {
             logger.warn('Stub notification failed', stubErr);
@@ -356,18 +361,30 @@ router.post('/nextgen', verifyNextGenAuth, async (req, res) => {
         // Compute processing time
         const processMs = Date.now() - startTime;
         // Broadcast notification if available
+        // Skip full broadcast if we already sent a stub notification for new leads (prevents duplicates)
         if (typeof index_1.broadcastNewLeadNotification === 'function' && leadId) {
-            try {
-                (0, index_1.broadcastNewLeadNotification)({
+            const shouldBroadcast = !isNew || !stubNotificationSent;
+            if (shouldBroadcast) {
+                try {
+                    (0, index_1.broadcastNewLeadNotification)({
+                        leadId,
+                        name: fullLeadData.name,
+                        phone: fullLeadData.phone, // Include phone for click-to-call
+                        source: 'NextGen',
+                        isNew,
+                        processMs,
+                        isStub: false, // Mark as full notification
+                    });
+                }
+                catch (broadcastError) {
+                    logger.error('Failed to broadcast lead notification', broadcastError);
+                }
+            }
+            else {
+                logger.info('Skipping duplicate broadcast for new lead (stub already sent)', {
                     leadId,
                     name: fullLeadData.name,
-                    source: 'NextGen',
-                    isNew,
-                    processMs,
                 });
-            }
-            catch (broadcastError) {
-                logger.error('Failed to broadcast lead notification', broadcastError);
             }
         }
         // Expose timing header

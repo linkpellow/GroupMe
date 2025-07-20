@@ -62,6 +62,24 @@ class QueryBuilderService {
         if (params.sources && params.sources.length > 0) {
             filter.source = { $in: params.sources };
         }
+        // Date range filter
+        if (params.createdAtStart || params.createdAtEnd) {
+            filter.createdAt = {};
+            if (params.createdAtStart) {
+                const startDate = typeof params.createdAtStart === 'string'
+                    ? new Date(params.createdAtStart)
+                    : params.createdAtStart;
+                filter.createdAt.$gte = startDate;
+            }
+            if (params.createdAtEnd) {
+                const endDate = typeof params.createdAtEnd === 'string'
+                    ? new Date(params.createdAtEnd)
+                    : params.createdAtEnd;
+                // Set to end of day for end date
+                endDate.setHours(23, 59, 59, 999);
+                filter.createdAt.$lte = endDate;
+            }
+        }
         // Pipeline source filter (for specific source like NextGen, Marketplace, etc.)
         if (params.pipelineSource && params.pipelineSource !== 'all') {
             // Map the pipelineSource values to actual source values in the database

@@ -59,6 +59,7 @@ const leadSchema = new mongoose_1.Schema({
         match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address'],
         default: '',
     },
+    leadId: { type: String, index: true, unique: true, sparse: true },
     phone: { type: String, default: '' },
     tenantId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     status: {
@@ -143,6 +144,8 @@ leadSchema.index({ tenantId: 1, createdAt: -1 });
 // Compound indexes for fast upsert lookups
 leadSchema.index({ tenantId: 1, phone: 1 });
 leadSchema.index({ tenantId: 1, email: 1 });
+// Ensure uniqueness on leadId across tenants
+leadSchema.index({ tenantId: 1, leadId: 1 }, { unique: true, sparse: true });
 // Add state and zipcode setters
 leadSchema.path('state').set(function (value) {
     console.log('Setting state:', value);
@@ -187,13 +190,15 @@ leadSchema.statics.upsertLead = async function (payload) {
         if (!payload.tenantId) {
             throw new Error('tenantId is required for lead upsert');
         }
-        if (!payload.phone && !payload.email) {
-            throw new Error('Either phone or email is required for lead upsert');
+        if (!payload.phone && !payload.email && !payload.leadId) {
+            throw new Error('Either phone, email, or leadId is required for lead upsert');
         }
         // Build lookup query – must include tenantId for strict multi-tenancy
         const query = {
             tenantId: payload.tenantId,
         };
+        if (payload.leadId)
+            query.leadId = payload.leadId;
         if (payload.phone)
             query.phone = payload.phone;
         if (!payload.phone && payload.email)
@@ -203,7 +208,11 @@ leadSchema.statics.upsertLead = async function (payload) {
         const isNew = !existing;
         if (isNew) {
             // Create new lead
-            const lead = await this.create({ ...payload, createdAt: new Date(), updatedAt: new Date() });
+            const lead = await this.create({
+                ...payload,
+                createdAt: payload.createdAt ?? new Date(),
+                updatedAt: new Date(),
+            });
             console.log(`Lead created: ${lead._id}, name: ${lead.name}, phone: ${lead.phone}`);
             return { lead, isNew: true };
         }
