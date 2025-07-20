@@ -948,6 +948,9 @@ router.get('/export', auth, validateQueryMiddleware, rateLimitMiddleware, (req: 
   leadsController.exportLeadsCsv(req as any, res)
 );
 
+// Stats route - placed before parameterised routes to avoid shadowing
+router.get('/stats', auth, leadsController.getLeadStats);
+
 // Get lead by ID - MUST be the last route
 router.get('/:id', auth, validateObjectId, leadsController.getLeadById);
 
@@ -1536,8 +1539,5 @@ router.get('/recent', async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to fetch recent leads' });
   }
 });
-
-// Step 1: Minimal stats endpoint
-router.get('/stats', auth, leadsController.getLeadStats);
 
 export default router;
