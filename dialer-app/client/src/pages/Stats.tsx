@@ -237,6 +237,16 @@ const Stats: React.FC = () => {
     try {
       const response = await axiosInstance.get('/leads/stats');
       
+      // 🔍 LEGACY STATS LOGGING
+      console.group('[STATS] 📈 LEGACY STATS API RESPONSE');
+      console.log('[STATS] Legacy Stats Response:', {
+        success: response.data?.success,
+        message: response.data?.message,
+        data: response.data?.data,
+        fullResponse: response.data
+      });
+      console.groupEnd();
+      
       if (response.data && response.data.success) {
         setStatsData(response.data.data);
       } else {
@@ -262,9 +272,49 @@ const Stats: React.FC = () => {
         axiosInstance.get('/analytics/sold/demographics', { params: { timePeriod } })
       ]);
 
+      // 🔍 DATA VALIDATION LOGGING - Capture all raw API responses
+      console.group('[STATS] 📊 RAW API RESPONSES - Data Validation');
+      console.log('[STATS] Source Codes Response:', {
+        success: sourceCodesRes.data?.success,
+        dataLength: sourceCodesRes.data?.data?.length,
+        fullResponse: sourceCodesRes.data
+      });
+      console.log('[STATS] CPA Response:', {
+        success: cpaRes.data?.success,
+        data: cpaRes.data?.data,
+        fullResponse: cpaRes.data
+      });
+      console.log('[STATS] Campaign Performance Response:', {
+        success: campaignRes.data?.success,
+        dataLength: campaignRes.data?.data?.length,
+        fullResponse: campaignRes.data
+      });
+      console.log('[STATS] Lead Details Response:', {
+        success: leadDetailsRes.data?.success,
+        dataLength: leadDetailsRes.data?.data?.length,
+        meta: leadDetailsRes.data?.meta,
+        firstLead: leadDetailsRes.data?.data?.[0],
+        fullResponse: leadDetailsRes.data
+      });
+      console.log('[STATS] Demographics Response:', {
+        success: demographicsRes.data?.success,
+        dataLength: demographicsRes.data?.data?.length,
+        fullResponse: demographicsRes.data
+      });
+      console.groupEnd();
+
       // Use real analytics data from backend - fix data structure mapping
       const leadDetailsArray = leadDetailsRes.data?.data || [];
       const realCpaData = cpaRes.data?.data || {};
+      
+      // 🔍 DATA PROCESSING LOGGING
+      console.group('[STATS] 🔧 DATA PROCESSING');
+      console.log('[STATS] Lead Details Array:', {
+        length: leadDetailsArray.length,
+        firstFewLeads: leadDetailsArray.slice(0, 3),
+        allLeads: leadDetailsArray
+      });
+      console.log('[STATS] CPA Data:', realCpaData);
       
       // Create timeline from lead details data grouped by date
       const timelineMap = new Map<string, { date: string; leads: number; sold: number; revenue: number }>();
@@ -283,7 +333,12 @@ const Stats: React.FC = () => {
         new Date(a.date).getTime() - new Date(b.date).getTime()
       );
       
-      setAnalyticsData({
+      // 🔍 TIMELINE GENERATION LOGGING
+      console.log('[STATS] Timeline Map:', timelineMap);
+      console.log('[STATS] Generated Timeline:', realTimeline);
+      console.groupEnd();
+      
+      const finalAnalyticsData = {
         sourceCodes: sourceCodesRes.data?.data || [],
         campaigns: campaignRes.data?.data || [],
         demographics: demographicsRes.data?.data || [],
@@ -291,7 +346,23 @@ const Stats: React.FC = () => {
         cpa: realCpaData,
         totalLeads: leadDetailsRes.data?.meta?.totalSOLDLeads || leadDetailsArray.length,
         totalRevenue: leadDetailsArray.reduce((sum: number, lead: any) => sum + (parseFloat(lead.price) || 0), 0),
+      };
+      
+      // 🔍 FINAL ANALYTICS DATA LOGGING
+      console.group('[STATS] ✅ FINAL PROCESSED ANALYTICS DATA');
+      console.log('[STATS] Complete Analytics Object:', finalAnalyticsData);
+      console.log('[STATS] Data Summary:', {
+        sourceCodesCount: finalAnalyticsData.sourceCodes.length,
+        campaignsCount: finalAnalyticsData.campaigns.length,
+        demographicsCount: finalAnalyticsData.demographics.length,
+        timelineCount: finalAnalyticsData.timeline.length,
+        totalLeads: finalAnalyticsData.totalLeads,
+        totalRevenue: finalAnalyticsData.totalRevenue,
+        cpaData: finalAnalyticsData.cpa
       });
+      console.groupEnd();
+      
+      setAnalyticsData(finalAnalyticsData);
     } catch (err) {
       console.error('Error fetching analytics:', err);
       toast({
