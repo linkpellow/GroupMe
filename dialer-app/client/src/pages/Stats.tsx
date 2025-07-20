@@ -138,7 +138,7 @@ interface StatsData {
 interface AnalyticsData {
   sourceCodes: Array<{
     code: string;
-  totalLeads: number;
+    totalLeads: number;
     soldLeads: number;
     conversionRate: number;
     revenue: number;
@@ -164,6 +164,13 @@ interface AnalyticsData {
     sold: number;
     revenue: number;
   }>;
+  cpa?: {
+    totalCost: number;
+    totalSales: number;
+    costPerAcquisition: number;
+  };
+  totalLeads?: number;
+  totalRevenue?: number;
 }
 
 // Game-like color palette
@@ -255,18 +262,18 @@ const Stats: React.FC = () => {
         axiosInstance.get('/analytics/sold/demographics', { params: { timePeriod } })
       ]);
 
-      const mockTimeline = Array.from({ length: 30 }, (_, i) => ({
-        date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        leads: Math.floor(Math.random() * 100) + 50,
-        sold: Math.floor(Math.random() * 20) + 5,
-        revenue: Math.floor(Math.random() * 5000) + 1000,
-      })).reverse();
-
+      // Use real analytics data from backend instead of mock data
+      const realTimeline = leadDetailsRes.data?.timeline || [];
+      const realCpaData = cpaRes.data?.data || {};
+      
       setAnalyticsData({
         sourceCodes: sourceCodesRes.data?.data || [],
         campaigns: campaignRes.data?.data || [],
         demographics: demographicsRes.data?.data || [],
-        timeline: mockTimeline,
+        timeline: realTimeline,
+        cpa: realCpaData,
+        totalLeads: leadDetailsRes.data?.totalLeads || 0,
+        totalRevenue: leadDetailsRes.data?.totalRevenue || 0,
       });
     } catch (err) {
       console.error('Error fetching analytics:', err);
@@ -280,12 +287,12 @@ const Stats: React.FC = () => {
     } finally {
       setAnalyticsLoading(false);
     }
-  }, [timePeriod, toast]);
+  }, [timePeriod]); // Remove toast dependency as it's stable
 
   useEffect(() => {
     refreshStats();
     fetchAnalyticsData();
-  }, [refreshStats, fetchAnalyticsData]);
+  }, [timePeriod]); // Only depend on timePeriod, not the functions themselves
 
   // Chart configurations with 3D-like effects
   const chartOptions = {
