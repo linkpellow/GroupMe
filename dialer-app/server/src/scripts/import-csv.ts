@@ -45,9 +45,17 @@ async function importCsvLeads(): Promise<void> {
             }
 
             // Check for existing lead
-            const existingLead = await Lead.findOne({
-              phone: LeadFormatters.formatPhone(record.phone),
-            });
+            const formattedName = scriptUtils_1.LeadFormatters.formatName(
+  (record.firstName || '') + ' ' + (record.lastName || '')
+);
+const formattedPhone = scriptUtils_1.LeadFormatters.formatPhone(record.phone);
+
+const existingLead = await Lead_1.default.findOne({
+    $or: [
+        { phone: formattedPhone },
+        { name: formattedName }
+    ]
+});
 
             if (existingLead) {
               totalSkipped++;

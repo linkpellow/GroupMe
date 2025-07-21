@@ -25,7 +25,10 @@ const getCurrentTimeLabel = (stateAbbr?: string): string => {
   try {
     const locale = 'en-US';
     const options: Intl.DateTimeFormatOptions = {
-      hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short',
       timeZone: tz || Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
     return new Intl.DateTimeFormat(locale, options).format(new Date());
@@ -34,7 +37,6 @@ const getCurrentTimeLabel = (stateAbbr?: string): string => {
   }
 };
 
-// Toggle to enable/disable decorative pin
 const SHOW_PIN = false;
 
 const FollowUpStrip: React.FC = () => {
@@ -50,13 +52,11 @@ const FollowUpStrip: React.FC = () => {
     }
   };
 
-  /** Drag-to-pan helpers */
   const listRef = React.useRef<HTMLDivElement>(null);
   const isDraggingRef = React.useRef(false);
   const startXRef = React.useRef(0);
   const scrollStartRef = React.useRef(0);
 
-  // Attach / detach global move & up listeners once
   React.useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       if (!isDraggingRef.current || !listRef.current) return;
@@ -79,9 +79,7 @@ const FollowUpStrip: React.FC = () => {
     };
   }, []);
 
-  if (!followUps.length) {
-    return null;
-  }
+  if (!followUps.length) return null;
 
   return (
     <div
@@ -100,12 +98,28 @@ const FollowUpStrip: React.FC = () => {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <h4 style={{ margin: 0, color: '#ffffff', fontSize: '0.85rem', fontWeight: 600, marginRight: '15px', whiteSpace: 'nowrap' }}>
+          <h4
+            style={{
+              margin: 0,
+              color: '#ffffff',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              marginRight: '15px',
+              whiteSpace: 'nowrap',
+            }}
+          >
             Pinned Leads ({followUps.length})
           </h4>
           <button
             onClick={toggleVisibility}
-            style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1.2rem', padding: 0 }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              padding: 0,
+            }}
           >
             {isVisible ? <FaEyeSlash /> : <FaEye />}
           </button>
@@ -134,11 +148,9 @@ const FollowUpStrip: React.FC = () => {
             }
           }}
           onMouseDown={(e) => {
-            if (e.button !== 0) return; // Only left click
-            // Skip drags that originate on interactive elements
+            if (e.button !== 0) return;
             const target = e.target as HTMLElement;
             if (target.closest('button, a')) return;
-
             isDraggingRef.current = true;
             startXRef.current = e.pageX;
             scrollStartRef.current = e.currentTarget.scrollLeft;
@@ -146,11 +158,11 @@ const FollowUpStrip: React.FC = () => {
           }}
           ref={listRef}
         >
-          {followUps.map((fl) => (
+          {[...followUps].reverse().map((fl) => (
             <div
               key={fl.id}
               style={{
-                position: 'relative', // For pin positioning
+                position: 'relative',
                 border: '2px solid #333',
                 borderRadius: '6px',
                 width: '260px',
@@ -306,4 +318,4 @@ const FollowUpStrip: React.FC = () => {
   );
 };
 
-export default FollowUpStrip; 
+export default FollowUpStrip;
