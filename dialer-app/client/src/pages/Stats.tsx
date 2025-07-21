@@ -67,7 +67,8 @@ import {
   FaGem,
   FaCrown,
   FaLightbulb,
-  FaCode
+  FaCode,
+  FaMoneyBillWave,
 } from 'react-icons/fa';
 import {
   Chart as ChartJS,
@@ -144,7 +145,7 @@ interface StatsData {
 interface AnalyticsData {
   sourceCodes: Array<{
     code: string;
-  totalLeads: number;
+    totalLeads: number;
     soldLeads: number;
     conversionRate: number;
     revenue: number;
@@ -191,6 +192,7 @@ interface AnalyticsData {
     purchaseDate?: string;
     createdAt?: string;
   }>;
+  meta?: any;
 }
 
 // Game-like color palette
@@ -390,6 +392,29 @@ const Stats: React.FC = () => {
         new Date(a.date).getTime() - new Date(b.date).getTime()
       );
       
+      // === KPI Meta Calculations ===
+      const sourceCodes = sourceCodesRes.data?.data || [];
+
+      const hotSources = sourceCodes.filter((sc: any) => (sc.soldLeads || 0) > 0).length;
+
+      const topPerfObj = sourceCodes.reduce((best: any, sc: any) => {
+        if (!best) return sc;
+        if ((sc.conversionRate || 0) > (best.conversionRate || 0)) return sc;
+        return best;
+      }, null);
+      const topPerformer = topPerfObj?.code || 'N/A';
+
+      const totalCostCalc = sourceCodes.reduce((sum: number, sc: any) => sum + (sc.totalCost || 0), 0);
+      const totalSalesCalc = sourceCodes.reduce((sum: number, sc: any) => sum + (sc.soldLeads || 0), 0);
+      const avgCostPerSale = totalSalesCalc > 0 ? totalCostCalc / totalSalesCalc : 0;
+
+      const computedMeta = {
+        hotSources,
+        topPerformer,
+        totalCost: totalCostCalc,
+        avgCostPerSale,
+      };
+      
       // 🔍 TIMELINE GENERATION LOGGING
       console.log('[STATS] Timeline Map:', timelineMap);
       console.log('[STATS] Generated Timeline:', realTimeline);
@@ -403,6 +428,7 @@ const Stats: React.FC = () => {
         cpa: realCpaData,
         totalLeads: leadDetailsRes.data?.meta?.totalSOLDLeads || leadDetailsArray.length,
         totalRevenue: leadDetailsArray.reduce((sum: number, lead: any) => sum + (parseFloat(lead.price) || 0), 0),
+        meta: { ...(leadDetailsRes.data?.meta || {}), ...computedMeta },
         // Add the raw lead details array for display
         leadDetailsArray: leadDetailsArray,
       };
@@ -641,7 +667,7 @@ const Stats: React.FC = () => {
                 boxShadow="0 8px 16px rgba(0, 191, 255, 0.2)">
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
-                <FaFire color={GAME_COLORS.info} size={24} />
+                <FaMoneyBillWave color={GAME_COLORS.info} size={24} />
         </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
@@ -1132,7 +1158,7 @@ const Stats: React.FC = () => {
               boxShadow="0 8px 24px rgba(0, 0, 0, 0.1)">
           <CardHeader>
             <Flex align="center" gap={3}>
-              <FaRocket color={GAME_COLORS.primary} size={24} />
+              <FaFire color={GAME_COLORS.primary} size={24} />
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
                 Campaign Battle Arena
                         </Heading>
@@ -1756,14 +1782,13 @@ const Stats: React.FC = () => {
         <Flex mb={8} justify="space-between" align="center" flexWrap="wrap" gap={4}>
           <VStack align="start" spacing={2}>
             <Flex align="center" gap={3}>
-              <FaGamepad color={GAME_COLORS.primary} size={32} />
               <Heading 
                 size="xl" 
                 fontFamily="Tektur, monospace" 
                 color={textColor}
                 textShadow="2px 2px 4px rgba(0,0,0,0.3)"
               >
-                Analytics Command Center
+                Sales Dashboard
               </Heading>
             </Flex>
             <Text color={textColor} fontFamily="Tektur, monospace" fontSize="sm">
@@ -1807,117 +1832,91 @@ const Stats: React.FC = () => {
         </Flex>
         
         {/* Horizontal Tab Navigation with Game-like Styling */}
-        <Tabs 
-          index={activeTab} 
-          onChange={setActiveTab} 
-          variant="enclosed" 
+        <Tabs
+          index={activeTab}
+          onChange={setActiveTab}
+          variant="soft-rounded"
           colorScheme="orange"
-          size="lg"
+          size="md"
+          isFitted
         >
-          <TabList 
-            mb={8} 
-            flexWrap="wrap" 
-            bg={cardBg}
-            borderRadius="12px"
-            p={2}
-            border="2px solid"
-            borderColor={GAME_COLORS.primary}
-            boxShadow="0 8px 16px rgba(255, 140, 0, 0.2)"
+          <TabList
+            mb={6}
+            bg={"transparent"}
+            flexWrap={{ base: "nowrap", md: "wrap" }}
+            gap={2}
+            overflowX={{ base: "auto", md: "visible" }}
+            css={{
+              /* hide scrollbar */
+              scrollbarWidth: 'none',
+              '::-webkit-scrollbar': { display: 'none' },
+              whiteSpace: 'nowrap',
+            }}
           >
-            <Tab 
-              fontFamily="Tektur, monospace" 
+            <Tab
+              fontFamily="Tektur, monospace"
               fontWeight="bold"
-              _selected={{ 
-                bg: GAME_COLORS.primary, 
-                color: 'white',
-                borderRadius: '8px',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 8px rgba(255, 140, 0, 0.4)',
-              }}
-              _hover={{
-                transform: 'translateY(-1px)',
-              }}
-              transition="all 0.2s ease"
+              borderRadius="full"
+              _selected={{ bg: GAME_COLORS.primary, color: 'white', boxShadow: '0 0 0 2px rgba(255,140,0,0.5)' }}
+              _focus={{ boxShadow: '0 0 0 2px rgba(255,140,0,0.8)' }}
+              py={3}
+              transition="background 0.2s ease"
             >
               <Flex align="center" gap={2}>
                 <FaChartBar />
                 Source Codes
               </Flex>
             </Tab>
-            <Tab 
-              fontFamily="Tektur, monospace" 
+            <Tab
+              fontFamily="Tektur, monospace"
               fontWeight="bold"
-              _selected={{ 
-                bg: GAME_COLORS.primary, 
-                color: 'white',
-                borderRadius: '8px',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 8px rgba(255, 140, 0, 0.4)',
-              }}
-              _hover={{
-                transform: 'translateY(-1px)',
-              }}
-              transition="all 0.2s ease"
+              borderRadius="full"
+              _selected={{ bg: GAME_COLORS.primary, color: 'white', boxShadow: '0 0 0 2px rgba(255,140,0,0.5)' }}
+              _focus={{ boxShadow: '0 0 0 2px rgba(255,140,0,0.8)' }}
+              py={3}
+              transition="background 0.2s ease"
             >
               <Flex align="center" gap={2}>
                 <FaDollarSign />
                 CPA Analysis
               </Flex>
             </Tab>
-            <Tab 
-              fontFamily="Tektur, monospace" 
+            <Tab
+              fontFamily="Tektur, monospace"
               fontWeight="bold"
-              _selected={{ 
-                bg: GAME_COLORS.primary, 
-                color: 'white',
-                borderRadius: '8px',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 8px rgba(255, 140, 0, 0.4)',
-              }}
-              _hover={{
-                transform: 'translateY(-1px)',
-              }}
-              transition="all 0.2s ease"
+              borderRadius="full"
+              _selected={{ bg: GAME_COLORS.primary, color: 'white', boxShadow: '0 0 0 2px rgba(255,140,0,0.5)' }}
+              _focus={{ boxShadow: '0 0 0 2px rgba(255,140,0,0.8)' }}
+              py={3}
+              transition="background 0.2s ease"
             >
               <Flex align="center" gap={2}>
                 <FaRocket />
                 Campaigns
               </Flex>
             </Tab>
-            <Tab 
-              fontFamily="Tektur, monospace" 
+            <Tab
+              fontFamily="Tektur, monospace"
               fontWeight="bold"
-              _selected={{ 
-                bg: GAME_COLORS.primary, 
-                color: 'white',
-                borderRadius: '8px',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 8px rgba(255, 140, 0, 0.4)',
-              }}
-              _hover={{
-                transform: 'translateY(-1px)',
-              }}
-              transition="all 0.2s ease"
+              borderRadius="full"
+              _selected={{ bg: GAME_COLORS.primary, color: 'white', boxShadow: '0 0 0 2px rgba(255,140,0,0.5)' }}
+              _focus={{ boxShadow: '0 0 0 2px rgba(255,140,0,0.8)' }}
+              py={3}
+              transition="background 0.2s ease"
             >
               <Flex align="center" gap={2}>
                 <FaUsers />
                 Lead Details
               </Flex>
             </Tab>
-            <Tab 
-              fontFamily="Tektur, monospace" 
+            <Tab
+              fontFamily="Tektur, monospace"
               fontWeight="bold"
-              _selected={{ 
-                bg: GAME_COLORS.primary, 
-                color: 'white',
-                borderRadius: '8px',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 8px rgba(255, 140, 0, 0.4)',
-              }}
-              _hover={{
-                transform: 'translateY(-1px)',
-              }}
-              transition="all 0.2s ease"
+              borderRadius="full"
+              _selected={{ bg: GAME_COLORS.primary, color: 'white', boxShadow: '0 0 0 2px rgba(255,140,0,0.5)' }}
+              _focus={{ boxShadow: '0 0 0 2px rgba(255,140,0,0.8)' }}
+              py={3}
+              transition="background 0.2s ease"
             >
               <Flex align="center" gap={2}>
                 <FaGlobe />

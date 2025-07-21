@@ -356,6 +356,12 @@ This requires a code-level verification and potential schema / controller fixes.
 - [ ] M-4 Frontend Verification
 - [ ] M-5 Automated E2E Webhook Test
 - [ ] M-6 Documentation Update
+- [ ] TAB-1 Implement horizontal tab redesign
+- [ ] TAB-2 Polish game-theme styles
+- [ ] KPI-1 Audit analytics → KPI mapping
+- [ ] KPI-2 Fix KPI computation & rendering
+- [ ] KPI-3 Add loading/empty states
+- [ ] UX-1 Mobile & accessibility check
 
 ### IN PROGRESS
 - [ ] M-2 Synchronise Lead Schema (checking schema consistency)
@@ -765,3 +771,33 @@ interface SourceCodeAnalytics {
 - Test date range filtering
 - Test cost calculations
 - Document any issues 
+
+---
+## 📋 New Planning: Stats Page Navigation & KPI Accuracy (July 21 2025)
+
+### Background
+The current Stats page already uses a Chakra UI `Tabs` component, but the user reports the menu still feels like a plain list and not a modern horizontal tab bar. In addition, KPI cards (Hot Sources, Top Performer, Cost Per Sale, Total Cost) are displaying zeros or N/A despite underlying data.
+
+### Key Challenges & Analysis
+1. **UI Inconsistency** – Tab styling may not fully leverage Chakra’s design tokens; active/hover states and layout could be improved for a sleeker, game-themed look.
+2. **Data Flow Gaps** – KPI calculations rely on `analyticsData?.sourceCodes` after the SC-* refactor.  Recent changes (showing *all* codes, quality flags) may have broken derived metrics.
+3. **Loading State** – KPI cards render before analytics fetch completes, defaulting to `0`/`N A`.
+4. **Responsive Layout** – New tab bar must collapse gracefully on mobile.
+
+### Success Criteria
+- Horizontal tab bar spans the container width, clearly highlighting the active tab, with hover animations matching the GAME_COLORS palette.
+- KPI cards show correct figures once data loads; fallbacks while loading show spinner/placeholder instead of misleading zeros.
+- Unit tests (or console asserts) confirm calculation logic.
+- No regressions in existing analytics charts.
+
+### High-level Task Breakdown (added to TODO list)
+| ID | Task | Success Criteria |
+|----|------|-----------------|
+| TAB-1 | Implement horizontal tab redesign | Tabs visually updated, keyboard navigable |
+| TAB-2 | Polish game-theme styles | Hover/active effects present, passes design review |
+| KPI-1 | Audit analytics → KPI mapping | Console logs show expected intermediate values |
+| KPI-2 | Fix KPI computation & rendering | Correct numbers visible in production data set |
+| KPI-3 | Add loading/empty states | No premature zeros displayed |
+| UX-1 | Mobile & accessibility check | Tabs wrap or scroll, aria-selected applied |
+
+--- 
