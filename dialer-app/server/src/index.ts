@@ -39,7 +39,7 @@ import documentsRoutes from './routes/documents.routes';
 import textdripRoutes from './routes/textdrip.routes';
 import dialCountsRoutes from './routes/dialCounts.routes';
 import testRoutes from './routes/test.routes';
-import sourceCodeQualityRoutes from './routes/sourceCodeQuality.routes';
+// sourceCodeQualityRoutes removed – functionality folded into analytics
 import analyticsRoutes from './routes/analytics.routes';
 
 // Comment out routes for files confirmed missing from ./routes/ directory
@@ -354,7 +354,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/textdrip', textdripRoutes);
 app.use('/api/dial-counts', dialCountsRoutes);
 app.use('/api/csv-upload', csvUploadRoutes);
-app.use('/api/source-code-quality', sourceCodeQualityRoutes);
+// Removed obsolete source-code-quality routes (handled via analytics)
 app.use('/api/analytics', analyticsRoutes);
 
 // Register test routes only in non-production environments for security
