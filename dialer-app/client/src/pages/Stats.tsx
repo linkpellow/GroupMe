@@ -171,6 +171,20 @@ interface AnalyticsData {
   };
   totalLeads?: number;
   totalRevenue?: number;
+  leadDetailsArray?: Array<{
+    _id?: string;
+    name?: string;
+    sourceCode?: string;
+    source_hash?: string;
+    city?: string;
+    state?: string;
+    price?: string | number;
+    campaignName?: string;
+    campaign_name?: string;
+    disposition?: string;
+    purchaseDate?: string;
+    createdAt?: string;
+  }>;
 }
 
 // Game-like color palette
@@ -383,6 +397,8 @@ const Stats: React.FC = () => {
         cpa: realCpaData,
         totalLeads: leadDetailsRes.data?.meta?.totalSOLDLeads || leadDetailsArray.length,
         totalRevenue: leadDetailsArray.reduce((sum: number, lead: any) => sum + (parseFloat(lead.price) || 0), 0),
+        // Add the raw lead details array for display
+        leadDetailsArray: leadDetailsArray,
       };
       
       // 🔍 FINAL ANALYTICS DATA LOGGING
@@ -1354,6 +1370,71 @@ const Stats: React.FC = () => {
             </TableContainer>
           </CardBody>
         </Card>
+
+        {/* Lead Details Raw Data */}
+        <Card bg={cardBg} border="2px solid" borderColor={borderColor} borderRadius="12px">
+          <CardHeader>
+            <Flex align="center" gap={3}>
+              <FaUsers color={GAME_COLORS.info} size={24} />
+              <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
+                Lead Details (Raw Data)
+              </Heading>
+            </Flex>
+          </CardHeader>
+          <CardBody>
+            <TableContainer>
+              <Table variant="simple" size="sm">
+                <Thead>
+                  <Tr bg={GAME_COLORS.primary + '20'}>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>NAME</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>SOURCE HASH</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>CITY</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>STATE</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>PRICE</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>CAMPAIGN</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>DATE</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {(analyticsData?.leadDetailsArray || []).slice(0, 20).map((lead, idx) => (
+                    <Tr key={lead._id || idx} _hover={{ bg: GAME_COLORS.primary + '10' }}>
+                      <Td fontFamily="Tektur, monospace" fontWeight="bold">
+                        {lead.name || 'N/A'}
+                      </Td>
+                      <Td fontFamily="Tektur, monospace" color={GAME_COLORS.primary}>
+                        {lead.sourceCode || lead.source_hash || 'N/A'}
+                      </Td>
+                      <Td fontFamily="Tektur, monospace">
+                        {lead.city || 'N/A'}
+                      </Td>
+                      <Td fontFamily="Tektur, monospace">
+                        {lead.state || 'N/A'}
+                      </Td>
+                      <Td fontFamily="Tektur, monospace" color={GAME_COLORS.success} fontWeight="bold">
+                        ${lead.price || '0'}
+                      </Td>
+                      <Td fontFamily="Tektur, monospace">
+                        {lead.campaignName || lead.campaign_name || 'N/A'}
+                      </Td>
+                      <Td fontFamily="Tektur, monospace" fontSize="xs">
+                        {lead.purchaseDate || lead.createdAt ? 
+                          new Date(lead.purchaseDate || lead.createdAt).toLocaleDateString() 
+                          : 'N/A'
+                        }
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </TableContainer>
+            {(analyticsData?.leadDetailsArray?.length || 0) > 20 && (
+              <Text mt={2} fontSize="sm" fontFamily="Tektur, monospace" color={mutedText} textAlign="center">
+                Showing 20 of {analyticsData?.leadDetailsArray?.length} total leads
+              </Text>
+            )}
+          </CardBody>
+        </Card>
+
                       </VStack>
     );
   };
