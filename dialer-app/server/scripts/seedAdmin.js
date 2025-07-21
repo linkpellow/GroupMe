@@ -1,6 +1,8 @@
 // Seed or update the admin user in production or dev database
 // Usage: node scripts/seedAdmin.js
 
+require('dotenv').config();
+
 (async () => {
   try {
     const mongoose = require('mongoose');

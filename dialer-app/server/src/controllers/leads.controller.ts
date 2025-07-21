@@ -11,7 +11,7 @@ import { format as csvFormat } from '@fast-csv/format';
 import { Writable } from 'stream';
 import { sanitizeNotes } from '../utils/notesUtils';
 import { withTenant } from '../utils/tenantFilter';
-import { autoAssignQuality } from './sourceCodeQuality.controller';
+// import { autoAssignQuality } from './sourceCodeQuality.controller'; // Removed - functionality moved to analytics controller
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -420,19 +420,20 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response) => {
       // Check for source code in multiple possible field names
       const sourceCode = updatedLead.sourceHash || updatedLead.sourceCode || (updatedLead as any).source_hash;
       
-      if (sourceCode) {
-        try {
-          const success = await autoAssignQuality(req.user.id, sourceCode, 'quality');
-          if (success) {
-            console.log(`Auto-assigned Quality to source code ${sourceCode} for SOLD lead ${updatedLead._id}`);
-          }
-        } catch (error) {
-          console.error('Auto-quality assignment failed for SOLD lead:', error);
-          // Don't fail the disposition update if quality assignment fails
-        }
-      } else {
-        console.log(`SOLD lead ${updatedLead._id} has no source code to auto-assign quality to`);
-      }
+      // Auto-quality assignment now handled by Lead model post-save hooks
+      // if (sourceCode) {
+      //   try {
+      //     const success = await autoAssignQuality(req.user.id, sourceCode, 'quality');
+      //     if (success) {
+      //       console.log(`Auto-assigned Quality to source code ${sourceCode} for SOLD lead ${updatedLead._id}`);
+      //     }
+      //   } catch (error) {
+      //     console.error('Auto-quality assignment failed for SOLD lead:', error);
+      //     // Don't fail the disposition update if quality assignment fails
+      //   }
+      // } else {
+      //   console.log(`SOLD lead ${updatedLead._id} has no source code to auto-assign quality to`);
+      // }
     }
 
     // Emit WebSocket event if notes were changed to keep other tabs in sync
