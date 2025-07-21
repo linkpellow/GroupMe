@@ -1,50 +1,87 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ISourceCodeQuality extends Document {
-  userId: mongoose.Types.ObjectId;
   sourceCode: string;
-  quality: 'quality' | 'low-quality';
-  autoAssigned?: boolean;
+  quality: 'Quality' | 'Low Quality';
+  autoFlagged: boolean;
+  manualOverride: boolean;
+  lastUpdated: Date;
+  tenantId: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const sourceCodeQualitySchema = new Schema<ISourceCodeQuality>(
   {
-    userId: { 
-      type: Schema.Types.ObjectId, 
-      ref: 'User', 
-      required: true, 
-      index: true 
+    sourceCode: {
+      type: String,
+      required: true,
+      index: true,
     },
-    sourceCode: { 
-      type: String, 
-      required: true, 
-      trim: true,
-      index: true 
+    quality: {
+      type: String,
+      enum: ['Quality', 'Low Quality'],
+      default: 'Low Quality',
+      required: true,
     },
-    quality: { 
-      type: String, 
-      enum: ['quality', 'low-quality'], 
-      required: true 
-    },
-    autoAssigned: {
+    autoFlagged: {
       type: Boolean,
-      default: false
+      default: false,
+    },
+    manualOverride: {
+      type: Boolean,
+      default: false,
+    },
+    lastUpdated: {
+      type: Date,
+      default: Date.now,
+    },
+    tenantId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
     },
   },
-  { 
+  {
     timestamps: true,
-    collection: 'sourcecodequalities'
   }
 );
 
-// Create compound unique index to prevent duplicate quality assignments
-sourceCodeQualitySchema.index({ userId: 1, sourceCode: 1 }, { unique: true });
+// Compound index for unique source code per tenant
+sourceCodeQualitySchema.index({ sourceCode: 1, tenantId: 1 }, { unique: true });
 
-// Index for efficient filtering queries
-sourceCodeQualitySchema.index({ userId: 1, quality: 1 });
+// Static method to update quality flag
+sourceCodeQualitySchema.statics.updateQuality = async function(
+  sourceCode: string,
+  tenantId: mongoose.Types.ObjectId,
+  quality: 'Quality' | 'Low Quality',
+  isAuto: boolean = false
+): Promise<ISourceCodeQuality> {
+  const update = {
+    quality,
+    autoFlagged: isAuto,
+    manualOverride: !isAuto,
+    lastUpdated: new Date(),
+  };
 
-const SourceCodeQualityModel = mongoose.model<ISourceCodeQuality>('SourceCodeQuality', sourceCodeQualitySchema);
+  const doc = await this.findOneAndUpdate(
+    { sourceCode, tenantId },
+    { $set: update },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+  );
+
+  return doc;
+};
+
+// Instance method to check if manually overridden
+sourceCodeQualitySchema.methods.isManuallyOverridden = function(): boolean {
+  return this.manualOverride === true;
+};
+
+const SourceCodeQualityModel = mongoose.model<ISourceCodeQuality>(
+  'SourceCodeQuality',
+  sourceCodeQualitySchema
+);
 
 export default SourceCodeQualityModel; 

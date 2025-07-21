@@ -58,11 +58,11 @@ export const getSourceCodeAnalytics = async (req: AuthenticatedRequest, res: Res
       ? { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] }
       : { $or: [{ tenantId: userId }, { tenantId: { $exists: false } }] };
 
-    const sourceCodeData = await LeadModel.aggregate([
+    // First, get ALL unique source codes (not filtered by time)
+    const allSourceCodes = await LeadModel.aggregate([
       {
         $match: {
           ...tenantFilter,
-          createdAt: { $gte: timeRange.start, $lte: timeRange.end },
           $or: [
             { sourceHash: { $exists: true, $nin: [null, ''] } },
             { sourceCode: { $exists: true, $nin: [null, ''] } }
@@ -89,17 +89,34 @@ export const getSourceCodeAnalytics = async (req: AuthenticatedRequest, res: Res
               $cond: [{ $eq: ['$disposition', 'SOLD'] }, 1, 0]
             }
           },
-          totalRevenue: {
+          // Track total cost (all leads)
+          totalCost: {
+            $sum: { $toDouble: { $ifNull: ['$price', 0] } }
+          },
+          // Track sales in date range for "Hot Sources"
+          soldInPeriod: {
             $sum: {
               $cond: [
-                { $eq: ['$disposition', 'SOLD'] },
-                { $toDouble: { $ifNull: ['$price', 0] } },
+                { 
+                  $and: [
+                    { $eq: ['$disposition', 'SOLD'] },
+                    { $gte: ['$createdAt', timeRange.start] },
+                    { $lte: ['$createdAt', timeRange.end] }
+                  ]
+                },
+                1,
                 0
               ]
             }
           },
-          totalSpent: {
-            $sum: { $toDouble: { $ifNull: ['$price', 0] } }
+          lastSaleDate: {
+            $max: {
+              $cond: [
+                { $eq: ['$disposition', 'SOLD'] },
+                '$createdAt',
+                null
+              ]
+            }
           }
         }
       },
@@ -111,28 +128,53 @@ export const getSourceCodeAnalytics = async (req: AuthenticatedRequest, res: Res
               { $multiply: [{ $divide: ['$soldLeads', '$totalLeads'] }, 100] },
               0
             ]
+          },
+          // Calculate cost per sale
+          costPerSale: {
+            $cond: [
+              { $gt: ['$soldLeads', 0] },
+              { $divide: ['$totalCost', '$soldLeads'] },
+              0
+            ]
           }
         }
       },
       {
-        $sort: { soldLeads: -1 }
-      },
-      {
-        $limit: 100
+        $sort: { totalCost: -1 }
       }
     ]);
 
     // Get quality assignments for source codes
-    const qualityAssignments = await SourceCodeQualityModel.find({ userId }).lean();
+    const qualityAssignments = await SourceCodeQualityModel.find({ tenantId: userId }).lean();
     const qualityMap = new Map(
-      qualityAssignments.map((q: ISourceCodeQuality) => [q.sourceCode, q.quality])
+      qualityAssignments.map((q: ISourceCodeQuality) => [q.sourceCode, q])
     );
 
     // Enhance data with quality information
-    const enhancedData = sourceCodeData.map((item: any) => ({
-      ...item,
-      quality: qualityMap.get(item._id) || null
+    const enhancedData = allSourceCodes.map((item: any) => ({
+      code: item._id,
+      totalLeads: item.totalLeads,
+      soldLeads: item.soldLeads,
+      conversionRate: item.conversionRate,
+      totalCost: item.totalCost,
+      costPerSale: item.costPerSale,
+      soldInPeriod: item.soldInPeriod,
+      lastSaleDate: item.lastSaleDate,
+      quality: qualityMap.get(item._id)?.quality || 'Low Quality',
+      autoFlagged: qualityMap.get(item._id)?.autoFlagged || false,
+      manualOverride: qualityMap.get(item._id)?.manualOverride || false
     }));
+
+    // Calculate summary metrics
+    const hotSources = enhancedData.filter(item => item.soldInPeriod > 0).length;
+    const totalCost = enhancedData.reduce((sum, item) => sum + item.totalCost, 0);
+    const totalSold = enhancedData.reduce((sum, item) => sum + item.soldLeads, 0);
+    const avgCostPerSale = totalSold > 0 ? totalCost / totalSold : 0;
+
+    // Find top performer (most sales in period)
+    const topPerformer = enhancedData
+      .filter(item => item.soldInPeriod > 0)
+      .sort((a, b) => b.soldInPeriod - a.soldInPeriod)[0];
 
     res.json({
       success: true,
@@ -140,7 +182,11 @@ export const getSourceCodeAnalytics = async (req: AuthenticatedRequest, res: Res
       meta: {
         period,
         timeRange,
-        totalSourceCodes: enhancedData.length
+        totalSourceCodes: enhancedData.length,
+        hotSources,
+        totalCost,
+        avgCostPerSale,
+        topPerformer: topPerformer?.code || 'N/A'
       }
     });
 
@@ -366,6 +412,7 @@ export const getLeadDetailsAnalytics = async (req: AuthenticatedRequest, res: Re
               else: '$sourceCode'
             }
           },
+          sourceHash: 1,  // Add raw sourceHash field
           campaignName: 1,
           city: 1
         }
@@ -462,6 +509,54 @@ export const getDemographicsAnalytics = async (req: AuthenticatedRequest, res: R
     res.status(500).json({
       success: false,
       message: 'Failed to get demographics analytics'
+    });
+  }
+};
+
+// Update Source Code Quality Flag
+export const updateSourceCodeQuality = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const userId = new mongoose.Types.ObjectId(req.user.id);
+    const { sourceCode, quality } = req.body;
+
+    // Validate input
+    if (!sourceCode || !quality) {
+      return res.status(400).json({
+        success: false,
+        message: 'sourceCode and quality are required'
+      });
+    }
+
+    if (!['Quality', 'Low Quality'].includes(quality)) {
+      return res.status(400).json({
+        success: false,
+        message: 'quality must be either "Quality" or "Low Quality"'
+      });
+    }
+
+    // Update or create quality flag (manual override)
+    const updatedQuality = await (SourceCodeQualityModel as any).updateQuality(
+      sourceCode,
+      userId, // tenantId
+      quality,
+      false // isAuto = false (manual)
+    );
+
+    res.json({
+      success: true,
+      data: updatedQuality,
+      message: `Source code ${sourceCode} marked as ${quality}`
+    });
+
+  } catch (error) {
+    console.error('[updateSourceCodeQuality] Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update source code quality'
     });
   }
 }; 

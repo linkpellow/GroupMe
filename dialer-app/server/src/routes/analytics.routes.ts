@@ -4,7 +4,8 @@ import {
   getCPAAnalytics,
   getCampaignAnalytics,
   getLeadDetailsAnalytics,
-  getDemographicsAnalytics
+  getDemographicsAnalytics,
+  updateSourceCodeQuality
 } from '../controllers/analytics.controller';
 import { auth } from '../middleware/auth';
 
@@ -29,5 +30,8 @@ router.get('/sold/lead-details', auth, getLeadDetailsAnalytics);
 
 // Demographics Analytics - Geographic SOLD distribution analysis
 router.get('/sold/demographics', auth, getDemographicsAnalytics);
+
+// Update Source Code Quality Flag
+router.post('/source-code-quality', auth, updateSourceCodeQuality);
 
 export default router; 

@@ -41,7 +41,12 @@ import {
   CardHeader,
   Progress,
   IconButton,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
 } from '@chakra-ui/react';
+import { ChevronDownIcon } from '@chakra-ui/icons';
 import { 
   FaChartBar, 
   FaMapMarkerAlt, 
@@ -61,7 +66,8 @@ import {
   FaStar,
   FaGem,
   FaCrown,
-  FaLightbulb
+  FaLightbulb,
+  FaCode
 } from 'react-icons/fa';
 import {
   Chart as ChartJS,
@@ -432,6 +438,47 @@ const Stats: React.FC = () => {
     }
   }, [timePeriod]); // 🚨 CRITICAL FIX: Remove unstable toast dependency
 
+  // Handle quality change for source codes
+  const handleQualityChange = async (sourceCode: string, quality: 'Quality' | 'Low Quality') => {
+    try {
+      const response = await fetch('/api/analytics/source-code-quality', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ sourceCode, quality }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update quality');
+      }
+
+      const result = await response.json();
+
+      // Show success toast
+      toast({
+        title: 'Quality Updated',
+        description: result.message,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Refresh analytics data to reflect the change
+      fetchAnalyticsData();
+    } catch (error) {
+      console.error('Error updating quality:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update source code quality',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   useEffect(() => {
     console.log('[STATS] 🔄 useEffect triggered, timePeriod:', timePeriod);
     refreshStats();
@@ -499,6 +546,7 @@ const Stats: React.FC = () => {
   // Source Code Analytics Screen
   const SourceCodeScreen = () => {
     const sourceData = analyticsData?.sourceCodes || [];
+    const meta = analyticsData?.meta || {};
     
     const barData = {
       labels: sourceData.slice(0, 10).map(item => item.code),
@@ -541,10 +589,10 @@ const Stats: React.FC = () => {
           </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
-                  ACTIVE SOURCES
+                  HOT SOURCES
                 </StatLabel>
                 <StatNumber color={GAME_COLORS.primary} fontFamily="Tektur, monospace" fontSize="2xl">
-                  {sourceData.length}
+                  {meta.hotSources || 0}
                 </StatNumber>
               </Stat>
             </CardBody>
@@ -566,7 +614,7 @@ const Stats: React.FC = () => {
                   TOP PERFORMER
                 </StatLabel>
                 <StatNumber color={GAME_COLORS.success} fontFamily="Tektur, monospace" fontSize="xl">
-                  {sourceData[0]?.code || 'N/A'}
+                  {meta.topPerformer || 'N/A'}
                 </StatNumber>
               </Stat>
             </CardBody>
@@ -576,17 +624,14 @@ const Stats: React.FC = () => {
                 boxShadow="0 8px 16px rgba(239, 191, 4, 0.2)">
             <CardBody textAlign="center">
               <Flex align="center" justify="center" mb={2}>
-                <FaGem color={GAME_COLORS.secondary} size={24} />
+                <FaDollarSign color={GAME_COLORS.secondary} size={24} />
           </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
-                  AVG CONVERSION
+                  COST PER SALE
                 </StatLabel>
                 <StatNumber color={GAME_COLORS.secondary} fontFamily="Tektur, monospace" fontSize="2xl">
-                  {sourceData.length > 0 ? 
-                    (sourceData.reduce((acc, item) => acc + item.conversionRate, 0) / sourceData.length).toFixed(1) + '%'
-                    : '0%'
-                  }
+                  ${(meta.avgCostPerSale || 0).toFixed(2)}
                 </StatNumber>
               </Stat>
             </CardBody>
@@ -600,10 +645,10 @@ const Stats: React.FC = () => {
         </Flex>
               <Stat>
                 <StatLabel color={textColor} fontFamily="Tektur, monospace" fontSize="sm" fontWeight="bold">
-                  TOTAL REVENUE
+                  TOTAL COST
                 </StatLabel>
                 <StatNumber color={GAME_COLORS.info} fontFamily="Tektur, monospace" fontSize="2xl">
-                  ${sourceData.reduce((acc, item) => acc + (item.revenue || 0), 0).toLocaleString()}
+                  ${(meta.totalCost || 0).toLocaleString()}
                 </StatNumber>
               </Stat>
             </CardBody>
@@ -629,13 +674,13 @@ const Stats: React.FC = () => {
           </CardBody>
         </Card>
 
-        {/* Detailed Table */}
+        {/* Source Code Performance Table */}
         <Card bg={cardBg} border="2px solid" borderColor={borderColor} borderRadius="12px">
           <CardHeader>
             <Flex align="center" gap={3}>
-              <FaGamepad color={GAME_COLORS.secondary} size={24} />
+              <FaCode color={GAME_COLORS.secondary} size={24} />
               <Heading size="md" fontFamily="Tektur, monospace" color={textColor}>
-                Leaderboard
+                Source Code Performance
               </Heading>
             </Flex>
           </CardHeader>
@@ -644,30 +689,18 @@ const Stats: React.FC = () => {
               <Table variant="simple" size="sm">
                 <Thead>
                   <Tr bg={GAME_COLORS.primary + '20'}>
-                    <Th fontFamily="Tektur, monospace" color={textColor}>RANK</Th>
-                    <Th fontFamily="Tektur, monospace" color={textColor}>SOURCE CODE</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>CODE</Th>
                     <Th fontFamily="Tektur, monospace" color={textColor}>LEADS</Th>
                     <Th fontFamily="Tektur, monospace" color={textColor}>SOLD</Th>
-                    <Th fontFamily="Tektur, monospace" color={textColor}>CONVERSION</Th>
-                    <Th fontFamily="Tektur, monospace" color={textColor}>REVENUE</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>CONV</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>COST</Th>
                     <Th fontFamily="Tektur, monospace" color={textColor}>QUALITY</Th>
+                    <Th fontFamily="Tektur, monospace" color={textColor}>ACTION</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {sourceData.slice(0, 15).map((item, index) => (
+                  {sourceData.map((item) => (
                     <Tr key={item.code} _hover={{ bg: GAME_COLORS.primary + '10' }}>
-                      <Td fontFamily="Tektur, monospace" fontWeight="bold">
-                        {index + 1 <= 3 ? (
-                          <Flex align="center" gap={2}>
-                            {index === 0 && <FaCrown color={GAME_COLORS.secondary} />}
-                            {index === 1 && <FaStar color="#C0C0C0" />}
-                            {index === 2 && <FaGem color="#CD7F32" />}
-                            #{index + 1}
-                          </Flex>
-                        ) : (
-                          `#${index + 1}`
-                        )}
-                      </Td>
                       <Td fontFamily="Tektur, monospace" fontWeight="bold" color={GAME_COLORS.primary}>
                         {item.code}
                       </Td>
@@ -676,33 +709,60 @@ const Stats: React.FC = () => {
                         {item.soldLeads}
                       </Td>
                       <Td>
-                        <Progress 
-                          value={item.conversionRate} 
-                          colorScheme="orange" 
-                          size="sm" 
-                          borderRadius="full"
-                          bg="gray.200"
-                        />
-                        <Text fontSize="xs" fontFamily="Tektur, monospace" mt={1}>
+                        <Text fontSize="sm" fontFamily="Tektur, monospace">
                           {item.conversionRate.toFixed(1)}%
                         </Text>
                       </Td>
-                      <Td fontFamily="Tektur, monospace" color={GAME_COLORS.info} fontWeight="bold">
-                        ${(item.revenue || 0).toLocaleString()}
+                      <Td fontFamily="Tektur, monospace" color={GAME_COLORS.warning} fontWeight="bold">
+                        ${(item.totalCost || 0).toLocaleString()}
                       </Td>
                       <Td>
-                        <SourceCodeBadge 
-                          code={item.code}
-                          size="sm"
-                          quality={getQuality(item.code)}
-                          onQualityChange={(newQuality) => cycleQuality(item.code)}
-                        />
+                        <Badge
+                          colorScheme={item.quality === 'Quality' ? 'green' : 'red'}
+                          fontSize="xs"
+                          fontFamily="Tektur, monospace"
+                        >
+                          {item.quality === 'Quality' ? '✅ Quality' : '❌ Low'}
+                          {item.autoFlagged && ' (Auto)'}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <Menu>
+                          <MenuButton
+                            as={Button}
+                            size="xs"
+                            rightIcon={<ChevronDownIcon />}
+                            colorScheme="purple"
+                            variant="outline"
+                          >
+                            {item.quality === 'Quality' ? 'Quality' : 'Low Quality'}
+                          </MenuButton>
+                          <MenuList>
+                            <MenuItem
+                              onClick={() => handleQualityChange(item.code, 'Quality')}
+                              isDisabled={item.quality === 'Quality'}
+                            >
+                              ✅ Mark as Quality
+                            </MenuItem>
+                            <MenuItem
+                              onClick={() => handleQualityChange(item.code, 'Low Quality')}
+                              isDisabled={item.quality === 'Low Quality'}
+                            >
+                              ❌ Mark as Low Quality
+                            </MenuItem>
+                          </MenuList>
+                        </Menu>
                       </Td>
                     </Tr>
                   ))}
                 </Tbody>
               </Table>
             </TableContainer>
+            {sourceData.length === 0 && (
+              <Text textAlign="center" py={8} color={mutedText} fontFamily="Tektur, monospace">
+                No source codes found for the selected period
+              </Text>
+            )}
           </CardBody>
         </Card>
       </VStack>

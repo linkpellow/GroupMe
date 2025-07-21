@@ -305,5 +305,66 @@ leadSchema.statics.upsertLead = async function(payload) {
   }
 };
 
+// Post-save hook to auto-flag quality source codes when lead is SOLD
+leadSchema.post('save', async function(doc: ILead) {
+  try {
+    // Check if disposition is SOLD and we have a source code
+    if (doc.disposition === 'SOLD' && (doc.sourceHash || doc.sourceCode)) {
+      const sourceCode = doc.sourceHash || doc.sourceCode;
+      
+      // Import SourceCodeQuality model (dynamic import to avoid circular dependency)
+      const { default: SourceCodeQuality } = await import('./SourceCodeQuality');
+      
+      // Check if already manually overridden
+      const existing = await SourceCodeQuality.findOne({
+        sourceCode,
+        tenantId: doc.tenantId
+      });
+      
+      // Only auto-flag if not manually overridden
+      if (!existing || !existing.manualOverride) {
+        await (SourceCodeQuality as any).updateQuality(
+          sourceCode,
+          doc.tenantId,
+          'Quality',
+          true // isAuto = true
+        );
+        console.log(`Auto-flagged source code ${sourceCode} as Quality for SOLD lead`);
+      }
+    }
+  } catch (error) {
+    console.error('Error in auto-quality flagging:', error);
+    // Don't throw - we don't want to break the save operation
+  }
+});
+
+// Also handle findOneAndUpdate for disposition changes
+leadSchema.post('findOneAndUpdate', async function(doc: ILead) {
+  try {
+    if (doc && doc.disposition === 'SOLD' && (doc.sourceHash || doc.sourceCode)) {
+      const sourceCode = doc.sourceHash || doc.sourceCode;
+      
+      const { default: SourceCodeQuality } = await import('./SourceCodeQuality');
+      
+      const existing = await SourceCodeQuality.findOne({
+        sourceCode,
+        tenantId: doc.tenantId
+      });
+      
+      if (!existing || !existing.manualOverride) {
+        await (SourceCodeQuality as any).updateQuality(
+          sourceCode,
+          doc.tenantId,
+          'Quality',
+          true
+        );
+        console.log(`Auto-flagged source code ${sourceCode} as Quality for SOLD lead (via update)`);
+      }
+    }
+  } catch (error) {
+    console.error('Error in auto-quality flagging (update):', error);
+  }
+});
+
 const LeadModel = mongoose.model<ILead, ILeadModel>('Lead', leadSchema);
 export default LeadModel;
