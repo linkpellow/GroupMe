@@ -1,8 +1,25 @@
-res.status(200).json({
-  success: true,
-  leadId: (lead._id as mongoose.Types.ObjectId).toString(),
-  message: 'Lead successfully created',
-  state: lead.state,
-  zipcode: lead.zipcode,
-  city: lead.city
-}); 
+import mongoose from 'mongoose';
+import app from './app';
+
+const PORT = process.env.PORT || 3001;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/groupme';
+
+async function startServer() {
+  try {
+    await mongoose.connect(MONGODB_URI);
+    console.log('Connected to MongoDB');
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+export default app;

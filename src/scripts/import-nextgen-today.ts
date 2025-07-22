@@ -4,7 +4,7 @@ import { parse } from 'csv-parse';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import UserModel from '../models/User';
-import LeadModel from '../models/Lead';
+import LeadModel, { upsertLead } from '../models/Lead';
 
 dotenv.config();
 
