@@ -12,7 +12,11 @@
     "dev:server": "./start-servers.sh --dev --mode=server",
     "dev:log": "node scripts/runWithLiveLog.js",
     "rotate-logs": "./scripts/rotate-logs.sh",
-    "rebuild-all": "cd dialer-app/server && npm run rebuild && cd ../../dialer-app/client && npm run rebuild"
+    "rebuild-all": "cd dialer-app/server && npm run rebuild && cd ../../dialer-app/client && npm run rebuild",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "build": "tsc",
+    "lint": "echo 'No linter configured'"
   },
   "keywords": [],
   "author": "",
@@ -23,9 +27,36 @@
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "mongodb": "^6.15.0",
+    "mongoose": "^8.16.4",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.1"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^30.0.0",
+    "@types/mongoose": "^5.11.96",
+    "@types/node": "^24.0.15",
+    "@types/supertest": "^6.0.3",
+    "@types/ws": "^8.18.1",
+    "jest": "^30.0.4",
+    "mongoose": "^8.16.4",
+    "supertest": "^7.1.3",
+    "ts-jest": "^29.4.0",
+    "typescript": "^5.8.3"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/__tests__",
+      "<rootDir>/src"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.ts",
+      "**/?(*.)+(spec|test).ts"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    }
   }
 }
