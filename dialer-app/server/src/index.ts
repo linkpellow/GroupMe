@@ -298,11 +298,26 @@ const allowedOrigins = [
 ].filter(Boolean);
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else {
-      console.warn(`CORS block for origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) {
+      callback(null, true);
+      return;
     }
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    
+    // Special handling for www.crokodial.com -> crokodial.com redirect
+    if (origin === 'https://www.crokodial.com' && allowedOrigins.includes('https://crokodial.com')) {
+      callback(null, true);
+      return;
+    }
+    
+    console.warn(`CORS block for origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 };
