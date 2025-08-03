@@ -316,10 +316,18 @@ const corsOptions = {
       return;
     }
     
+    // Allow any subdomain of crokodial.com
+    if (origin && (origin.includes('crokodial.com') || origin.includes('herokuapp.com'))) {
+      callback(null, true);
+      return;
+    }
+    
     console.warn(`CORS block for origin: ${origin}`);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 };
 app.use(cors(corsOptions));
 // Using helmet with minimal configuration to avoid Permissions-Policy parsing errors
