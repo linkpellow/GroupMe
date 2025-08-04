@@ -1,0 +1,76 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "quill": {
+      "name": "quill",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1098574,
+          "name": "quill",
+          "dependency": "quill",
+          "title": "Cross-site Scripting in quill",
+          "url": "https://github.com/advisories/GHSA-4943-9vgg-gr5r",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 4.2,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:U/C:L/I:L/A:N"
+          },
+          "range": "<=1.3.7"
+        }
+      ],
+      "effects": [
+        "react-quill"
+      ],
+      "range": "<=1.3.7",
+      "nodes": [
+        "dialer-app/client/node_modules/quill"
+      ],
+      "fixAvailable": {
+        "name": "react-quill",
+        "version": "0.0.2",
+        "isSemVerMajor": true
+      }
+    },
+    "react-quill": {
+      "name": "react-quill",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "quill"
+      ],
+      "effects": [],
+      "range": ">=0.0.3",
+      "nodes": [
+        "dialer-app/client/node_modules/react-quill"
+      ],
+      "fixAvailable": {
+        "name": "react-quill",
+        "version": "0.0.2",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 2,
+      "high": 0,
+      "critical": 0,
+      "total": 2
+    },
+    "dependencies": {
+      "prod": 682,
+      "dev": 769,
+      "optional": 0,
+      "peer": 0,
+      "peerOptional": 0,
+      "total": 1450
+    }
+  }
+}

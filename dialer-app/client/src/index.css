@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Define theme variables */
+:root {
+  --app-background-color: #f5f2e9; /* Default light offwhite with slight yellow/brown tint */
+}
+
+/* Essential styles */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  font-family:
+    "Tektur",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Open Sans",
+    "Helvetica Neue",
+    sans-serif;
+  background-color: var(--app-background-color) !important;
+  transition: background-color 0.3s ease;
+  scrollbar-width: none; /* Firefox */
+  overscroll-behavior: contain;
+}
+
+/* Theme classes */
+.app-container,
+.settings-container,
+.main-content,
+.section-container,
+.section-header,
+.section-content,
+.form-container,
+.tab-container,
+.clients-container {
+  background-color: var(--app-background-color) !important;
+}
+
+/* Higher specificity rules for Clients page */
+body .clients-container,
+html body .clients-container,
+#root .clients-container,
+.app-container .clients-container,
+div.clients-container {
+  background-color: var(--app-background-color) !important;
+  min-height: 100vh !important;
+}
+
+.app-container {
+  min-height: 100vh;
+}
+
+.main-content {
+  padding-top: 64px;
+}
+
+/* Custom styles */
+.login-form {
+  max-width: 400px;
+  margin: 100px auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #357abd;
+}
+
+.nav-container {
+  @apply fixed top-0 left-0 right-0 bg-black h-16 z-50;
+}
+
+.nav-content {
+  @apply max-w-7xl mx-auto px-4 h-full flex items-center gap-6;
+}
+
+.nav-link {
+  @apply text-white no-underline text-base font-medium px-4 py-2 hover:opacity-80;
+}
+
+/* Hide scrollbar when scroll locked */
+.scroll-locked {
+  scrollbar-width: none; /* Firefox */
+}
+.scroll-locked::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Hide all scrollbars globally while retaining scroll ability */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+/* === Brand Gold Hover Overrides (global) === */
+a:hover {
+  color: #EFBF04;
+}
+
+button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover {
+  background-color: #EFBF04;
+  border-color: #EFBF04;
+  color: #000; /* keep text readable atop gold */
+}

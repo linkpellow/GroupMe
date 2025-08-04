@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Direct Entry</title>
+    <style>
+      body {
+        font-family: -apple-system, system-ui, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 400px;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      button {
+        background: #f97316;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .log {
+        margin-top: 20px;
+        padding: 10px;
+        background: #f0f0f0;
+        border-radius: 4px;
+        font-family: monospace;
+        text-align: left;
+        height: 200px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Direct Entry</h1>
+      <p>Click the button to log in and redirect to leads page.</p>
+      <button id="loginButton">Log In</button>
+      <div class="log" id="log"></div>
+    </div>
+
+    <script>
+      // Helper to log messages
+      function addLog(message) {
+        const logEl = document.getElementById("log");
+        logEl.innerHTML += `${new Date().toLocaleTimeString()}: ${message}<br>`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      // First clear any existing tokens and storage
+      addLog("Clearing localStorage...");
+      localStorage.clear();
+      sessionStorage.clear();
+
+      document
+        .getElementById("loginButton")
+        .addEventListener("click", async function () {
+          try {
+            addLog("Attempting login...");
+
+            // Make API call with admin credentials
+            const response = await fetch(
+              "http://localhost:3001/api/auth/login",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  email: "admin@crokodial.com",
+                  password: "admin123",
+                }),
+              },
+            );
+
+            if (!response.ok) {
+              throw new Error(`Login failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+            addLog("Login successful, setting token");
+
+            // Set token directly in localStorage
+            localStorage.setItem("token", data.token);
+
+            // Wait brief moment to ensure token is set
+            await new Promise((r) => setTimeout(r, 500));
+
+            // Log the navigation
+            addLog("Redirecting to leads page...");
+
+            // Navigate to leads with direct=true parameter (which bypasses Auth checks)
+            window.location.replace(
+              "http://localhost:5173/leads?direct=true&bypass=auth",
+            );
+          } catch (error) {
+            addLog(`Error: ${error.message}`);
+          }
+        });
+    </script>
+  </body>
+</html>

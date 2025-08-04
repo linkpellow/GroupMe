@@ -1,0 +1,4 @@
+firstName,lastName,phone,email,city,state,zipCode,source
+John,Smith,555-123-4567,john.smith@test.com,Phoenix,AZ,85001,Test Import
+Jane,Doe,(555) 234-5678,jane.doe@test.com,Dallas,TX,75201,Test Import
+Bob,Johnson,5553456789,bob@test.com,Miami,FL,33101.0,Test Import 

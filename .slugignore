@@ -1,0 +1,24 @@
+# Exclude client/source files that are not required at runtime
+# The compiled static bundle is in dialer-app/client/dist which we keep
+# dialer-app/client/src
+ dialer-app/client/public/direct-entry.html
+ dialer-app/client/public/direct-test.html
+ 
+# Tests and docs
+ **/__tests__/
+ **/tests/
+ **/*.test.*
+ docs/
+ sample/
+ scripts/
+ 
+# Generated uploads and data samples
+ uploads/
+ csv/
+ notes-db/
+ 
+# Backups and temp directories
+ dialer-app-backup-*/
+ dialer-app/temp/
+ 
+# Include everything else 

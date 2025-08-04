@@ -1,0 +1,65 @@
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+// Force WASM-only mode for Rollup
+process.env.ROLLUP_NO_NATIVE = 'true';
+process.env.ROLLUP_WASM = 'true';
+
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    strictPort: true,
+    host: '0.0.0.0',
+    cors: true,
+    hmr: false, // Disable HMR to avoid potential issues
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3005',
+        changeOrigin: true,
+        secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err: any, _req, _res) => {
+            // Only log errors that aren't connection refused
+            if (err.code !== 'ECONNREFUSED') {
+              console.log('vite proxy error:', err);
+            }
+          });
+        },
+      },
+    },
+  },
+  define: {
+    global: 'globalThis',
+    'process.env.VITE_API_BASE': JSON.stringify(mode === 'production' ? '/api' : 'http://localhost:3005/api')
+  },
+  optimizeDeps: {
+    exclude: ['debug'], // Exclude debug from optimization
+    include: ['react', 'react-dom', '@shared/config/queryConfig'],
+    force: true, // Force re-optimization to fix chunk issues
+  },
+  resolve: {
+    dedupe: ['react', 'react-dom'], // Avoid duplicate React instances
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@shared': path.resolve(__dirname, '../shared'),
+    },
+  },
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@chakra-ui/react', '@emotion/react', '@emotion/styled'],
+        },
+      },
+    },
+  },
+}));

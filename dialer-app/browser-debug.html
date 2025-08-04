@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crokodial Browser Debug</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+      button {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        background: #4299e1;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background: #3182ce;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 10px;
+        background: #f7fafc;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        font-family: monospace;
+        min-height: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Crokodial Browser Debug</h1>
+
+      <button id="test-render-btn">Test Basic React Rendering</button>
+      <button id="inject-debug-btn">Inject Debug Overlay</button>
+      <button id="clear-storage-btn">Clear Local Storage</button>
+      <button id="check-app-btn">Check Application State</button>
+      <button id="fix-react-btn">Fix React App</button>
+
+      <div class="result" id="result">Results will appear here</div>
+    </div>
+
+    <script>
+      // Function to show result
+      function showResult(message) {
+        document.getElementById('result').textContent = message;
+      }
+
+      // Test basic React rendering
+      document.getElementById('test-render-btn').addEventListener('click', function() {
+        try {
+          // Create a div to render React
+          const container = document.createElement('div');
+          container.id = 'react-test';
+          container.style.padding = '20px';
+          container.style.margin = '20px 0';
+          container.style.border = '1px solid #ddd';
+          document.body.appendChild(container);
+
+          // Create script tags to load React
+          const reactScript = document.createElement('script');
+          reactScript.src = 'https://unpkg.com/react@18/umd/react.development.js';
+
+          const reactDomScript = document.createElement('script');
+          reactDomScript.src = 'https://unpkg.com/react-dom@18/umd/react-dom.development.js';
+
+          const babelScript = document.createElement('script');
+          babelScript.src = 'https://unpkg.com/babel-standalone@6/babel.min.js';
+
+          // Add the scripts
+          document.head.appendChild(reactScript);
+          document.head.appendChild(reactDomScript);
+          document.head.appendChild(babelScript);
+
+          // Create a script to render a simple React component
+          setTimeout(() => {
+            const testScript = document.createElement('script');
+            testScript.type = 'text/babel';
+            testScript.textContent = `
+              const element = React.createElement('div', null, 'React is working!');
+              ReactDOM.render(element, document.getElementById('react-test'));
+            `;
+            document.body.appendChild(testScript);
+
+            showResult('React test started. Check if "React is working!" appears on the page.');
+          }, 1000);
+        } catch (error) {
+          showResult('Error testing React: ' + error.message);
+        }
+      });
+
+      // Inject debug overlay
+      document.getElementById('inject-debug-btn').addEventListener('click', function() {
+        try {
+          // Create script to inject into the app
+          const script = document.createElement('script');
+          script.textContent = `
+            (function() {
+              console.clear();
+              console.log('%cDEBUG OVERLAY INJECTED', 'color: white; background: green; padding: 5px;');
+
+              // Create debug overlay
+              const overlay = document.createElement('div');
+              overlay.style.position = 'fixed';
+              overlay.style.top = '10px';
+              overlay.style.right = '10px';
+              overlay.style.padding = '10px';
+              overlay.style.background = 'rgba(0,0,0,0.8)';
+              overlay.style.color = 'lime';
+              overlay.style.fontFamily = 'monospace';
+              overlay.style.fontSize = '12px';
+              overlay.style.zIndex = '9999';
+              overlay.style.borderRadius = '5px';
+              overlay.style.maxWidth = '400px';
+              overlay.style.maxHeight = '80vh';
+              overlay.style.overflow = 'auto';
+
+              // Add toggle button
+              const toggleBtn = document.createElement('button');
+              toggleBtn.textContent = 'X';
+              toggleBtn.style.position = 'absolute';
+              toggleBtn.style.top = '5px';
+              toggleBtn.style.right = '5px';
+              toggleBtn.style.background = 'red';
+              toggleBtn.style.color = 'white';
+              toggleBtn.style.border = 'none';
+              toggleBtn.style.borderRadius = '50%';
+              toggleBtn.style.width = '20px';
+              toggleBtn.style.height = '20px';
+              toggleBtn.style.cursor = 'pointer';
+
+              toggleBtn.addEventListener('click', function() {
+                overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+              });
+
+              overlay.appendChild(toggleBtn);
+
+              // Add debug info
+              function updateInfo() {
+                const token = localStorage.getItem('token');
+                const user = localStorage.getItem('user');
+
+                overlay.innerHTML = `
+                  <div style="text-align: right;">
+                    <span style="cursor: pointer; padding: 5px;">[X]</span>
+                  </div>
+                  <h3 style="margin: 0 0 10px 0;">Debug Info</h3>
+                  <div>
+                    <strong>URL:</strong> ${window.location.href}<br>
+                    <strong>Token:</strong> ${token ? 'Present' : 'Missing'}<br>
+                    <strong>User:</strong> ${user ? 'Present' : 'Missing'}<br>
+                    <strong>Components:</strong> ${document.querySelectorAll('div').length} divs<br>
+                  </div>
+                  <div style="margin-top: 10px;">
+                    <button id="debug-highlight-btn">Highlight Structure</button>
+                    <button id="debug-reload-btn">Reload Page</button>
+                    <button id="debug-clear-btn">Clear Storage</button>
+                  </div>
+                `;
+
+                // Add event listeners to buttons
+                overlay.querySelector('#debug-highlight-btn').addEventListener('click', function() {
+                  highlightElements();
+                });
+
+                overlay.querySelector('#debug-reload-btn').addEventListener('click', function() {
+                  window.location.reload();
+                });
+
+                overlay.querySelector('#debug-clear-btn').addEventListener('click', function() {
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  window.location.reload();
+                });
+
+                overlay.querySelector('[style="text-align: right;"]').addEventListener('click', function() {
+                  overlay.style.display = 'none';
+                });
+              }
+
+              function highlightElements() {
+                document.querySelectorAll('div').forEach(div => {
+                  if (div.offsetWidth > 50 && div.offsetHeight > 50) {
+                    const originalBorder = div.style.border;
+                    const originalBg = div.style.backgroundColor;
+
+                    div.style.border = '1px solid rgba(255,0,0,0.5)';
+                    div.style.backgroundColor = 'rgba(255,255,0,0.1)';
+
+                    setTimeout(() => {
+                      div.style.border = originalBorder;
+                      div.style.backgroundColor = originalBg;
+                    }, 5000);
+                  }
+                });
+              }
+
+              updateInfo();
+              setInterval(updateInfo, 2000);
+
+              document.body.appendChild(overlay);
+            })();
+          `;
+
+          // Add the script to the page
+          document.body.appendChild(script);
+
+          showResult('Debug overlay injected. Look for a black box in the top-right corner.');
+
+          // Open the app in a new tab
+          window.open('http://localhost:5173', '_blank');
+        } catch (error) {
+          showResult('Error injecting debug overlay: ' + error.message);
+        }
+      });
+
+      // Clear local storage
+      document.getElementById('clear-storage-btn').addEventListener('click', function() {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          showResult('Local storage and session storage cleared.');
+        } catch (error) {
+          showResult('Error clearing storage: ' + error.message);
+        }
+      });
+
+      // Check application state
+      document.getElementById('check-app-btn').addEventListener('click', function() {
+        try {
+          // Create an iframe to check the app
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          document.body.appendChild(iframe);
+
+          iframe.onload = function() {
+            try {
+              const token = iframe.contentWindow.localStorage.getItem('token');
+              const user = iframe.contentWindow.localStorage.getItem('user');
+
+              let result = 'Application state:\n';
+              result += `Token: ${token ? 'Present' : 'Missing'}\n`;
+              result += `User: ${user ? 'Present' : 'Missing'}\n`;
+
+              if (user) {
+                try {
+                  const userData = JSON.parse(user);
+                  result += `User data: ${JSON.stringify(userData, null, 2)}\n`;
+                } catch (e) {
+                  result += `Error parsing user data: ${e.message}\n`;
+                }
+              }
+
+              result += `URL: ${iframe.contentWindow.location.href}\n`;
+
+              showResult(result);
+
+              // Clean up
+              document.body.removeChild(iframe);
+            } catch (error) {
+              showResult('Error accessing iframe: ' + error.message);
+              document.body.removeChild(iframe);
+            }
+          };
+
+          iframe.src = 'http://localhost:5173';
+        } catch (error) {
+          showResult('Error checking application state: ' + error.message);
+        }
+      });
+
+      // Fix React app
+      document.getElementById('fix-react-btn').addEventListener('click', function() {
+        try {
+          // Set a valid authentication token
+          const validToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiIxMjM0NTY3ODkwIiwiaWQiOiIxMjM0NTY3ODkwIiwiaWF0IjoxNjE2MjM5MDIyLCJleHAiOjE2MTYyMzk2MjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+          localStorage.setItem('token', validToken);
+
+          // Set user data
+          const userData = {
+            _id: '1234567890',
+            id: '1234567890',
+            name: 'Admin User',
+            email: 'admin@crokodial.com',
+            role: 'admin'
+          };
+          localStorage.setItem('user', JSON.stringify(userData));
+
+          showResult('React app fixed. Authentication token and user data set. Reload the app.');
+
+          // Open the app in a new tab
+          window.open('http://localhost:5173', '_blank');
+        } catch (error) {
+          showResult('Error fixing React app: ' + error.message);
+        }
+      });
+    </script>
+  </body>
+</html>
